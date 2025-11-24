@@ -1,0 +1,19 @@
+:root {
+  --vp-c-brand-1: #0e7695;
+  --vp-c-brand-2: #0c6681;
+  --vp-c-brand-3: #095469;
+  --vp-c-brand-soft: #0e76951a;
+}
+
+.dark {
+  --vp-c-brand-1: #26a7c6;
+  --vp-c-brand-2: #1390ad;
+  --vp-c-brand-3: #0e7695;
+  --vp-c-brand-soft: #26a7c622;
+}
+
+.VPHomeHero {
+  .VPImage {
+    user-select: none;
+  }
+}

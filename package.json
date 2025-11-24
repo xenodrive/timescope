@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "license": "NONE",
+  "scripts": {
+    "dev": "pnpm run -C packages/timescope dev",
+    "docs": "pnpm run -C packages/timescope-docs start",
+    "build": "pnpm run --parallel build"
+  }
+}

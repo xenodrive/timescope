@@ -1,0 +1,6 @@
+dist/
+files/
+playground/
+.vite
+.local
+node_modules

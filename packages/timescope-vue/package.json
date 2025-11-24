@@ -1,0 +1,42 @@
+{
+  "name": "timescope-vue",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1-alpha.0",
+  "description": "",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsdown",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Xenodrive, Inc.",
+  "license": "MIT",
+  "homepage": "https://xenodrive.github.io/timescope/",
+  "repository": {
+    "url": "https://github.com/xenodrive/timescope"
+  },
+  "main": "./src/index.ts",
+  "exports": {
+    "import": "./src/index.ts"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.2",
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "@vue/eslint-config-typescript": "^14.6.0",
+    "eslint-plugin-vue": "^10.6.2",
+    "jiti": "^2.6.1",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "tsdown": "^0.16.8",
+    "typescript": "^5.9.3",
+    "unplugin-dts": "1.0.0-beta.6",
+    "unplugin-vue": "^7.0.8",
+    "vite": "^7.2.6",
+    "vite-plugin-externalize-deps": "^0.10.0",
+    "vue-tsc": "^3.1.5"
+  },
+  "dependencies": {
+    "vue": "^3.5.25",
+    "timescope": "workspace:*"
+  }
+}

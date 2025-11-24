@@ -1,0 +1,25 @@
+{
+  "name": "timescope-docs",
+  "private": true,
+  "version": "0.0.1-alpha.0",
+  "type": "module",
+  "description": "Timescope docs",
+  "license": "MIT",
+  "scripts": {
+    "start": "pnpm run dev",
+    "dev": "vitepress dev .",
+    "build": "vitepress build .",
+    "preview": "vitepress preview ."
+  },
+  "devDependencies": {
+    "@braintree/sanitize-url": "^7.1.1",
+    "@types/node": "^24.10.1",
+    "dayjs": "^1.11.19",
+    "debug": "^4.4.3",
+    "mermaid": "^11.12.1",
+    "timescope": "workspace:*",
+    "typescript": "^5.9.3",
+    "vitepress": "2.0.0-alpha.15",
+    "vitepress-plugin-mermaid": "^2.0.17"
+  }
+}

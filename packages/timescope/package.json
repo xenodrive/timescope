@@ -1,0 +1,56 @@
+{
+  "name": "timescope",
+  "private": true,
+  "version": "0.0.1-alpha.0",
+  "type": "module",
+  "description": "Timescope - Canvas for Time-Series Visualization",
+  "author": "Xenodrive, Inc.",
+  "license": "MIT",
+  "homepage": "https://xenodrive.github.io/timescope/",
+  "repository": {
+    "url": "https://github.com/xenodrive/timescope"
+  },
+  "scripts": {
+    "dev": "vite",
+    "test": "tsc --noEmit && vitest run",
+    "build": "tsdown",
+    "watch": "tsdown -w",
+    "lint": "eslint ./src",
+    "format": "prettier --check .",
+    "type:check": "tsc --noEmit"
+  },
+  "types": "./src/index.ts",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "imports": {
+    "#src/*": "./src/*.ts"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^2.0.0",
+    "@eslint/js": "^9.39.1",
+    "@kikuchan/decimal": "0.1.0-alpha.4",
+    "@mdi/svg": "^7.4.47",
+    "@napi-rs/canvas": "^0.1.83",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@types/node": "^24.10.1",
+    "@vitejs/plugin-vue": "^6.0.2",
+    "@vitest/web-worker": "^4.0.14",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "jsdom": "^27.2.0",
+    "prettier": "^3.7.3",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "rolldown-plugin-inline-worker": "0.0.1-alpha.1",
+    "tsdown": "^0.16.8",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.1",
+    "vite": "^7.2.6",
+    "vitest": "^4.0.14"
+  }
+}
