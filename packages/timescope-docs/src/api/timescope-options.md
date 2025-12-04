@@ -100,7 +100,7 @@ series: {
 | `chart.marks` | `Mark[]` | Visual marks per sample (`circle`, `box`, `text`, etc.). |
 | `chart.links` | `Link[]` | Connections between samples (`line`, `area`, etc.). |
 | `tooltip` | `boolean \| { label?: string; format?: () => string }` | Enable/disable tooltip and override label or formatter. |
-| `yAxis` | `'left' \| 'right' \| { side?: 'left' \| 'right'; label?: string }` | Position or label the per-series Y-axis. |
+| `yAxis` | `'left' \| 'right' \| { side?: 'left' \| 'right'; label?: string }` | <s>Position or label the per-series Y-axis.</s> <span style="color: #f00">Not implemented yet.</span> |
 | `track` | `string` | Target track name. |
 
 ### Chart Presets
