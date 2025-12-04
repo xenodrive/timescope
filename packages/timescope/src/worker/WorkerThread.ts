@@ -421,6 +421,4 @@ export function createTimescopeWorkerThread(
   };
 
   requestAnimationFrame(update);
-
-  setInterval(() => viewChanged(), 1000);
 }

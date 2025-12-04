@@ -214,12 +214,15 @@ export class TimescopeDataCache<
       chunk.expires = Infinity;
 
       chunk._loading = true;
-      this.#loader(chunk).then((result) => {
-        chunk._loading = false;
-        chunk.expires = result?.expires ?? chunk.expires;
+      this.#loader(chunk)
+        .then((result) => {
+          chunk.expires = result?.expires ?? chunk.expires;
 
-        this.#mergeChunk(result, result.data);
-      });
+          this.#mergeChunk(result, result.data);
+        })
+        .finally(() => {
+          chunk._loading = false;
+        });
     });
 
     this.#purgeChunks(timescope, chunks);
