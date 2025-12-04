@@ -56,6 +56,7 @@ export default defineConfig([
                 types: './index.d.ts',
                 browser: './browser.js',
                 import: './index.js',
+                require: './index.js',
               },
             },
             imports: undefined,
