@@ -8,7 +8,7 @@ const pkgRoot = resolve(__dirname, '..');
 export default withMermaid({
   head: [
     ['link', { rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css' }],
-    ['link', { rel: 'icon', href: '/timescope/logo.png' }],
+    ['link', { rel: 'icon', href: '/timescope/logo.svg' }],
   ],
   title: 'Timescope',
   description: 'Canvas for Time-Series Visualization',
