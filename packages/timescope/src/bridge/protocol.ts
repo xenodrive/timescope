@@ -162,7 +162,7 @@ export type TimescopeSeriesProviderData = {
 export type TimescopeSeriesProviderMeta = {
   min: Decimal;
   max: Decimal;
-  amp: Decimal;
+  amp?: Decimal;
 };
 
 export type TimescopeTimeAxisProviderData = {

@@ -92,7 +92,7 @@ export class TimescopeDataSeries {
     new LRUCache({
       maxSize: 256,
     });
-  #minmax: { min: Decimal; max: Decimal } = { min: Decimal(0), max: Decimal(1) };
+  #minmax: { min?: Decimal; max?: Decimal } = {};
 
   #color;
 
@@ -224,9 +224,9 @@ export class TimescopeDataSeries {
   }
 
   get dataRange() {
-    const [, amp] = minmax(this.#minmax.min.abs(), this.#minmax.max.abs());
+    const amp = Decimal.max(this.#minmax.min?.abs(), this.#minmax?.max?.abs());
 
-    return { ...this.#minmax, amp: amp! };
+    return { ...this.#minmax, amp };
   }
 }
 

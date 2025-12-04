@@ -20,7 +20,7 @@ import { TimescopeRenderer } from '#src/worker/renderer/TimescopeRenderer';
 import type { TimescopeRenderingContext } from '#src/worker/types';
 import { clipToTrack } from '#src/worker/utils';
 import { createScaleY } from '../scale';
-import type { TimescopeDataCache } from '../TimescopeDataCache';
+import type { TimescopeDataCacheSeries } from '../TimescopeDataCacheSeries';
 
 type Point = { x: Record<string, number>; y: Record<string, number> };
 type StepPoint = { x: number; y: number };
@@ -871,7 +871,7 @@ export class TimescopeSeriesChartRenderer extends TimescopeRenderer {
       const trackId = series.track ?? timescope.tracks[0].id;
       const track = timescope.tracks.find((t) => t.id === trackId)!;
 
-      const { data, meta, revision } = timescope.dataCaches[`series:${k}:chart`] as TimescopeDataCache<
+      const { data, meta, revision } = timescope.dataCaches[`series:${k}:chart`] as TimescopeDataCacheSeries<
         TimescopeSeriesChartProviderData,
         TimescopeSeriesChartProviderMeta
       >;

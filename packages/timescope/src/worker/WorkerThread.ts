@@ -23,6 +23,7 @@ import { TimescopeTimeAxis } from '#src/worker/TimescopeTimeAxis';
 import { TimescopeTrack } from '#src/worker/TimescopeTrack';
 import type { Interaction, TimescopeRenderingContext } from '#src/worker/types';
 import { clipToTrack } from '#src/worker/utils';
+import { TimescopeDataCacheSeries } from './TimescopeDataCacheSeries';
 
 declare global {
   interface FontFaceSet {
@@ -171,7 +172,7 @@ export function createTimescopeWorkerThread(
       return r;
     }
 
-    const r = new TimescopeDataCache(options);
+    const r = key.startsWith('series:') ? new TimescopeDataCacheSeries(options) : new TimescopeDataCache(options);
     r.on('change', () => render());
     r.on('datachanged', async () => viewChanged());
     return r;
