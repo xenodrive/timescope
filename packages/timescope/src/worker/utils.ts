@@ -25,7 +25,7 @@ export function clipToTrack(
 
   renderingContext.chart.ox = renderingContext.options.padding![3] ?? 0;
   renderingContext.chart.oy = renderingContext.options.padding![0] ?? 0;
-  renderingContext.chart.width = size.width - renderingContext.chart.ox - renderingContext.options.padding![3];
+  renderingContext.chart.width = size.width - renderingContext.chart.ox - renderingContext.options.padding![1];
   renderingContext.chart.height = size.height - renderingContext.chart.oy - renderingContext.options.padding![2];
   renderingContext.size.width = size.width;
   renderingContext.size.height = size.height;
