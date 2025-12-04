@@ -344,8 +344,11 @@ export interface TimescopeOptionsInitial<
   Track extends string,
 >
   extends TimescopeOptions<Source, SourceName, TimeDef, ValueDef, Track>, TimescopeStateOptions {
+
   target?: HTMLElement | string;
   fonts?: (string | TimescopeFont)[];
+
+  wheelSensitivity?: number;
 }
 
 export function createDefineTimescopeOptions(wrapper?: (opts: object) => object) {

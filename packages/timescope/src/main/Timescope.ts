@@ -18,7 +18,18 @@ import { zoomFor, type ZoomLike } from '#src/core/zoom';
 import { InteractionManager } from '#src/main/InteractionManager';
 import { TimescopeWorkerRenderer } from '#src/main/TimescopeWorkerRenderer';
 
-// --------------------------------------------------------------
+function normalizeWheel(e: WheelEvent) {
+  const delta = e.deltaY;
+
+  switch (e.deltaMode) {
+    case WheelEvent.DOM_DELTA_LINE:
+      return delta * 16;
+    case WheelEvent.DOM_DELTA_PAGE:
+      return delta * window.innerHeight;
+  }
+
+  return delta;
+}
 
 export type TimescopeSize = {
   /** Canvas x position in the viewport. */
@@ -80,6 +91,8 @@ export class Timescope<
 
   #options: TimescopeOptions;
   #fonts: (string | TimescopeFont)[];
+
+  #wheelSensitivity;
 
   get time(): Decimal | null {
     return this.#state.time.value?.clone() ?? null;
@@ -264,9 +277,8 @@ export class Timescope<
     if (this.#disabled) return;
     e.preventDefault();
 
-    const sensitivity = config.wheelStep;
-
-    this.#state.setZoom(this.#state.zoom.committing.add(e.deltaY < 0 ? sensitivity : -sensitivity));
+    const deltaY = normalizeWheel(e);
+    this.#state.setZoom(this.#state.zoom.committing.add(-deltaY / this.#wheelSensitivity));
   }
 
   constructor(opts?: TimescopeOptionsInitial<Source, SourceName, TimeDef, ValueDef, Track>) {
@@ -280,6 +292,7 @@ export class Timescope<
     this.#fonts = _opts.fonts ?? [];
 
     if (_opts.target) this.mount(_opts.target);
+    this.#wheelSensitivity = _opts.wheelSensitivity ?? config.wheelSensitivity;
   }
 
   reload(sources?: (keyof SourceName & string)[]) {

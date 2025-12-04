@@ -6,5 +6,5 @@ export default {
   defaultChunkSize: 256, // in pixels
   base: 2,
   chunkStep: 1,
-  wheelStep: 0.5,
+  wheelSensitivity: 200,
 } as const;
