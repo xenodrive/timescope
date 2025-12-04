@@ -67,6 +67,7 @@ fonts: [{
 | `setTimeRange(range?)` | Constrain the time domain. Pass `undefined` to restore defaults. |
 | `setZoom(value, animation?)` | Set zoom programmatically. See [Animation](#animation). |
 | `setZoomRange(range?)` | Clamp zoom to `[min, max]`. |
+| `fitTo(range, options?)` | Center and zoom to show `[start, end]` fully. |
 | `setSelection(range?)` | Highlight `[start, end]` on the canvas; emits range events while the selection overlay updates. |
 | `clearSelection()` | Remove the selection overlay. |
 | `setOptions(next)` | Replace style, sources, or series at runtime. |

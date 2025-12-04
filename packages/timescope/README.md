@@ -71,6 +71,6 @@ new Timescope({
 });
 ```
 
-## Docs
+## Documents
 
 See the [documents](https://xenodrive.github.io/timescope/) for more details.
