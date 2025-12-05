@@ -30,6 +30,8 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: pnpm
 
+      - run: npm install -g npm@latest
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -39,5 +41,5 @@ jobs:
       - name: Publish to npm
         run: |
           for pkg in dist/*; do
-            npm publish "$pkg" --access public --tag latest --provenance
+            (cd "$pkg"; npm publish --access public --tag latest)
           done
