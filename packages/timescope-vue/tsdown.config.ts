@@ -3,9 +3,13 @@ import path from 'node:path';
 import { defineConfig } from 'tsdown';
 import Vue from 'unplugin-vue/rolldown';
 
+function pkgPath(pkgName: string) {
+  return pkgName.replace('/', '--');
+}
+
 const root = import.meta.dirname;
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf-8'));
-const outDir = path.join(root, '..', '..', 'dist', path.basename(pkg.name));
+const outDir = path.join(root, '..', '..', 'dist', pkgPath(pkg.name));
 
 function replaceRecursive(obj: Record<string, unknown>, replacer: (s: string, k: string) => string) {
   const results: Record<string, unknown> = {};
@@ -33,33 +37,32 @@ export default defineConfig({
   outDir,
 
   onSuccess() {
-    fs.writeFileSync(
-      path.join(outDir, 'package.json'),
-      JSON.stringify(
-        {
-          ...pkg,
+    const pkgJson = {
+      ...pkg,
+      types: './index.d.ts',
+      main: './index.js',
+      exports: {
+        '.': {
           types: './index.d.ts',
-          main: './index.js',
-          exports: {
-            '.': {
-              types: './index.d.ts',
-              import: './index.js',
-            },
-          },
-          dependencies: replaceRecursive(pkg.dependencies, (s, k) => {
-            if (s !== 'workspace:*') return s;
-
-            const ppkg = JSON.parse(fs.readFileSync(path.join(root, '..', path.basename(k), 'package.json'), 'utf-8'));
-            if (ppkg?.version) return `^${ppkg.version}`;
-            return '*';
-          }),
-          devDependencies: undefined,
-          scripts: undefined,
-          private: undefined,
+          import: './index.js',
+          require: './index.js',
         },
-        null,
-        2,
-      ),
-    );
+      },
+      dependencies: replaceRecursive(pkg.dependencies, (s, k) => {
+        if (s !== 'workspace:*') return s;
+
+        const ppkg = JSON.parse(fs.readFileSync(path.join(root, '..', pkgPath(k), 'package.json'), 'utf-8'));
+        if (ppkg?.version) return `^${ppkg.version}`;
+        return '*';
+      }),
+      devDependencies: undefined,
+      scripts: undefined,
+      private: undefined,
+    };
+
+    // XXX: sync package version
+    pkgJson.version = pkgJson.dependencies.timescope;
+
+    fs.writeFileSync(path.join(outDir, 'package.json'), JSON.stringify(pkgJson, null, 2));
   },
 });

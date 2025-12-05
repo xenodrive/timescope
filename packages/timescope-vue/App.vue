@@ -4,7 +4,7 @@
 </template>
 
 <script lang="ts" setup>
-import { Timescope } from 'timescope-vue';
+import { Timescope } from '@timescope/vue';
 import { ref } from 'vue';
 
 const time = ref();
