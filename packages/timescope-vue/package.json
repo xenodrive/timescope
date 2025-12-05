@@ -1,8 +1,8 @@
 {
-  "name": "timescope-vue",
+  "name": "@timescope/vue",
   "private": true,
   "type": "module",
-  "version": "0.0.1-alpha.0",
+  "version": "0.0.0-alpha.0",
   "description": "",
   "scripts": {
     "dev": "vite",
@@ -27,10 +27,10 @@
     "eslint-plugin-vue": "^10.6.2",
     "jiti": "^2.6.1",
     "prettier-plugin-organize-imports": "^4.3.0",
-    "tsdown": "^0.16.8",
+    "tsdown": "^0.17.0",
     "typescript": "^5.9.3",
     "unplugin-dts": "1.0.0-beta.6",
-    "unplugin-vue": "^7.0.8",
+    "unplugin-vue": "^7.1.0",
     "vite": "^7.2.6",
     "vite-plugin-externalize-deps": "^0.10.0",
     "vue-tsc": "^3.1.5"

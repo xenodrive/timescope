@@ -39,18 +39,18 @@
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/node": "^24.10.1",
     "@vitejs/plugin-vue": "^6.0.2",
-    "@vitest/web-worker": "^4.0.14",
+    "@vitest/web-worker": "^4.0.15",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "jsdom": "^27.2.0",
-    "prettier": "^3.7.3",
+    "prettier": "^3.7.4",
     "prettier-plugin-organize-imports": "^4.3.0",
     "rolldown-plugin-inline-worker": "0.0.1-alpha.1",
-    "tsdown": "^0.16.8",
+    "tsdown": "^0.17.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.48.1",
     "vite": "^7.2.6",
-    "vitest": "^4.0.14"
+    "vitest": "^4.0.15"
   }
 }

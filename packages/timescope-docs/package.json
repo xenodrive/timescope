@@ -16,7 +16,7 @@
     "@types/node": "^24.10.1",
     "dayjs": "^1.11.19",
     "debug": "^4.4.3",
-    "mermaid": "^11.12.1",
+    "mermaid": "^11.12.2",
     "timescope": "workspace:*",
     "typescript": "^5.9.3",
     "vitepress": "2.0.0-alpha.15",
