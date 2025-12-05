@@ -61,7 +61,7 @@ export default defineConfig({
     };
 
     // XXX: sync package version
-    pkgJson.version = pkgJson.dependencies.timescope;
+    pkgJson.version = pkgJson.dependencies.timescope.substring(1);
 
     fs.writeFileSync(path.join(outDir, 'package.json'), JSON.stringify(pkgJson, null, 2));
   },
