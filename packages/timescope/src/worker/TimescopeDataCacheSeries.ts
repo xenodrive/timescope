@@ -30,5 +30,6 @@ export class TimescopeDataCacheSeries<
     this.#meta = meta;
     if (meta.min) this.#min.setValue(meta.min, this.#min.committed ? { animation: 'linear', duration: 200 } : false);
     if (meta.max) this.#max.setValue(meta.max, this.#max.committed ? { animation: 'linear', duration: 200 } : false);
+    this.#update();
   }
 }
