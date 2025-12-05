@@ -7,11 +7,11 @@ const pkgRoot = resolve(__dirname, '..');
 
 export default withMermaid({
   head: [
-    ['link', { rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css' }],
     ['link', { rel: 'icon', href: '/timescope/logo.svg' }],
+    ["meta", { property: "og:image", content: "https://xenodrive.github.io/timescope/ogp.png" }],
   ],
   title: 'Timescope',
-  description: 'Canvas for Time-Series Visualization',
+  titleTemplate: ':title - Canvas for Time-Series Visualization',
   srcDir: './src',
   outDir: './dist',
   base: '/timescope/',
