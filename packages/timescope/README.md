@@ -1,6 +1,6 @@
 # Timescope
 
-A high-performance, infinite-scrolling time-series chart visualization library with smooth animations powered by WebWorker.
+Canvas for Time-Series Visualization
 
 ## Features
 
