@@ -40,15 +40,7 @@ const timescope = new Timescope({
         range: [undefined, undefined],
         color: '#f59e0b'
       },
-      chart: {
-        links: [
-          { draw: 'curve' },
-        ],
-        marks: [
-          { draw: 'circle' },
-        ],
-      },
-      tooltip: true,
+      chart: 'curvespoints',
       track: 'main',
     },
   },
