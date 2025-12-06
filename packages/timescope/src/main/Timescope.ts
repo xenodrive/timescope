@@ -106,6 +106,10 @@ export class Timescope<
     this.#state.setTime(v, animation);
   }
 
+  get timeForAnimation() {
+    return this.#state.time.current?.clone() ?? null;
+  }
+
   get timeRange(): Range<Decimal | null | undefined> {
     return this.#state.time.domain.map((x) => (x == null ? x : x.clone())) as Range<Decimal | null | undefined>;
   }
