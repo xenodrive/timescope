@@ -1,7 +1,7 @@
 {
   "name": "timescope",
   "private": true,
-  "version": "0.0.0-alpha.2",
+  "version": "0.0.0-alpha.3",
   "type": "module",
   "description": "Timescope - Canvas for Time-Series Visualization",
   "author": "Xenodrive, Inc.",

@@ -54,10 +54,10 @@ export default defineConfig([
             exports: {
               '.': {
                 types: './index.d.ts',
-                browser: './browser.js',
                 import: './index.js',
                 require: './index.js',
               },
+              './browser.js': './browser.js',
             },
             imports: undefined,
             dependencies: replaceRecursive(pkg.dependencies, (s, k) => {
