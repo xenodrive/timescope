@@ -5,6 +5,7 @@ import {
   alignToMonth,
   alignToSecond,
   alignToYear,
+  dayOfWeek,
   epochSecondsToLocalDateTime,
   nextDay,
   nextMonth,
@@ -15,7 +16,13 @@ import config from '#src/core/config';
 import { Decimal } from '#src/core/decimal';
 import type { Range } from '#src/core/range';
 import { type TimeUnit } from '#src/core/time';
-import type { CalendarLevel, TimeFormatFunc, TimeFormatFuncOptions, TimescopeTimeAxisOptions } from '#src/core/types';
+import type {
+  CalendarLevel,
+  TimeFormatFuncOptions,
+  TimeFormatLabeler,
+  TimeFormatLabelerOptions,
+  TimescopeTimeAxisOptions,
+} from '#src/core/types';
 import { TimescopeDataProvider } from '#src/main/providers/TimescopeDataProvider';
 import { normalizeOptions } from '#src/worker/utils';
 
@@ -32,11 +39,30 @@ export type TickLabel = {
   major?: boolean;
 };
 
-function formatDecimal({ time, digits }: TimeFormatFuncOptions): string {
+function defaultTimeFormatRelative({
+  time,
+  digits,
+  labeler,
+}: TimeFormatFuncOptions & { labeler?: TimeFormatLabeler }): string {
+  const lopts: TimeFormatLabelerOptions = {
+    year: 0n,
+    quarter: 0,
+    month: 0,
+    day: 0,
+    hour: 0,
+    minute: 0,
+    subseconds: time.sub(time.integer()),
+    week: 0,
+
+    second: time.integer(),
+    digits,
+    time,
+  };
   if (digits > 0) {
-    return time.toFixed(digits);
+    const parts = time.toFixed(digits).split('.');
+    return labeler?.seconds?.(lopts) ?? parts[0] + '.' + toSmallDigits(parts[1]);
   }
-  return time.toString();
+  return labeler?.seconds?.(lopts) ?? time.toString();
 }
 
 export function scaleTimeUnit(v: Decimal, from: TimeUnit, to: TimeUnit): Decimal {
@@ -52,7 +78,8 @@ export function scaleTimeUnit(v: Decimal, from: TimeUnit, to: TimeUnit): Decimal
 function* createLinearTicks(range: Range<Decimal | undefined>, resolution: Decimal, options: TimescopeTimeAxisOptions) {
   if (!range[0] || !range[1]) return;
 
-  const timeFormat = (options.timeFormat ?? formatDecimal) as TimeFormatFunc;
+  const timeFormat = typeof options.timeFormat === 'function' ? options.timeFormat : undefined;
+  const timeLabeler = typeof options.timeFormat !== 'function' ? options.timeFormat : {};
 
   const chunkSize = Decimal(config.defaultChunkSize);
   const effectiveResolution = resolution.mul(chunkSize);
@@ -88,19 +115,19 @@ function* createLinearTicks(range: Range<Decimal | undefined>, resolution: Decim
     if (current.lt(range[0]!)) continue;
 
     const major = index.mod(divisorDecimal).isZero();
+    const opts: TimeFormatFuncOptions = {
+      time: current,
+      unit: options.timeUnit ?? 's',
+      level: 'relative',
+      digits,
+      stride: undefined,
+    };
+
     yield {
       time: { time: current },
       major,
       tick: true,
-      text: major
-        ? timeFormat({
-            time: current,
-            unit: options.timeUnit ?? 's',
-            level: 'relative',
-            digits,
-            stride: undefined,
-          })
-        : '',
+      text: major ? (timeFormat?.(opts) ?? defaultTimeFormatRelative({ ...opts, labeler: timeLabeler })) : '',
     };
   }
 }
@@ -530,54 +557,82 @@ function forgeCalendarContext(resolution: Decimal): CalendarContext | null {
 }
 
 function toSmallDigits(s: string) {
-  //return s.replace(/[0-9]/g, (v) => String.fromCodePoint(v.charCodeAt(0) - 48 + '０'.charCodeAt(0)));
   return s.replace(/[0-9]/g, (v) => String.fromCodePoint(v.charCodeAt(0) - 48 + '₀'.charCodeAt(0)));
 }
 
-function defaultLabelFunction(opts: TimeFormatFuncOptions & CalendarContext): string {
+function defaultTimeFormatCalendar(
+  opts: TimeFormatFuncOptions & CalendarContext & { labeler?: TimeFormatLabeler },
+): string {
   const { time, unit } = opts;
   const context = opts;
   const { year, month, day, hour, minute, second, subseconds } = epochSecondsToLocalDateTime(
     scaleTimeUnit(time, unit, 's'),
   );
+  const week = dayOfWeek({ year, month, day });
+  const quarter = Math.floor((Number(month) - 1) / 3) + 1;
 
   const padNumber = (value: number | bigint, length: number) => value.toString().padStart(length, '0');
   const pad2 = (value: number | bigint) => padNumber(value, 2);
 
-  const formatYearLabel = (value: bigint) => {
-    if (value > 0n) return value.toString();
-    const bc = (1n - value).toString();
-    return ` ${bc} BC`;
+  const labeler = opts.labeler ?? {};
+
+  const lopts: TimeFormatLabelerOptions = {
+    year,
+    quarter,
+    month: Number(month),
+    day: Number(day),
+    hour: Number(hour),
+    minute: Number(minute),
+    second,
+    subseconds,
+    week,
+    digits: context.digits,
+    time,
   };
-  const formatDateLabel = () => `${pad2(month)}/${pad2(day)}`;
-  const formatHourMinuteLabel = () => `${pad2(hour)}:${pad2(minute)}`;
+
+  const formatYearLabel =
+    labeler.year ??
+    (() => {
+      if (year > 0n) return year.toString();
+      const bc = (1n - year).toString();
+      return ` ${bc} BC`;
+    });
+  const formatQuarterLabel =
+    labeler.quarter ??
+    (() => {
+      if (quarter === 1) return `${formatYearLabel(lopts)} Q${quarter}`;
+      return `Q${quarter}`;
+    });
+  const formatMonthLabel = labeler.month ?? (() => `${formatYearLabel(lopts)}/${pad2(month)}`);
+  const formatDateLabel =
+    labeler.date ??
+    (() => {
+      const weekMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      return `${pad2(month)}/${pad2(day)}(${weekMap[week]})`;
+    });
+  const formatHourMinuteLabel = labeler?.minutes ?? (() => `${pad2(hour)}:${pad2(minute)}`);
 
   const digits = context.digits > 0 ? '.' + toSmallDigits(subseconds.toFixed(context.digits).split('.')[1]) : '';
-  const formatSecondLabel = () => `${pad2(hour)}:${pad2(minute)}:${pad2(second)}${digits}`;
+  const formatSecondLabel = labeler.seconds ?? (() => `${pad2(hour)}:${pad2(minute)}:${pad2(second)}${digits}`);
 
   switch (context.level) {
     case 'subsecond':
     case 'second':
-      if (hour === 0n && minute === 0n && second === 0n && subseconds.eq(0)) return formatDateLabel();
-      return formatSecondLabel();
+      if (hour === 0n && minute === 0n && second === 0n && subseconds.eq(0)) return formatDateLabel(lopts);
+      return formatSecondLabel(lopts);
     case 'minute':
     case 'hour':
-      if (hour === 0n && minute === 0n) return formatDateLabel();
-      return formatHourMinuteLabel();
+      if (hour === 0n && minute === 0n) return formatDateLabel(lopts);
+      return formatHourMinuteLabel(lopts);
     case 'day':
-      return formatDateLabel();
+      return formatDateLabel(lopts);
     case 'month': {
-      const stride = context.stride ?? 1n;
-      if (stride === 3n) {
-        const quarter = Math.floor((Number(month) - 1) / 3) + 1;
-        if (quarter === 1) return `${formatYearLabel(year)} Q${quarter}`;
-        return `Q${quarter}`;
-      }
-      return `${formatYearLabel(year)}/${pad2(month)}`;
+      if (context.stride === 3n) return formatQuarterLabel(lopts);
+      return formatMonthLabel(lopts);
     }
     case 'year':
     default:
-      return formatYearLabel(year);
+      return formatYearLabel(lopts);
   }
 }
 
@@ -597,7 +652,6 @@ function* createCalendarTicks(
   if (!range[0] || !range[1]) return;
 
   const unit = options.timeUnit ?? 's';
-  const timeFormat = (options.timeFormat ?? defaultLabelFunction) as TimeFormatFunc;
 
   const start = scaleTimeUnit(range[0], unit, 's');
   const end = scaleTimeUnit(range[1], unit, 's');
@@ -606,6 +660,8 @@ function* createCalendarTicks(
 
   const context: CalendarContext | null = forgeCalendarContext(resolution);
   if (!context) return;
+
+  const timeFormat = typeof options.timeFormat === 'function' ? options.timeFormat : undefined;
 
   let majorTime: Decimal | null = context.major.align(start);
   let minorTime: Decimal | null = context.minor?.align(start) ?? null;
@@ -619,7 +675,14 @@ function* createCalendarTicks(
           time: { time },
           major: true,
           tick: true,
-          text: timeFormat({ time, unit, ...context }),
+          text:
+            timeFormat?.({ time, unit, ...context }) ??
+            defaultTimeFormatCalendar({
+              time,
+              unit,
+              ...context,
+              labeler: typeof options.timeFormat !== 'function' ? options.timeFormat : undefined,
+            }),
         };
       }
 

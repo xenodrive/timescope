@@ -139,6 +139,11 @@ export function decimalToEpochSeconds(value: Decimal): bigint {
   return value.integer();
 }
 
+// returns 0: Sunday, ... 6: Saturday
+export function dayOfWeek(date: { year: bigint; month: bigint; day: bigint }): number {
+  return Number(floorMod(daysFromCivil(date.year, date.month, date.day) + 4n, 7n));
+}
+
 export function epochSecondsToLocalDateTime(value: Decimal): LocalDateTime {
   const [epochIntegral] = value.split();
   const epochSeconds = epochIntegral.integer();

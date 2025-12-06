@@ -294,12 +294,37 @@ export type TimescopeOptionsSeries<
   >;
 };
 
+export type TimeFormatLabelerOptions = {
+  year: bigint;
+  quarter: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+
+  second: bigint;
+  subseconds: Decimal;
+
+  time: Decimal;
+  week: number;
+  digits: number;
+};
+
+export type TimeFormatLabeler = {
+  year?: (opts: TimeFormatLabelerOptions) => string;
+  month?: (opts: TimeFormatLabelerOptions) => string;
+  quarter?: (opts: TimeFormatLabelerOptions) => string;
+  date?: (opts: TimeFormatLabelerOptions) => string;
+  minutes?: (opts: TimeFormatLabelerOptions) => string; // typically `HH:mm`
+  seconds?: (opts: TimeFormatLabelerOptions) => string; // typically `HH:mm:ss.SSS...`
+};
+
 export type TimescopeTimeAxisOptions = {
   axis?: false | { color?: string };
   ticks?: false | { color?: string };
   labels?: false | TextStyleOptions;
   relative?: boolean;
-  timeFormat?: TimeFormatFunc;
+  timeFormat?: TimeFormatFunc | TimeFormatLabeler;
   timeUnit?: 's' | 'ms' | 'us' | 'ns';
 };
 
@@ -344,7 +369,6 @@ export interface TimescopeOptionsInitial<
   Track extends string,
 >
   extends TimescopeOptions<Source, SourceName, TimeDef, ValueDef, Track>, TimescopeStateOptions {
-
   target?: HTMLElement | string;
   fonts?: (string | TimescopeFont)[];
 
