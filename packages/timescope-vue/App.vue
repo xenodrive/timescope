@@ -1,5 +1,7 @@
 <template>
-  <Timescope v-model:time="time" v-model:zoom="zoom" />
+  <div style="display: flex; flex-direction: column">
+    <Timescope v-model:time="time" v-model:zoom="zoom" stack="vertical" width="100%" />
+  </div>
   time: {{ time }}, zoom {{ zoom }}
 </template>
 

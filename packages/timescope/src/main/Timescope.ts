@@ -333,6 +333,7 @@ export class Timescope<
     this.#state.zoom.restore();
 
     new ResizeObserver(() => this.#resize()).observe(this.#element);
+    this.#resize();
 
     // change event chain
     this.#renderer.on('change', () => this.changed());

@@ -1,12 +1,5 @@
 <template>
-  <div
-    style="display: flex"
-    :style="{ width: props.width, height: props.height, flexDirection: stack === 'vertical' ? 'column' : 'row' }">
-    <div
-      ref="container-ref"
-      style="flex: 1; order: 0"
-      :style="{ width: stack === 'vertical' ? '100%' : '0', height: stack === 'vertical' ? '0' : '100%' }"></div>
-  </div>
+  <div ref="container-ref"></div>
 </template>
 
 <script
@@ -51,8 +44,6 @@ const props = withDefaults(
     width?: string;
     height?: string;
 
-    stack?: 'vertical' | 'horizontal';
-
     time?: Decimal | number | null | string | Date;
     timeRange?: [
       Decimal | number | null | string | Date | undefined,
@@ -76,8 +67,6 @@ const props = withDefaults(
     width: '100%',
     height: '36px',
     indicator: true,
-
-    stack: 'horizontal',
   },
 );
 
