@@ -9,7 +9,6 @@
     "build": "tsdown",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
   "author": "Xenodrive, Inc.",
   "license": "MIT",
   "homepage": "https://xenodrive.github.io/timescope/",
