@@ -63,13 +63,7 @@ new Timescope({
   series: {
     temperature: {
       data: { source: 'temperature', name: 'Temperature', unit: '℃', color: '#fb923c' },
-      chart: {
-        links: [
-          { draw: 'area', using: ['value', 'zero'], style: { fillOpacity: 0.25 } },
-          { draw: 'line', using: 'value', style: { lineWidth: 2 } },
-        ],
-        marks: [{ draw: 'circle', using: 'value', style: { size: 3 } }],
-      },
+      chart: 'linespoints:filled',
       track: 'conditions',
     },
     wind: {
@@ -84,10 +78,7 @@ new Timescope({
     },
     stormRisk: {
       data: { source: 'stormRisk', name: 'Storm chance', digits: 0, unit: '%', color: '#a855f7' },
-      chart: {
-        links: [{ draw: 'line', using: 'value', style: { lineWidth: 1.5 } }],
-        marks: [{ draw: 'circle', using: 'value', style: { size: 3 } }],
-      },
+      chart: 'linespoints',
       track: 'precip',
     },
   },
