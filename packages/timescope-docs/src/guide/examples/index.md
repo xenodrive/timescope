@@ -9,6 +9,7 @@ import LogScale from '@/guide/examples/log-scale.vue';
 import MarksAndLinks from '@/guide/examples/marks-and-links.vue';
 import MultipleTracks from '@/guide/examples/multiple-tracks.vue';
 import DynamicLoader from '@/guide/examples/dynamic-loader.vue';
+import Events from '@/guide/examples/events.vue';
 import SystemMetrics from '@/guide/examples/system-metrics.vue';
 import LogViewer from '@/guide/examples/log-viewer.vue';
 import FinancialChart from '@/guide/examples/financial-chart.vue';
@@ -46,6 +47,10 @@ import ChartPresets from '@/guide/examples/chart-presets.vue';
 ## [Dynamic Loader](/guide/examples/dynamic-loader)
 
 <DynamicLoader />
+
+## [Events](/guide/examples/events)
+
+<Events />
 
 ## [System Metrics Monitoring](/guide/examples/system-metrics)
 

@@ -64,6 +64,7 @@ export default withMermaid({
                 { text: 'Marks & Links', link: '/guide/examples/marks-and-links' },
                 { text: 'Multiple Tracks', link: '/guide/examples/multiple-tracks' },
                 { text: 'Dynamic Loader', link: '/guide/examples/dynamic-loader' },
+                { text: 'Events', link: '/guide/examples/events' },
                 { text: 'System Metrics', link: '/guide/examples/system-metrics' },
                 { text: 'Log Viewer', link: '/guide/examples/log-viewer' },
                 { text: 'Financial Chart', link: '/guide/examples/financial-chart' },

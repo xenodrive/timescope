@@ -78,8 +78,10 @@ export class Timescope<
 > extends TimescopeObservable<
   | TimescopeEvent<'timechanging', Decimal | null>
   | TimescopeEvent<'timechanged', Decimal | null>
+  | TimescopeEvent<'timeanimating', Decimal | null>
   | TimescopeEvent<'zoomchanging', number>
   | TimescopeEvent<'zoomchanged', number>
+  | TimescopeEvent<'zoomanimating', number>
   | TimescopeEvent<'rangechanging', Range<Decimal>>
   | TimescopeEvent<'rangechanged', Range<Decimal> | null>
 > {
@@ -106,7 +108,11 @@ export class Timescope<
     this.#state.setTime(v, animation);
   }
 
-  get timeForAnimation() {
+  get timeChanging() {
+    return this.#state.time.candidate?.clone() ?? null;
+  }
+
+  get timeAnimating() {
     return this.#state.time.current?.clone() ?? null;
   }
 
@@ -128,6 +134,14 @@ export class Timescope<
 
   setZoom(v: ZoomLike, animation?: TimescopeAnimationInput) {
     return this.#state.setZoom(v, animation);
+  }
+
+  get zoomChanging() {
+    return this.#state.zoom.candidate.number();
+  }
+
+  get zoomAnimating() {
+    return this.#state.zoom.current.number();
   }
 
   fitTo(range: Range<TimeLike<never>>, opts?: TimescopeFitOptions) {
@@ -270,8 +284,10 @@ export class Timescope<
     this.#state.on('change', () => this.changed());
     this.#state.on('timechanging', (e) => this.dispatchEvent(e));
     this.#state.on('timechanged', (e) => this.dispatchEvent(e));
+    this.#state.on('timeanimating', (e) => this.dispatchEvent(e));
     this.#state.on('zoomchanging', (e) => this.dispatchEvent(e));
     this.#state.on('zoomchanged', (e) => this.dispatchEvent(e));
+    this.#state.on('zoomanimating', (e) => this.dispatchEvent(e));
 
     time.on('sync', (e) => this.#renderer?.sync({ time: e.value }, e.origin));
     zoom.on('sync', (e) => this.#renderer?.sync({ zoom: e.value }, e.origin));

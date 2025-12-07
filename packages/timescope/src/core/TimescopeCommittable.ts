@@ -81,8 +81,8 @@ function clampToRange<N extends null>(
 
 export class TimescopeCommittable<N extends null = null> extends TimescopeObservable<
   | TimescopeEvent<'valuechanging', Decimal | N>
-  | TimescopeEvent<'valuecommitting', Decimal | N>
   | TimescopeEvent<'valuechanged', Decimal | N>
+  | TimescopeEvent<'valueanimating', Decimal | N>
   | TimescopeEvent<'sync', TimescopeCommittableMessageSync<N>>
 > {
   #lazy: boolean;
@@ -238,7 +238,8 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
     const current = (candidate ?? nullValue)
       .sub(this.#state.current ?? nullValue)
       .mul(clamped === candidate ? 1 : 0.5)
-      .add(this.#state.current ?? nullValue);
+      .add(this.#state.current ?? nullValue)
+      .round((candidate ?? nullValue).digits);
 
     const message: TimescopeCommittableMessageUpdate<N> = { type: 'update', candidate: clamped, current };
     this.dispatchEvent(new TimescopeEvent('sync', message));
@@ -252,6 +253,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
     this.#state.current = current;
 
     this.dispatchEvent(new TimescopeEvent('valuechanging', candidate));
+    this.dispatchEvent(new TimescopeEvent('valueanimating', this.#state.current));
     this.changed();
   }
 
@@ -291,9 +293,9 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
       this.#state.value = targetValue;
       this.#state.editing = false;
 
-      this.changed();
       this.dispatchEvent(new TimescopeEvent('valuechanging', this.#state.value));
       this.dispatchEvent(new TimescopeEvent('valuechanged', this.#state.value));
+      this.changed();
     };
 
     const originValue = this.#state.current ?? this.#state.nullValue;
@@ -323,6 +325,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
         this.#state.animating = true;
         const current = (targetValue ?? this.#state.nullValue).sub(originValue).mul(v).add(originValue);
         this.#state.current = current;
+        this.dispatchEvent(new TimescopeEvent('valueanimating', this.#state.current));
         this.changed();
       },
 
@@ -331,6 +334,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
         this.#state.current = targetValue;
         if (lazy) changeValue();
         this.#state.committed = targetValue;
+        this.dispatchEvent(new TimescopeEvent('valueanimating', this.#state.current));
         this.changed();
       },
 

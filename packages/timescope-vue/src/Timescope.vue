@@ -30,13 +30,19 @@ import { markRaw, onBeforeUnmount, provide, useTemplateRef, watch } from 'vue';
 const emit = defineEmits<{
   timechanged: [Decimal | null];
   timechanging: [Decimal | null];
+  timeanimating: [Decimal | null];
   zoomchanged: [number];
   zoomchanging: [number];
+  zoomanimating: [number];
   rangechanging: [[Decimal, Decimal]];
   rangechanged: [[Decimal, Decimal] | null];
 
   'update:time': [Decimal | null];
   'update:zoom': [number];
+  'update:timechanging': [Decimal | null];
+  'update:zoomchanging': [number];
+  'update:timeanimating': [Decimal | null];
+  'update:zoomanimating': [number];
 }>();
 
 const props = withDefaults(
@@ -83,16 +89,31 @@ const timescope = markRaw(
 
 timescope.on('timechanging', (e) => emit('timechanging', e.value));
 timescope.on('timechanged', (e) => emit('timechanged', e.value));
+timescope.on('timeanimating', (e) => emit('timeanimating', e.value));
 timescope.on('zoomchanging', (e) => emit('zoomchanging', e.value));
 timescope.on('zoomchanged', (e) => emit('zoomchanged', e.value));
+timescope.on('zoomanimating', (e) => emit('zoomanimating', e.value));
+
 timescope.on('rangechanging', (e) => emit('rangechanging', e.value));
 timescope.on('rangechanged', (e) => emit('rangechanged', e.value));
 
 timescope.on('timechanged', (e) => emit('update:time', e.value));
 timescope.on('zoomchanged', (e) => emit('update:zoom', e.value));
+timescope.on('timechanging', (e) => emit('update:timechanging', e.value));
+timescope.on('zoomchanging', (e) => emit('update:zoomchanging', e.value));
+timescope.on('timeanimating', (e) => emit('update:timeanimating', e.value));
+timescope.on('zoomanimating', (e) => emit('update:zoomanimating', e.value));
 
-if (props.time === undefined) emit('update:time', timescope.time);
-if (props.zoom === undefined) emit('update:zoom', timescope.zoom);
+if (props.time === undefined) {
+  emit('update:time', timescope.time);
+  emit('update:timechanging', timescope.time);
+  emit('update:timeanimating', timescope.time);
+}
+if (props.zoom === undefined) {
+  emit('update:zoom', timescope.zoom);
+  emit('update:zoomchanging', timescope.zoom);
+  emit('update:zoomanimating', timescope.zoom);
+}
 
 watch(
   () => props.time,
