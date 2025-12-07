@@ -1,5 +1,6 @@
 ---
 title: Chart Presets
+titleTemplate: Timescope Examples
 ---
 <script setup>
 import Example from '@/guide/examples/chart-presets.vue';

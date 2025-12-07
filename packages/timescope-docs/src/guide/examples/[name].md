@@ -1,1 +1,4 @@
+---
+titleTemplate: Timescope Examples
+---
 <!-- @content -->

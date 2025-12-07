@@ -1,4 +1,7 @@
-# Decimal API
+---
+titleTemplate: Timescope API
+---
+# Decimal
 
 <script setup lang="ts">
 import ApiTable from './ApiTable.vue'

@@ -1,3 +1,6 @@
+---
+titleTemplate: Timescope API
+---
 # Timescope
 
 The `Timescope` class manages rendering, user interaction, and data processing. Instances are created via the constructor and can be reconfigured using `setOptions` or `updateOptions`.

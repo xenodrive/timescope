@@ -1,3 +1,6 @@
+---
+titleTemplate: Timescope API
+---
 # Timescope Options
 
 Reference for `TimescopeOptions` used by `new Timescope(options?)`, `setOptions()`, and `updateOptions()`.

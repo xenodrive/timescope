@@ -1,5 +1,6 @@
 ---
 title: Marks & Links
+titleTemplate: Timescope Examples
 ---
 <script setup>
 import Example from '@/guide/examples/marks-and-links.vue';

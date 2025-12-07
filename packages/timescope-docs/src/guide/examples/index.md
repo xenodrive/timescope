@@ -1,5 +1,6 @@
 ---
-title: Examples
+title: Overview
+titleTemplate: Timescope Examples
 ---
 <script setup>
 import SimpleTimeline from '@/guide/examples/simple-timeline.vue';

@@ -1,5 +1,6 @@
 ---
 title: Timescope
+titleTemplate: :title - Canvas for Time-Series Visualization
 layout: home
 
 hero:
