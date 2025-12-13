@@ -84,7 +84,7 @@ const timescope = new Timescope({
       data: {
         source: 'waveform',
         value: { min: 'minL', value: 'avgL', max: 'maxL' },
-        range: [0, 1],
+        range: [-1, 1],
       },
       chart: {
         links: (chunk) => chunk.resolution.lt(0.00001) ? [] : [
@@ -103,7 +103,7 @@ const timescope = new Timescope({
       data: {
         source: 'waveform',
         value: { min: 'minR', value: 'avgR', max: 'maxR' },
-        range: [0, 1],
+        range: [-1, 1],
       },
       chart: {
         links: (chunk) => chunk.resolution.lt(0.00001) ? [] : [

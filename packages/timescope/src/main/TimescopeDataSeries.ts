@@ -39,42 +39,44 @@ type DataRangeInput =
       default?: NumberLike | Range<NumberLike | undefined>;
     };
 
+const DECIMAL_ZERO = Decimal(0);
+
 function parseDataRange(range: DataRangeInput | undefined) {
   if (range == null) {
     return {
-      shrink: true,
-      expand: true,
+      shrink: false,
+      expand: false,
       default: [Decimal(0), undefined] as Range<Decimal | undefined>,
     };
   }
 
   if (Array.isArray(range)) {
     return {
-      shrink: true,
-      expand: true,
+      shrink: false,
+      expand: false,
       default: range.map(Decimal) as Range<Decimal | undefined>,
     };
   }
 
   if (typeof range === 'number' || isNumberLike(range)) {
     return {
-      shrink: true,
-      expand: true,
+      shrink: false,
+      expand: false,
       default: [Decimal(0), Decimal(range)] as Range<Decimal | undefined>,
     };
   }
 
   if (range.default != null && !Array.isArray(range.default)) {
     return {
-      shrink: range.shrink ?? true,
-      expand: range.expand ?? true,
+      shrink: range.shrink ?? false,
+      expand: range.expand ?? false,
       default: [Decimal(0), Decimal(range.default)] as Range<Decimal | undefined>,
     };
   }
 
   return {
-    shrink: range.shrink ?? true,
-    expand: range.expand ?? true,
+    shrink: range.shrink ?? false,
+    expand: range.expand ?? false,
     default: (range.default ?? [0, undefined]).map(Decimal) as Range<Decimal | undefined>,
   };
 }
@@ -92,7 +94,13 @@ export class TimescopeDataSeries {
     new LRUCache({
       maxSize: 256,
     });
-  #minmax: { min?: Decimal; max?: Decimal } = {};
+  #minmax: null | {
+    pmin: Decimal | null | undefined;
+    pmax: Decimal | null | undefined;
+    nmin: Decimal | null | undefined;
+    nmax: Decimal | null | undefined;
+    zero: Decimal | null | undefined;
+  } = null;
 
   #color;
 
@@ -192,31 +200,44 @@ export class TimescopeDataSeries {
   updateDataRange(range: Range<Decimal>, zoom: number) {
     zoom = getConstraintedZoom(zoom, this.zoomLevels);
     const activeChunks = createChunkList(range, zoom, this.chunkSize);
+    const expandU = this.#dataRange.expand || this.#dataRange.default?.[1] === undefined;
+    const expandL = this.#dataRange.expand || this.#dataRange.default?.[0] === undefined;
+    const shrink = this.#dataRange.shrink;
 
-    const [min, max] = minmax(
-      ...activeChunks.flatMap(({ id }) => {
-        const data = this.#minmaxCache.get(id);
-        if (!data) return [];
+    let { pmin, pmax, nmin, nmax, zero } = shrink || !this.#minmax ? {} : this.#minmax;
 
-        return data.flatMap((d) => (timeInRange(d.time, range) ? minmax(...Object.values(d.value)) : []));
-      }),
-    );
-    if (min == null || max == null) return;
+    const classify = (values: (Decimal | undefined | null)[], force: boolean = false) => {
+      const [$pmin, $pmax] = Decimal.minmax(...values.filter((v) => v?.isPositive()), pmin, pmax);
+      const [$nmin, $nmax] = Decimal.minmax(...values.filter((v) => v?.isNegative()), nmin, nmax);
+      const $zero = zero || (values.some((v) => v?.isZero()) && DECIMAL_ZERO) || null;
 
-    this.#minmax = {
-      min:
-        this.#dataRange.default[0] == null
-          ? min
-          : this.#dataRange.expand
-            ? Decimal.min(min, this.#dataRange.default[0], ...(this.#dataRange.shrink ? [] : [this.#minmax.min]))!
-            : this.#dataRange.default[0],
-      max:
-        this.#dataRange.default[1] == null
-          ? max
-          : this.#dataRange.expand
-            ? Decimal.max(max, this.#dataRange.default[1], ...(this.#dataRange.shrink ? [] : [this.#minmax.max]))!
-            : this.#dataRange.default[1],
+      return [
+        force || expandU ? $pmax : pmax,
+        force || expandL ? $pmin : pmin,
+        force || expandL ? $zero : zero,
+        force || expandL ? $nmax : nmax,
+        force || expandU ? $nmin : nmin,
+      ];
     };
+
+    [pmax, pmin, zero, nmax, nmin] = classify(this.#dataRange.default, true);
+
+    if (expandU || expandL) {
+      for (const { id } of activeChunks) {
+        const data = this.#minmaxCache.get(id);
+        if (!data) continue;
+
+        for (const d of data) {
+          if (!timeInRange(d.time, range)) continue;
+
+          [pmax, pmin, zero, nmax, nmin] = classify(Object.values(d.value));
+        }
+      }
+    }
+
+    if (!pmin && !nmax && !zero && !pmax && !nmin) return;
+
+    this.#minmax = { pmin, pmax, nmin, nmax, zero };
   }
 
   get color() {
@@ -224,9 +245,7 @@ export class TimescopeDataSeries {
   }
 
   get dataRange() {
-    const amp = Decimal.max(this.#minmax.min?.abs(), this.#minmax?.max?.abs());
-
-    return { ...this.#minmax, amp };
+    return this.#minmax;
   }
 }
 

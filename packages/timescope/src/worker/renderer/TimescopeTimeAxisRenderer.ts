@@ -24,7 +24,7 @@ export class TimescopeTimeAxisRenderer extends TimescopeRenderer {
   #renderAxis(timescope: TimescopeRenderingContext): void {
     const ctx = timescope.ctx;
     const { width } = timescope.size;
-    const axisY = timescope.renderingTrack!.axisY;
+    const axisY = timescope.renderingTrack!.y0;
 
     const id = timescope.renderingTrack!.id;
     const opts = normalizeOptions(timescope.options.tracks?.[id].timeAxis, {});
@@ -58,7 +58,8 @@ export class TimescopeTimeAxisRenderer extends TimescopeRenderer {
 
   #renderLabels(timescope: TimescopeRenderingContext): void {
     const ctx = timescope.ctx;
-    const axisY = timescope.renderingTrack!.axisY;
+
+    const axisY = timescope.renderingTrack!.y0;
     const labelY = axisY + 2;
 
     const id = timescope.renderingTrack!.id;

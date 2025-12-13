@@ -105,7 +105,7 @@ export class Timescope<
   }
 
   setTime(v: TimeLike | null, animation?: TimescopeAnimationInput) {
-    this.#state.setTime(v, animation);
+    return this.#state.setTime(v, animation);
   }
 
   get timeChanging() {
@@ -163,8 +163,11 @@ export class Timescope<
     const zoom = zoomFor(resolution);
     const time = rangeDecimal[0].add(rangeDecimal[1]).div(2);
 
-    this.setZoom(zoom, opts?.animation !== false ? undefined : false);
-    this.setTime(time, opts?.animation !== false ? undefined : false);
+    let r = true;
+    r &&= this.setZoom(zoom, opts?.animation !== false ? undefined : false);
+    r &&= this.setTime(time, opts?.animation !== false ? undefined : false);
+
+    return r;
   }
 
   get zoomRange(): Range<number | undefined> {
@@ -317,6 +320,10 @@ export class Timescope<
 
   reload(sources?: (keyof SourceName & string)[]) {
     this.#renderer?.invalidateSources(sources);
+  }
+
+  redraw() {
+    this.#renderer?.redraw();
   }
 
   mount(target: HTMLElement | string) {

@@ -25,7 +25,7 @@ import type {
   TimescopeTimeLike,
 } from 'timescope';
 import { Decimal, Timescope } from 'timescope';
-import { markRaw, onBeforeUnmount, provide, useTemplateRef, watch } from 'vue';
+import { customRef, markRaw, onBeforeUnmount, useTemplateRef, watch } from 'vue';
 
 const emit = defineEmits<{
   timechanged: [Decimal | null];
@@ -76,6 +76,30 @@ const props = withDefaults(
   },
 );
 
+type Combination =
+  | ['timechanged', 'time']
+  | ['timechanging', 'timeChanging']
+  | ['timeanimating', 'timeAnimating']
+  | ['zoomchanged', 'zoom']
+  | ['zoomchanging', 'zoomChanging']
+  | ['zoomanimating', 'zoomAnimating']
+  | ['change', 'animating']
+  | ['change', 'editing'];
+
+function createTimescopeRef(...args: Combination) {
+  return customRef((track, trigger) => {
+    timescope.on(args[0], () => trigger());
+    return {
+      get() {
+        track();
+        return timescope[args[1]];
+      },
+      set() {
+      },
+    }
+  });
+}
+
 const timescope = markRaw(
   new Timescope({
     time: props.time ?? null,
@@ -86,6 +110,22 @@ const timescope = markRaw(
     fonts: props.fonts,
   }),
 );
+
+defineExpose({
+  time: createTimescopeRef('timechanged', 'time'),
+  timeChanging: createTimescopeRef('timechanging', 'timeChanging'),
+  timeAnimating: createTimescopeRef('timeanimating', 'timeAnimating'),
+  zoom: createTimescopeRef('zoomchanged', 'zoom'),
+  zoomChanging: createTimescopeRef('zoomchanging', 'zoomChanging'),
+  zoomAnimating: createTimescopeRef('zoomanimating', 'zoomAnimating'),
+
+  animating: createTimescopeRef('change', 'animating'),
+  editing: createTimescopeRef('change', 'editing'),
+
+  setTime: timescope.setTime.bind(timescope),
+  setZoom: timescope.setZoom.bind(timescope),
+  fitTo: timescope.fitTo.bind(timescope),
+});
 
 timescope.on('timechanging', (e) => emit('timechanging', e.value));
 timescope.on('timechanged', (e) => emit('timechanged', e.value));
@@ -185,8 +225,4 @@ onBeforeUnmount(() => {
   timescope?.dispose();
 });
 
-const api = timescope;
-
-provide('timescope-api', api);
-defineExpose({ api });
 </script>

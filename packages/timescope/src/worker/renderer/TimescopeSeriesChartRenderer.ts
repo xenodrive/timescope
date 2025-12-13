@@ -19,7 +19,6 @@ import { parseUsing } from '#src/core/using';
 import { TimescopeRenderer } from '#src/worker/renderer/TimescopeRenderer';
 import type { TimescopeRenderingContext } from '#src/worker/types';
 import { clipToTrack } from '#src/worker/utils';
-import { createScaleY } from '../scale';
 import type { TimescopeDataCacheSeries } from '../TimescopeDataCacheSeries';
 
 type Point = { x: Record<string, number>; y: Record<string, number> };
@@ -61,7 +60,7 @@ type MarkOp = {
     BoxStyle &
     OffsetStyle &
     DefaultColorStyle &
-    FlagsStyle & { fillStyle?: string; strokeStyle?: string; postFillStyle?: string };
+    FlagsStyle & { fillStyle?: string; strokeStyle?: string; postFillStyle?: string; floating?: number };
 };
 
 type LinkOp = {
@@ -80,11 +79,24 @@ type LinkOp = {
   time: Decimal;
 
   path?: Path2D | { x: number; y: number }[];
-  style: StrokeStyle & FillStyle & DefaultColorStyle & FlagsStyle & { fillStyle?: string; strokeStyle?: string };
+  style: StrokeStyle &
+    FillStyle &
+    DefaultColorStyle &
+    FlagsStyle & { fillStyle?: string; strokeStyle?: string; floating?: number };
 };
 
 const MIN_ISOLATED_POINT_RADIUS = 0.75;
 const MIN_ISOLATED_STRIP_WIDTH = 1;
+
+function createStrokeStyle(style: StrokeStyle & DefaultColorStyle) {
+  const strokeStyle = style.lineColor ?? style.color ?? 'black';
+  return strokeStyle;
+}
+
+function createFillStyle(style: FillStyle & DefaultColorStyle, flatten: string = 'transparent') {
+  const fillStyle = opacity(style.fillColor ?? style.color ?? 'black', style.fillOpacity ?? 0.25, flatten);
+  return fillStyle;
+}
 
 function drawIsolatedPoint(path: Path2D, point: { x: number; y: number }, style: StrokeStyle) {
   const strokeWidth = typeof style.lineWidth === 'number' && isFinite(style.lineWidth) ? style.lineWidth : 1;
@@ -146,8 +158,8 @@ function createPathLines(
 
   flush();
 
-  const strokeStyle = style.lineColor ?? style.color ?? 'black';
-  const fillStyle = opacity(style.fillColor ?? style.color ?? 'black', style.fillOpacity ?? 0.25, 'transparent');
+  const strokeStyle = createStrokeStyle(style);
+  const fillStyle = createFillStyle(style);
 
   return { path, strokeStyle, fillStyle };
 }
@@ -256,8 +268,8 @@ function createPathCurve(
 
   flush();
 
-  const strokeStyle = style.lineColor ?? style.color ?? 'black';
-  const fillStyle = opacity(style.fillColor ?? style.color ?? 'black', style.fillOpacity ?? 0.25, 'transparent');
+  const strokeStyle = createStrokeStyle(style);
+  const fillStyle = createFillStyle(style);
 
   return { path, strokeStyle, fillStyle };
 }
@@ -303,8 +315,8 @@ function createPathCurveArea(
     path.closePath();
   }
 
-  const strokeStyle = style.lineColor ?? style.color ?? 'black';
-  const fillStyle = opacity(style.fillColor ?? style.color ?? 'black', style.fillOpacity ?? 0.25, 'transparent');
+  const strokeStyle = createStrokeStyle(style);
+  const fillStyle = createFillStyle(style);
 
   return { path, strokeStyle, fillStyle };
 }
@@ -352,8 +364,8 @@ function createPathContours(
     idx = eidx;
   }
 
-  const strokeStyle = style.lineColor ?? style.color ?? 'black';
-  const fillStyle = opacity(style.fillColor ?? style.color ?? 'black', style.fillOpacity ?? 0.25, 'transparent');
+  const strokeStyle = createStrokeStyle(style);
+  const fillStyle = createFillStyle(style);
 
   return { path, strokeStyle, fillStyle };
 }
@@ -387,8 +399,8 @@ function createPathMarks<
       path.addPath(markPath, mat);
     }
 
-    const strokeStyle = style.lineColor ?? style.color ?? 'black';
-    const fillStyle = opacity(style.fillColor ?? style.color ?? 'black', style.fillOpacity ?? 0.25, 'white'); // XXX: flatten on white
+    const strokeStyle = createStrokeStyle(style);
+    const fillStyle = createFillStyle(style, 'white');
 
     return { path, strokeStyle, fillStyle };
   };
@@ -486,8 +498,8 @@ function createPathSteps(pos: 'start' | 'mid' | 'end', type: 'line' | 'area') {
       }
     }
 
-    const strokeStyle = style.lineColor ?? style.color ?? 'black';
-    const fillStyle = opacity(style.fillColor ?? style.color ?? 'black', style.fillOpacity ?? 0.25, 'transparent');
+    const strokeStyle = createStrokeStyle(style);
+    const fillStyle = createFillStyle(style);
 
     return { path, strokeStyle, fillStyle };
   };
@@ -844,6 +856,7 @@ export class TimescopeSeriesChartRenderer extends TimescopeRenderer {
     string,
     {
       trackId: string;
+      trackRevision: number;
       revision: number;
 
       time: Decimal;
@@ -866,87 +879,97 @@ export class TimescopeSeriesChartRenderer extends TimescopeRenderer {
 
     if (!timescope.options.series) return;
 
-    for (const k in timescope.options.series) {
-      const series = timescope.options.series[k];
-      const trackId = series.track ?? timescope.tracks[0].id;
-      const track = timescope.tracks.find((t) => t.id === trackId)!;
+    for (const track of timescope.tracks) {
+      const dataCacheFor = (k: string) =>
+        timescope.dataCaches[`series:${k}:chart`] as TimescopeDataCacheSeries<
+          TimescopeSeriesChartProviderData,
+          TimescopeSeriesChartProviderMeta
+        >;
 
-      const { data, meta, revision } = timescope.dataCaches[`series:${k}:chart`] as TimescopeDataCacheSeries<
-        TimescopeSeriesChartProviderData,
-        TimescopeSeriesChartProviderMeta
-      >;
+      for (const k of track.seriesKeys) {
+        const { data, meta, revision, scaleY, floating } = dataCacheFor(k);
 
-      if (
-        this.#plotData[k] &&
-        !zoomChanged &&
-        this.#plotData[k].revision === revision &&
-        this.#plotData[k].trackId === trackId
-      ) {
-        continue;
-      }
-      this.#plotData[k] = { time: timescope.timeAxis.current.range[0], trackId, revision, linkOps: [], markOps: [] };
+        if (
+          this.#plotData[k] &&
+          !zoomChanged &&
+          this.#plotData[k].revision === revision &&
+          this.#plotData[k].trackId === track.id &&
+          this.#plotData[k].trackRevision === track.revision
+        ) {
+          continue;
+        }
 
-      const color = meta.color;
-      const points: Point[] = [];
+        if (!scaleY) continue;
 
-      const scaleY = createScaleY(track.symmetric, series.data.scale === 'log', meta);
-      if (!scaleY) continue;
-
-      for (let i = 0; i < data.length; i++) {
-        const time = data[i].time;
-        const value = data[i].value;
-
-        const point = {
-          x: {} as Record<string, number>,
-          y: { zero: track.y(0) } as Record<string, number>,
+        //this.#plotData[k] = { time: timescope.timeAxis.current.range[0], trackId, revision, linkOps: [], markOps: [] };
+        this.#plotData[k] = {
+          time: timescope.timeAxis.current.range[0],
+          trackId: track.id,
+          trackRevision: track.revision,
+          revision,
+          linkOps: [],
+          markOps: [],
         };
-        for (const key in time) {
-          point.x[key] = time[key].sub(this.#plotData[k].time).div(this.#resolution, 3).number();
+
+        const color = meta.color;
+        const points: Point[] = [];
+
+        for (let i = 0; i < data.length; i++) {
+          const time = data[i].time;
+          const value = data[i].value;
+
+          const point = {
+            x: {} as Record<string, number>,
+            y: { zero: track.y(0) } as Record<string, number>,
+          };
+          for (const key in time) {
+            point.x[key] = time[key].sub(this.#plotData[k].time).div(this.#resolution, 3).number();
+          }
+          for (const key in value) {
+            point.y[key] = track.y(scaleY(value[key]), floating) ?? NaN;
+          }
+          points.push(point);
+
+          for (const mark of data[i].marks) {
+            if (!mark) continue;
+
+            const style = { color, ...(mark.style ?? {}) };
+            const [creator, flags] = pathCreators[`mark:${mark.draw}`];
+            const { path, strokeStyle, fillStyle, postFillStyle } = creator?.([point], mark.using, style) ?? {};
+
+            if (!this.#plotData[k].markOps) {
+              this.#plotData[k].markOps = [];
+            }
+
+            this.#plotData[k].markOps.push({
+              type: 'mark',
+              draw: mark.draw,
+              time: this.#plotData[k].time,
+              path,
+              style: { ...style, strokeStyle, fillStyle, postFillStyle, ...flags, floating },
+            });
+          }
         }
-        for (const key in value) {
-          point.y[key] = track.y(scaleY(value[key]));
-        }
-        points.push(point);
 
-        for (const mark of data[i].marks) {
-          if (!mark) continue;
+        for (const link of meta.links ?? []) {
+          if (!link) continue;
 
-          const style = { color, ...(mark.style ?? {}) };
-          const [creator, flags] = pathCreators[`mark:${mark.draw}`];
-          const { path, strokeStyle, fillStyle, postFillStyle } = creator?.([point], mark.using, style) ?? {};
+          const style = { color, ...(link.style ?? {}) };
+          const [creator, flags] = pathCreators[`link:${link.draw}`];
+          const { path, strokeStyle, fillStyle } = creator?.(points, link.using, style) ?? {};
 
-          if (!this.#plotData[k].markOps) {
-            this.#plotData[k].markOps = [];
+          if (!this.#plotData[k].linkOps) {
+            this.#plotData[k].linkOps = [];
           }
 
-          this.#plotData[k].markOps.push({
-            type: 'mark',
-            draw: mark.draw,
+          this.#plotData[k].linkOps.push({
+            type: 'link',
+            draw: link.draw,
             time: this.#plotData[k].time,
             path,
-            style: { ...style, strokeStyle, fillStyle, postFillStyle, ...flags },
+            style: { ...style, strokeStyle, fillStyle, ...flags, floating },
           });
         }
-      }
-
-      for (const link of meta.links ?? []) {
-        if (!link) continue;
-
-        const style = { color, ...(link.style ?? {}) };
-        const [creator, flags] = pathCreators[`link:${link.draw}`];
-        const { path, strokeStyle, fillStyle } = creator?.(points, link.using, style) ?? {};
-
-        if (!this.#plotData[k].linkOps) {
-          this.#plotData[k].linkOps = [];
-        }
-
-        this.#plotData[k].linkOps.push({
-          type: 'link',
-          draw: link.draw,
-          time: this.#plotData[k].time,
-          path,
-          style: { ...style, strokeStyle, fillStyle, ...flags },
-        });
       }
     }
   }
@@ -1008,22 +1031,41 @@ export class TimescopeSeriesChartRenderer extends TimescopeRenderer {
   }
 }
 
+function createFadeoutStyle(timescope: TimescopeRenderingContext, color: string, floating?: number) {
+  const y0 = timescope.renderingTrack!.y0;
+  if (!floating) return color;
+
+  const y1 = timescope.renderingTrack!.y(0, 10 * floating);
+  if (!isFinite(y1)) return color;
+
+  const style = timescope.ctx.createLinearGradient(0, y1, 0, y0);
+
+  style.addColorStop(0, color);
+  style.addColorStop(0.2, color);
+  style.addColorStop(0.8, `color-mix(in srgb, ${color} 1%, transparent)`);
+  style.addColorStop(1, `transparent`);
+
+  return style;
+}
+
 function renderPath(
-  { ctx }: TimescopeRenderingContext,
+  timescope: TimescopeRenderingContext,
   path: Path2D | undefined,
   style: MarkOp['style'] & LinkOp['style'],
 ) {
   if (!path || !(path instanceof Path2D)) return;
 
+  const ctx = timescope.ctx;
+
   if (style.fill && !style.fillPost && style.fillStyle) {
-    ctx.fillStyle = style.fillStyle;
+    ctx.fillStyle = createFadeoutStyle(timescope, style.fillStyle, style.floating);
     ctx.fill(path);
   }
 
   if (style.stroke && style.strokeStyle && (style.lineWidth ?? 1) > 0) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = style.strokeStyle;
+    ctx.strokeStyle = createFadeoutStyle(timescope, style.strokeStyle, style.floating);
     ctx.lineWidth = style.lineWidth ?? 1;
     if (style.lineDashArray) {
       ctx.setLineDash(style.lineDashArray);
@@ -1033,7 +1075,7 @@ function renderPath(
   }
 
   if (style.fill && style.fillPost && style.fillStyle) {
-    ctx.fillStyle = style.fillStyle;
+    ctx.fillStyle = createFadeoutStyle(timescope, style.fillStyle, style.floating);
     ctx.fill(path);
   }
 }

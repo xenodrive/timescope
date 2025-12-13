@@ -114,9 +114,10 @@ export class TimescopeSeriesChartProvider<
     const dataRange = this.options.series.dataRange;
 
     return {
+      ...dataRange,
       links,
       color,
-      ...dataRange,
+      scale: this.options.series.options.data.scale,
     } as M;
   }
 }

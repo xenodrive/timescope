@@ -22,53 +22,58 @@ import ChartPresets from '@/guide/examples/chart-presets.vue';
 
 ## [Simple Timeline](/guide/examples/simple-timeline)
 
-<SimpleTimeline />
-
-## [Basic Chart](/guide/examples/basic-chart)
-
-<BasicChart />
-
-## [Log Scale](/guide/examples/log-scale)
-
-<LogScale />
-
-## [Chart Presets](/guide/examples/chart-presets)
-
-<ChartPresets model-value="stepspoints:filled" />
-
-## [Marks & Links](/guide/examples/marks-and-links)
-
-<MarksAndLinks />
-
-## [Multiple Tracks & Charts](/guide/examples/multiple-tracks)
-
-<MultipleTracks />
-
-## [Dynamic Loader](/guide/examples/dynamic-loader)
-
-<DynamicLoader />
+<SimpleTimeline class="border" />
 
 ## [Events](/guide/examples/events)
 
-<Events />
+<Events class="border" />
+
+## [Basic Chart](/guide/examples/basic-chart)
+
+<BasicChart class="border" />
+
+## [Log Scale](/guide/examples/log-scale)
+
+<LogScale class="border" />
+
+## [Chart Presets](/guide/examples/chart-presets)
+
+<ChartPresets model-value="stepspoints:filled" class="border" />
+
+## [Marks & Links](/guide/examples/marks-and-links)
+
+<MarksAndLinks class="border" />
+
+## [Multiple Tracks & Charts](/guide/examples/multiple-tracks)
+
+<MultipleTracks class="border" />
+
+## [Dynamic Loader](/guide/examples/dynamic-loader)
+
+<DynamicLoader class="border" />
 
 ## [System Metrics Monitoring](/guide/examples/system-metrics)
 
-<SystemMetrics />
+<SystemMetrics class="border" />
 
 ## [Log Viewer](/guide/examples/log-viewer)
 
-<LogViewer />
+<LogViewer class="border" />
 
 ## [Financial Chart](/guide/examples/financial-chart)
 
-<FinancialChart />
+<FinancialChart class="border" />
 
 ## [Audio Waveform Visualization](/guide/examples/audio-waveform)
 
-<AudioWaveform />
+<AudioWaveform class="border" />
 
 ## [Styling](/guide/examples/styling)
 
-<Styling />
+<Styling class="border" />
 
+<style scoped>
+:deep(.border) {
+    border: 1px solid #ddd;
+}
+</style>

@@ -322,6 +322,10 @@ export class TimescopeWorkerRenderer extends TimescopeObservable<
     this.call('resize', size);
   }
 
+  redraw() {
+    this.call('redraw', {});
+  }
+
   onPointerEvent(info: InteractionInfo) {
     this.call('pointer', info);
   }

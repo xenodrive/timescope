@@ -9,8 +9,7 @@ import { disperse } from '#src/worker/disperse';
 import { TimescopeRenderer } from '#src/worker/renderer/TimescopeRenderer';
 import type { TimescopeRenderingContext } from '#src/worker/types';
 import { forEachTrack } from '#src/worker/utils';
-import { createScaleY } from '../scale';
-import type { TimescopeDataCache } from '../TimescopeDataCache';
+import type { TimescopeDataCacheSeries } from '../TimescopeDataCacheSeries';
 
 export class TimescopeSeriesTooltipRenderer extends TimescopeRenderer {
   postRender(timescope: TimescopeRenderingContext): void {
@@ -49,13 +48,17 @@ export class TimescopeSeriesTooltipRenderer extends TimescopeRenderer {
 
         if (series.tooltip === false) continue;
 
-        const { data: tooltipData, meta } = timescope.dataCaches[`series:${k}:instantaneous`] as TimescopeDataCache<
+        const {
+          data: tooltipData,
+          meta,
+          scaleY,
+          floating,
+        } = timescope.dataCaches[`series:${k}:instantaneous`] as TimescopeDataCacheSeries<
           TimescopeSeriesInstantaneousValueProviderData,
           TimescopeSeriesInstantaneousValueProviderMeta
         >;
         if (!meta) continue;
 
-        const scaleY = createScaleY(track.symmetric, series.data.scale === 'log', meta);
         if (!scaleY) continue;
 
         const data = this.#readByTime(tooltipData, cursorDecimal);
@@ -83,7 +86,7 @@ export class TimescopeSeriesTooltipRenderer extends TimescopeRenderer {
 
         if (value == null) continue;
 
-        const y = track.y(scaleY(value));
+        const y = track.y(scaleY(value.value), floating) ?? NaN;
 
         labels.push({
           id: labels.length,

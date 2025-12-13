@@ -79,7 +79,7 @@ new Timescope({
       chart: {
         marks: [
           {
-            draw: 'line',
+            draw: 'section',
             using: ['high', 'low'],
             style: {
               lineColor: ({ data }) => data.open < data.close ? '#10b981' : '#ef4444',

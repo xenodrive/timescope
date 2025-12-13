@@ -104,6 +104,7 @@ export type WorkerCommands = {
   readonly sync: (sync: TimescopeSyncMessage) => void;
 
   readonly reload: () => void;
+  readonly redraw: () => void;
 };
 
 // -------------------- Layer serialization --------------------
@@ -160,9 +161,12 @@ export type TimescopeSeriesProviderData = {
 };
 
 export type TimescopeSeriesProviderMeta = {
-  min: Decimal;
-  max: Decimal;
-  amp?: Decimal;
+  pmin: Decimal | null;
+  pmax: Decimal | null;
+  nmin: Decimal | null;
+  nmax: Decimal | null;
+  zero: Decimal | null;
+  scale?: 'linear' | 'log';
 };
 
 export type TimescopeTimeAxisProviderData = {
@@ -188,7 +192,7 @@ export type TimescopeSeriesChartProviderMeta = TimescopeSeriesProviderMeta & {
 
 export type TimescopeSeriesInstantaneousValueProviderData = {
   time: { time: Decimal };
-  value: Decimal;
+  value: { value: Decimal };
 
   text: string;
 };

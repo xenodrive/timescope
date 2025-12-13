@@ -90,7 +90,7 @@ export class TimescopeSeriesInstantaneousValueProvider<
       return [
         {
           time: { time },
-          value,
+          value: { value },
 
           text: format({ time, value, unit, digits, name }),
         },
@@ -109,6 +109,7 @@ export class TimescopeSeriesInstantaneousValueProvider<
 
     return {
       ...dataRange,
+      scale: this.options.series.options.data.scale,
       color,
     } as M;
   }

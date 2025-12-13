@@ -11,7 +11,7 @@ export type TimescopeRenderingContext = {
 
   tracks: TimescopeTrack[];
   dataCaches: Record<string, TimescopeDataCache<any>>;
-  chart: { ox: number; oy: number; axisY: number; width: number; height: number };
+  chart: { ox: number; oy: number; width: number; height: number };
   size: { width: number; height: number };
   symmetric: boolean;
   timeAxis: TimescopeTimeAxis;

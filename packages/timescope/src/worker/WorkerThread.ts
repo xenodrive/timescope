@@ -102,13 +102,6 @@ export function createTimescopeWorkerThread(
       oy: 0,
       width: 1,
       height: 1,
-
-      get axisY() {
-        return (
-          (renderingContext.symmetric ? renderingContext.chart.height / 2 : renderingContext.chart.height) +
-          renderingContext.chart.oy
-        );
-      },
     },
     size: {
       width: 1,
@@ -139,7 +132,9 @@ export function createTimescopeWorkerThread(
     );
 
     if (timeAxis.revision === revision) {
-      Object.values(renderingContext.dataCaches).forEach((r) => loadMeta(r).then(() => render()));
+      await Promise.all(Object.values(renderingContext.dataCaches).map((r) => loadMeta(r).then(() => render())));
+
+      renderingContext.tracks.forEach((track) => track.adjustScaleBySeriesChart(renderingContext));
     }
   }
 
@@ -212,7 +207,7 @@ export function createTimescopeWorkerThread(
       const theight = track.height ?? avgH;
       sumH += theight;
 
-      return new TimescopeTrack({
+      const t = new TimescopeTrack({
         id,
         //oy: height - sumH, // grow to the top
         oy: sumH - theight, // grow to the bottom
@@ -230,6 +225,8 @@ export function createTimescopeWorkerThread(
           .filter(([, s]) => (s.track ?? tracks[0][0]) === id)
           .map(([k]) => k),
       });
+      t.on('change', () => render());
+      return t;
     });
   }
 
@@ -324,6 +321,10 @@ export function createTimescopeWorkerThread(
       for (const cache of Object.values(renderingContext.dataCaches)) {
         cache.invalidate();
       }
+      render();
+    },
+
+    redraw: () => {
       render();
     },
   };

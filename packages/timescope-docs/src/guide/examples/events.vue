@@ -4,7 +4,7 @@ title: Events
 
 <template>
 <!-- #region html -->
-<div id="example-intermediate-values"></div>
+<div id="example-intermediate-values" :class="props.class"></div>
 <table>
   <tbody>
     <tr>
@@ -27,6 +27,9 @@ title: Events
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted } from 'vue';
+const props = defineProps<{
+  class?: any;
+}>();
 
 // #region code
 import { Timescope, type Decimal } from 'timescope';
