@@ -84,8 +84,8 @@ export default defineConfig([
     clean: false,
     noExternal: () => true,
     outputOptions: {
-      dir: undefined,
-      file: path.join(outDir, 'browser.js'),
+      entryFileNames: 'browser.js',
+      dir: outDir,
     },
   },
 ]);

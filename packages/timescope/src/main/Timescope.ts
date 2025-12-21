@@ -3,7 +3,7 @@ import type { TimescopeAnimationInput } from '#src/core/animation';
 import config from '#src/core/config';
 import { Decimal, type NumberLike } from '#src/core/decimal';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
-import type { Range } from '#src/core/range';
+import type { Range as TimescopeRange } from '#src/core/range';
 import { parseTimeLike, type TimeLike } from '#src/core/time';
 import { TimescopeState } from '#src/core/TimescopeState';
 import type {
@@ -82,8 +82,8 @@ export class Timescope<
   | TimescopeEvent<'zoomchanging', number>
   | TimescopeEvent<'zoomchanged', number>
   | TimescopeEvent<'zoomanimating', number>
-  | TimescopeEvent<'rangechanging', Range<Decimal>>
-  | TimescopeEvent<'rangechanged', Range<Decimal> | null>
+  | TimescopeEvent<'rangechanging', TimescopeRange<Decimal>>
+  | TimescopeEvent<'rangechanged', TimescopeRange<Decimal> | null>
 > {
   #element: HTMLCanvasElement | null = null;
   #renderer: TimescopeWorkerRenderer | null = null;
@@ -116,11 +116,13 @@ export class Timescope<
     return this.#state.time.current?.clone() ?? null;
   }
 
-  get timeRange(): Range<Decimal | null | undefined> {
-    return this.#state.time.domain.map((x) => (x == null ? x : x.clone())) as Range<Decimal | null | undefined>;
+  get timeRange(): TimescopeRange<Decimal | null | undefined> {
+    return this.#state.time.domain.map((x) => (x == null ? x : x.clone())) as TimescopeRange<
+      Decimal | null | undefined
+    >;
   }
 
-  setTimeRange(domain?: Range<TimeLike | null | undefined>) {
+  setTimeRange(domain?: TimescopeRange<TimeLike | null | undefined>) {
     this.#state.setTimeRange(domain);
   }
 
@@ -144,7 +146,7 @@ export class Timescope<
     return this.#state.zoom.current.number();
   }
 
-  fitTo(range: Range<TimeLike<never>>, opts?: TimescopeFitOptions) {
+  fitTo(range: TimescopeRange<TimeLike<never>>, opts?: TimescopeFitOptions) {
     if (!this.#size.width) return false;
 
     const padding =
@@ -170,18 +172,18 @@ export class Timescope<
     return r;
   }
 
-  get zoomRange(): Range<number | undefined> {
-    return this.#state.zoom.domain.map((x) => (x == null ? x : x.number())) as Range<number | undefined>;
+  get zoomRange(): TimescopeRange<number | undefined> {
+    return this.#state.zoom.domain.map((x) => (x == null ? x : x.number())) as TimescopeRange<number | undefined>;
   }
 
-  setZoomRange(domain?: Range<ZoomLike | undefined>) {
+  setZoomRange(domain?: TimescopeRange<ZoomLike | undefined>) {
     this.#state.setZoomRange(domain);
   }
 
-  setSelection(domain: Range<TimeLike<undefined>> | null) {
+  setSelection(domain: TimescopeRange<TimeLike<undefined>> | null) {
     if (this.#options.selection === false) return;
 
-    const range = (domain?.map((t) => parseTimeLike(t)) ?? null) as Range<Decimal | undefined> | null;
+    const range = (domain?.map((t) => parseTimeLike(t)) ?? null) as TimescopeRange<Decimal | undefined> | null;
 
     this.#renderer?.updateOptions({
       selection: {
@@ -378,7 +380,7 @@ export class Timescope<
         this.dispatchEvent(
           new TimescopeEvent(
             e.value.resizing ? 'rangechanging' : 'rangechanged',
-            e.value.range as Range<Decimal>,
+            e.value.range as TimescopeRange<Decimal>,
             e.origin,
           ),
         );

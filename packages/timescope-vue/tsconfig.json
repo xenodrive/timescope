@@ -13,11 +13,11 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
-    "noEmit": true,
-    //"declaration": true,
+    //"noEmit": true,
+    "declaration": true,
     //"declarationMap": true,
-    //"emitDeclarationOnly": true,
-    //"declarationDir": "./dist",
+    "emitDeclarationOnly": true,
+    "declarationDir": "./dist",
     //"stripInternal": true,
     "forceConsistentCasingInFileNames": true /* Ensure that casing is correct in imports. */,
 
@@ -31,6 +31,7 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
 
-    "types": ["vite/client"]
-  }
+    "types": ["vite/client"],
+  },
+  "include": ["src/**/*"]
 }

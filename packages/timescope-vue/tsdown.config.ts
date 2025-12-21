@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from 'tsdown';
 import Vue from 'unplugin-vue/rolldown';
+import RolldownInlineWorkerPlugin from 'rolldown-plugin-inline-worker';
 
 function pkgPath(pkgName: string) {
   return pkgName.replace('/', '--');
@@ -31,8 +32,8 @@ export default defineConfig({
   minify: true,
   sourcemap: false,
   platform: 'neutral',
-  plugins: [Vue()],
-  dts: { vue: true },
+  plugins: [Vue(), RolldownInlineWorkerPlugin()],
+  dts: { vue: true, resolve: true, eager: true },
 
   outDir,
 

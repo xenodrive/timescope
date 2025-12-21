@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@braintree/sanitize-url": "^7.1.1",
-    "@types/node": "^24.10.1",
+    "@types/node": "^25.0.3",
     "dayjs": "^1.11.19",
     "debug": "^4.4.3",
     "mermaid": "^11.12.2",
