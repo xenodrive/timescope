@@ -1,6 +1,6 @@
 <template>
   <div style="display: flex; flex-direction: column">
-    <Timescope ref="timescope-ref" v-model:time="time" v-model:zoom="zoom" stack="vertical" width="100%" />
+    <Timescope ref="timescope-ref" v-model:time="time" v-model:zoom="zoom" stack="vertical" width="100%" :zoom-range="[-13, 8]" />
   </div>
 <pre>
 time: {{ time }}, zoom {{ zoom }}
