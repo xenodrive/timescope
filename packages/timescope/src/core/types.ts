@@ -1,6 +1,6 @@
 import type { TimescopeFont } from '#src/bridge/protocol';
 import { Decimal, type NumberLike } from '#src/core/decimal';
-import type { Range } from '#src/core/range';
+import type { TimescopeRange } from '#src/core/range';
 import type { TextStyleOptions, TimescopeStyle } from '#src/core/style';
 import type { TimescopeStateOptions } from '#src/core/TimescopeState';
 import type { TimescopeDataChunkLoader } from './chunk';
@@ -216,8 +216,8 @@ export type TimescopeSeriesInput<
     scale?: 'linear' | 'log';
     range?:
       | NumberLike
-      | Range<NumberLike | undefined>
-      | { expand?: boolean; shrink?: boolean; default?: NumberLike | Range<NumberLike | undefined> };
+      | TimescopeRange<NumberLike | undefined>
+      | { expand?: boolean; shrink?: boolean; default?: NumberLike | TimescopeRange<NumberLike | undefined> };
 
     instantaneous?: {
       using?: Using1<[InferTimeKey<TimeDef>, InferValueKey<ValueDef>]>;
@@ -339,7 +339,7 @@ export type TimescopeOptionsSelection =
       color?: string;
       invert?: boolean;
 
-      range?: Range<Decimal | undefined> | null;
+      range?: TimescopeRange<Decimal | undefined> | null;
     };
 
 export type TimescopeOptions<

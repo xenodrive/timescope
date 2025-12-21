@@ -4,7 +4,7 @@ import { createChunkList } from '#src/core/chunk';
 import config from '#src/core/config';
 import { Decimal } from '#src/core/decimal';
 import { TimescopeObservable } from '#src/core/event';
-import type { FixedRange, Range } from '#src/core/range';
+import type { FixedRange, TimescopeRange } from '#src/core/range';
 import { getConstraintedZoom, resolutionFor } from '#src/core/zoom';
 import { bisectRange } from '#src/worker/bisect';
 import type { TimescopeRenderingContext } from '#src/worker/types';
@@ -21,7 +21,7 @@ function maxRangeValue(current: Decimal | undefined, candidate: Decimal | undefi
   return current.gt(candidate) ? current : candidate;
 }
 
-function shouldKeep(a: Range<Decimal | undefined>, b: Range<Decimal | undefined>): boolean {
+function shouldKeep(a: TimescopeRange<Decimal | undefined>, b: TimescopeRange<Decimal | undefined>): boolean {
   return (!a[0] || !b[1] || a[0].le(b[1])) && (!b[0] || !a[1] || b[0].le(a[1]));
 }
 
@@ -114,7 +114,7 @@ export class TimescopeDataCache<
     }
   }
 
-  #mergeData(range: Range<Decimal | undefined>, orig: V[], data: V[]) {
+  #mergeData(range: TimescopeRange<Decimal | undefined>, orig: V[], data: V[]) {
     const [l, r] = bisectRange(orig, range, (o) => o.time._minTime ?? o.time.time);
     const combined = [
       ...orig.slice(0, l),
@@ -177,7 +177,7 @@ export class TimescopeDataCache<
   }
   */
 
-  #listRequiredChunks(range: Range<Decimal | undefined>, zoom: number) {
+  #listRequiredChunks(range: TimescopeRange<Decimal | undefined>, zoom: number) {
     // Constraints to the defined zoom levels or integer
     zoom = getConstraintedZoom(zoom, this.#zoomLevels);
     const chunks = createChunkList(range, zoom, this.#chunkSize);
@@ -190,7 +190,7 @@ export class TimescopeDataCache<
       const t = timescope.timeAxis.committing.time ?? timescope.timeAxis.now;
       const instantZoom = this.#instantZoomLevel ?? timescope.timeAxis.committing.zoom.number(); // TODO:
       const delta = resolutionFor(instantZoom).mul(this.#chunkSize).div(2);
-      const instantRange = [t.sub(delta), t.add(delta)] as Range<Decimal>;
+      const instantRange = [t.sub(delta), t.add(delta)] as TimescopeRange<Decimal>;
 
       this.#update(timescope, instantRange, instantZoom);
     } else if (this.#immediate) {
@@ -202,7 +202,7 @@ export class TimescopeDataCache<
     }
   }
 
-  #update(timescope: TimescopeRenderingContext, range: Range<Decimal>, zoom: number): void {
+  #update(timescope: TimescopeRenderingContext, range: TimescopeRange<Decimal>, zoom: number): void {
     const chunks = this.#listRequiredChunks(range, zoom);
 
     const t = Date.now();

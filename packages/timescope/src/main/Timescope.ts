@@ -3,7 +3,7 @@ import type { TimescopeAnimationInput } from '#src/core/animation';
 import config from '#src/core/config';
 import { Decimal, type NumberLike } from '#src/core/decimal';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
-import type { Range as TimescopeRange } from '#src/core/range';
+import type { TimescopeRange as TimescopeRange } from '#src/core/range';
 import { parseTimeLike, type TimeLike } from '#src/core/time';
 import { TimescopeState } from '#src/core/TimescopeState';
 import type {

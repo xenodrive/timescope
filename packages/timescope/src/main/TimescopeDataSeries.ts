@@ -2,7 +2,7 @@ import type { TimescopeSeriesProviderMeta } from '#src/bridge/protocol';
 import { LRUCache } from '#src/core/cache';
 import { createChunkList, type TimescopeDataChunkDesc, type TimescopeDataChunkResult } from '#src/core/chunk';
 import { Decimal, DecimalSafe, isDecimal, minmax, type NumberLike } from '#src/core/decimal';
-import type { Range } from '#src/core/range';
+import type { TimescopeRange } from '#src/core/range';
 import { parseTimeLike } from '#src/core/time';
 import type { TimescopeOptions } from '#src/core/types';
 import { createGetter } from '#src/core/utils';
@@ -32,11 +32,11 @@ function isNumberLike(v: unknown): v is NumberLike {
 
 type DataRangeInput =
   | NumberLike
-  | Range<NumberLike | undefined>
+  | TimescopeRange<NumberLike | undefined>
   | {
       shrink?: boolean;
       expand?: boolean;
-      default?: NumberLike | Range<NumberLike | undefined>;
+      default?: NumberLike | TimescopeRange<NumberLike | undefined>;
     };
 
 const DECIMAL_ZERO = Decimal(0);
@@ -46,7 +46,7 @@ function parseDataRange(range: DataRangeInput | undefined) {
     return {
       shrink: false,
       expand: false,
-      default: [Decimal(0), undefined] as Range<Decimal | undefined>,
+      default: [Decimal(0), undefined] as TimescopeRange<Decimal | undefined>,
     };
   }
 
@@ -54,7 +54,7 @@ function parseDataRange(range: DataRangeInput | undefined) {
     return {
       shrink: false,
       expand: false,
-      default: range.map(Decimal) as Range<Decimal | undefined>,
+      default: range.map(Decimal) as TimescopeRange<Decimal | undefined>,
     };
   }
 
@@ -62,7 +62,7 @@ function parseDataRange(range: DataRangeInput | undefined) {
     return {
       shrink: false,
       expand: false,
-      default: [Decimal(0), Decimal(range)] as Range<Decimal | undefined>,
+      default: [Decimal(0), Decimal(range)] as TimescopeRange<Decimal | undefined>,
     };
   }
 
@@ -70,18 +70,18 @@ function parseDataRange(range: DataRangeInput | undefined) {
     return {
       shrink: range.shrink ?? false,
       expand: range.expand ?? false,
-      default: [Decimal(0), Decimal(range.default)] as Range<Decimal | undefined>,
+      default: [Decimal(0), Decimal(range.default)] as TimescopeRange<Decimal | undefined>,
     };
   }
 
   return {
     shrink: range.shrink ?? false,
     expand: range.expand ?? false,
-    default: (range.default ?? [0, undefined]).map(Decimal) as Range<Decimal | undefined>,
+    default: (range.default ?? [0, undefined]).map(Decimal) as TimescopeRange<Decimal | undefined>,
   };
 }
 
-function timeInRange(time: Record<string, Decimal>, range: Range<Decimal>) {
+function timeInRange(time: Record<string, Decimal>, range: TimescopeRange<Decimal>) {
   return time._minTime?.le(range[1]) && range[0]?.le(time._maxTime);
 }
 
@@ -197,7 +197,7 @@ export class TimescopeDataSeries {
     };
   }
 
-  updateDataRange(range: Range<Decimal>, zoom: number) {
+  updateDataRange(range: TimescopeRange<Decimal>, zoom: number) {
     zoom = getConstraintedZoom(zoom, this.zoomLevels);
     const activeChunks = createChunkList(range, zoom, this.chunkSize);
     const expandU = this.#dataRange.expand || this.#dataRange.default?.[1] === undefined;

@@ -1,6 +1,6 @@
 import type { TimescopeAnimationInput } from '#src/core/animation';
 import { Decimal } from '#src/core/decimal';
-import type { Range } from '#src/core/range';
+import type { TimescopeRange } from '#src/core/range';
 import { parseTimeDomainLike, parseTimeLike, type TimeLike } from '#src/core/time';
 import { TimescopeCommittable } from '#src/core/TimescopeCommittable';
 import type { ZoomLike } from '#src/core/zoom';
@@ -8,9 +8,9 @@ import { TimescopeEvent, TimescopeObservable } from './event';
 
 export interface TimescopeStateOptions {
   time?: TimeLike;
-  timeRange?: Range<TimeLike | null | undefined>;
+  timeRange?: TimescopeRange<TimeLike | null | undefined>;
   zoom?: ZoomLike;
-  zoomRange?: Range<ZoomLike | undefined>;
+  zoomRange?: TimescopeRange<ZoomLike | undefined>;
 }
 
 export class TimescopeState extends TimescopeObservable<
@@ -64,7 +64,7 @@ export class TimescopeState extends TimescopeObservable<
     return true;
   }
 
-  setTimeRange(domain?: Range<TimeLike | null | undefined>) {
+  setTimeRange(domain?: TimescopeRange<TimeLike | null | undefined>) {
     this.time.domain = parseTimeDomainLike(domain ?? [undefined, null]);
   }
 
@@ -88,7 +88,7 @@ export class TimescopeState extends TimescopeObservable<
     return true;
   }
 
-  setZoomRange(domain?: Range<ZoomLike | undefined>) {
-    this.zoom.domain = (domain ?? [undefined, undefined]).map(Decimal) as Range<Decimal | undefined>;
+  setZoomRange(domain?: TimescopeRange<ZoomLike | undefined>) {
+    this.zoom.domain = (domain ?? [undefined, undefined]).map(Decimal) as TimescopeRange<Decimal | undefined>;
   }
 }

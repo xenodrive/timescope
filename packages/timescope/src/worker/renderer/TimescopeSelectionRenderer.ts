@@ -2,7 +2,7 @@ import type { InteractionInfo, TimescopeOptionsForWorker } from '#src/bridge/pro
 import config from '#src/core/config';
 import { Decimal } from '#src/core/decimal';
 import { TimescopeEvent } from '#src/core/event';
-import type { Range } from '#src/core/range';
+import type { TimescopeRange } from '#src/core/range';
 import { TimescopeRenderer } from '#src/worker/renderer/TimescopeRenderer';
 import { renderTimeRange, renderTimeRangeInverse } from '#src/worker/rendering';
 import type { TimescopeRenderingContext } from '#src/worker/types';
@@ -13,7 +13,7 @@ function nearby(p: number | undefined, x: number, tolerance: number = config.cli
 }
 
 export class TimescopeSelectionRenderer extends TimescopeRenderer<TimescopeEvent<'renderer:event'>> {
-  #range: Range<Decimal | undefined> | null = null;
+  #range: TimescopeRange<Decimal | undefined> | null = null;
   #color: string = 'rgba(0, 0, 255, 0.2)';
   #invert: boolean = false;
 
@@ -91,7 +91,7 @@ export class TimescopeSelectionRenderer extends TimescopeRenderer<TimescopeEvent
     const a = timescope.timeAxis.t(buttons[0].latest.x);
     const b = this.#counterpart;
     const range = a.lt(b) ? [a, b] : [b, a];
-    this.#range = range as Range<Decimal | undefined>;
+    this.#range = range as TimescopeRange<Decimal | undefined>;
     this.changed();
 
     return true;

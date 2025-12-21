@@ -1,12 +1,12 @@
 import type { TimescopeDataChunkDesc, TimescopeDataChunkLoader } from '#src/core/chunk';
 import type { Decimal } from '#src/core/decimal';
 import { TimescopeObservable } from '#src/core/event';
-import type { Range } from '#src/core/range';
+import type { TimescopeRange } from '#src/core/range';
 
 type TimescopeDataChunkOptions<T> = {
   id: string;
   seq: bigint;
-  range: Range<Decimal | undefined>;
+  range: TimescopeRange<Decimal | undefined>;
   resolution: Decimal;
   zoom: number;
 
@@ -16,7 +16,7 @@ type TimescopeDataChunkOptions<T> = {
 export class TimescopeDataChunk<T> extends TimescopeObservable implements TimescopeDataChunkDesc {
   #state: 'initial' | 'loading' | 'loaded' | 'error' = 'initial';
 
-  #range: Range<Decimal | undefined>;
+  #range: TimescopeRange<Decimal | undefined>;
   #resolution: Decimal;
   #zoom: number;
 
@@ -97,7 +97,7 @@ export class TimescopeDataChunk<T> extends TimescopeObservable implements Timesc
         id: this.#id,
         seq: this.#seq,
         expires: Infinity,
-        range: this.#range.map((r) => r?.clone()) as Range<Decimal | undefined>,
+        range: this.#range.map((r) => r?.clone()) as TimescopeRange<Decimal | undefined>,
         zoom: this.#zoom,
         resolution: this.#resolution.clone(),
       };

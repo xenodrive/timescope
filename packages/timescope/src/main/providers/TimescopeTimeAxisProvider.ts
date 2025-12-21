@@ -14,7 +14,7 @@ import {
 import type { TimescopeDataChunkDesc } from '#src/core/chunk';
 import config from '#src/core/config';
 import { Decimal } from '#src/core/decimal';
-import type { Range } from '#src/core/range';
+import type { TimescopeRange } from '#src/core/range';
 import { type TimeUnit } from '#src/core/time';
 import type {
   CalendarLevel,
@@ -75,7 +75,7 @@ export function scaleTimeUnit(v: Decimal, from: TimeUnit, to: TimeUnit): Decimal
   return v.shift10(shift);
 }
 
-function* createLinearTicks(range: Range<Decimal | undefined>, resolution: Decimal, options: TimescopeTimeAxisOptions) {
+function* createLinearTicks(range: TimescopeRange<Decimal | undefined>, resolution: Decimal, options: TimescopeTimeAxisOptions) {
   if (!range[0] || !range[1]) return;
 
   const timeFormat = typeof options.timeFormat === 'function' ? options.timeFormat : undefined;
@@ -645,7 +645,7 @@ function advanceTick(ops: TickOps | null, current: Decimal, end: Decimal): Decim
 }
 
 function* createCalendarTicks(
-  range: Range<Decimal | undefined>,
+  range: TimescopeRange<Decimal | undefined>,
   resolution: Decimal,
   options: TimescopeTimeAxisOptions,
 ): Generator<TickLabel> {

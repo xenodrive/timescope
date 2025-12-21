@@ -1,10 +1,10 @@
 import type { Decimal } from '#src/core/decimal';
-import type { Range } from '#src/core/range';
+import type { TimescopeRange } from '#src/core/range';
 import type { TimescopeRenderingContext } from '#src/worker/types';
 
 export function renderTimeRange(
   timescope: TimescopeRenderingContext,
-  range: Range<Decimal | null | undefined> | null,
+  range: TimescopeRange<Decimal | null | undefined> | null,
   color: string,
 ) {
   if (!range) return;
@@ -18,7 +18,7 @@ export function renderTimeRange(
 
 export function renderTimeRangeInverse(
   timescope: TimescopeRenderingContext,
-  range: Range<Decimal | null | undefined> | null,
+  range: TimescopeRange<Decimal | null | undefined> | null,
   color: string,
 ) {
   if (!range) return;

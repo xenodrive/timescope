@@ -9,7 +9,7 @@ import {
 import config from '#src/core/config';
 import { Decimal } from '#src/core/decimal';
 import { TimescopeObservable } from '#src/core/event';
-import type { Range } from '#src/core/range';
+import type { TimescopeRange } from '#src/core/range';
 import { getConstraintedZoom } from '#src/core/zoom';
 import { TimescopeDataChunk } from '#src/main/TimescopeDataChunk';
 
@@ -110,7 +110,7 @@ export class TimescopeDataSource<V> extends TimescopeObservable {
     return { id, seq, expires: chunk.expires, range, resolution, zoom, data };
   }
 
-  #allocChunk(id: string, seq: bigint, range: Range<Decimal | undefined>, resolution: Decimal, zoom: number) {
+  #allocChunk(id: string, seq: bigint, range: TimescopeRange<Decimal | undefined>, resolution: Decimal, zoom: number) {
     let chunk = this.#chunks.get(id);
     if (!chunk) {
       chunk = new TimescopeDataChunk({ id, seq, loader: this.loader, range, resolution, zoom });
@@ -120,14 +120,14 @@ export class TimescopeDataSource<V> extends TimescopeObservable {
     return chunk;
   }
 
-  async loadData(range: Range<Decimal | undefined>, zoom: number) {
+  async loadData(range: TimescopeRange<Decimal | undefined>, zoom: number) {
     zoom = getConstraintedZoom(zoom, this.zoomLevels);
     const chunks = createChunkList(range, zoom, this.chunkSize);
 
     return await Promise.all(chunks.map((chunk) => this.loadChunk(chunk)));
   }
 
-  async expireChunks(range?: Range<Decimal | undefined>) {
+  async expireChunks(range?: TimescopeRange<Decimal | undefined>) {
     for (const chunk of this.#chunks.values()) {
       if (
         !range ||

@@ -1,6 +1,6 @@
 import config from '#src/core/config';
 import type { Decimal } from '#src/core/decimal';
-import type { Range } from '#src/core/range';
+import type { TimescopeRange } from '#src/core/range';
 import { resolutionFor } from '#src/core/zoom';
 
 /**
@@ -15,7 +15,7 @@ export type TimescopeDataChunkDesc = {
   expires?: number;
 
   /** Time range covered by this chunk. */
-  range: Range<Decimal | undefined>;
+  range: TimescopeRange<Decimal | undefined>;
   /** Resolution in milliseconds per sample. */
   resolution: Decimal;
   /** Zoom level. */
@@ -38,7 +38,7 @@ export type TimescopeDataChunkLoader<T> = (
 ) => Promise<T | undefined>;
 
 export function createChunkList(
-  range: Range<Decimal | undefined>,
+  range: TimescopeRange<Decimal | undefined>,
   zoom: number,
   chunkSize: number = config.defaultChunkSize,
 ): TimescopeDataChunkDesc[] {
@@ -55,7 +55,7 @@ export function createChunkList(
   const limit = range[1]!.add(chunkDuration);
   for (let t = range[0]!; t.le(limit); t = t.add(chunkDuration)) {
     const seq = t.div(chunkDuration).floor().integer();
-    const chunkRange = [chunkDuration.mul(seq), chunkDuration.mul(seq + 1n)] as Range<Decimal | undefined>;
+    const chunkRange = [chunkDuration.mul(seq), chunkDuration.mul(seq + 1n)] as TimescopeRange<Decimal | undefined>;
     const id = `z${zoom}:seq${seq}`;
     results.push({ id, seq, expires: Infinity, range: chunkRange, resolution, zoom });
   }

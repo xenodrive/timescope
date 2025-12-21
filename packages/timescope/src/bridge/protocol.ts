@@ -1,6 +1,6 @@
 import type { TimescopeDataChunkDesc } from '#src/core/chunk';
 import type { Decimal } from '#src/core/decimal';
-import type { Range } from '#src/core/range';
+import type { TimescopeRange } from '#src/core/range';
 import type { TimescopeCommittableMessageSync } from '#src/core/TimescopeCommittable';
 import type { TimescopeChartLink, TimescopeChartMark, TimescopeOptions } from '#src/core/types';
 import { Vector2f } from '#src/core/vector';
@@ -38,7 +38,7 @@ export type TimescopeViewChangedMessage = {
   time: Decimal | null;
   zoom: number;
   resolution: Decimal;
-  range: Range<Decimal>;
+  range: TimescopeRange<Decimal>;
 };
 
 // -------------------- Wire Types --------------------

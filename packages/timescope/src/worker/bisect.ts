@@ -1,5 +1,5 @@
 import { Decimal } from '#src/core/decimal';
-import type { Range } from '#src/core/range';
+import type { TimescopeRange } from '#src/core/range';
 
 export function bisectLeft<T>(data: T[], needle: Decimal, valueFn: (o: T) => Decimal | null | undefined): number {
   let l = 0;
@@ -37,7 +37,7 @@ export function bisectRight<T>(data: T[], needle: Decimal, valueFn: (o: T) => De
 
 export function bisectRange<T>(
   data: T[],
-  [lt, rt]: Range<Decimal | undefined>,
+  [lt, rt]: TimescopeRange<Decimal | undefined>,
   valueFn: (o: T) => Decimal | null | undefined,
 ): [number, number] {
   const l = lt === undefined ? 0 : bisectLeft(data, lt, valueFn);

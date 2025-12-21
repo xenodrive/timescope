@@ -1,5 +1,5 @@
 import { Decimal, isDecimal, type NumberLike } from '#src/core/decimal';
-import { type Range } from '#src/core/range';
+import { type TimescopeRange } from '#src/core/range';
 
 export type TimeLike<N extends null | undefined = null> = string | Date | NumberLike | N;
 export type TimeUnit = 's' | 'ms' | 'us' | 'ns';
@@ -21,6 +21,6 @@ export function parseTimeLike<N extends null | undefined>(v: TimeLike<N>): Decim
   return Decimal(v as NumberLike);
 }
 
-export function parseTimeDomainLike<N extends null | undefined>(v: Range<TimeLike | N>): Range<Decimal | N> {
-  return v.map(parseTimeLike) as Range<Decimal | N>;
+export function parseTimeDomainLike<N extends null | undefined>(v: TimescopeRange<TimeLike | N>): TimescopeRange<Decimal | N> {
+  return v.map(parseTimeLike) as TimescopeRange<Decimal | N>;
 }

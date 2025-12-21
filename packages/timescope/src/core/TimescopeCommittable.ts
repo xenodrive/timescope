@@ -1,7 +1,7 @@
 import { TimescopeAnimation, type TimescopeAnimationInput, type TimescopeAnimationType } from '#src/core/animation';
 import { Decimal, type NumberLike } from '#src/core/decimal';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
-import type { Range, TimeRangeInput } from '#src/core/range';
+import type { TimescopeRange, TimeRangeInput } from '#src/core/range';
 
 type TimescopeCommittableOptions<N extends null> = {
   domain?: TimeRangeInput;
@@ -42,7 +42,7 @@ type TimescopeCommittableMessageSetNullValue = {
 type TimescopeCommittableMessageRestore<N extends null> = {
   type: 'restore';
   value: Decimal | N;
-  domain: Range<Decimal | N | undefined>;
+  domain: TimescopeRange<Decimal | N | undefined>;
 };
 
 export type TimescopeCommittableMessageSync<N extends null> =
@@ -54,7 +54,7 @@ export type TimescopeCommittableMessageSync<N extends null> =
 
 function clampToRange<N extends null>(
   value: Decimal | N,
-  range: Range<Decimal | N | undefined>,
+  range: TimescopeRange<Decimal | N | undefined>,
   nullValue: Decimal,
 ): Decimal | N {
   const compareValue = value ?? nullValue;
@@ -96,7 +96,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
     current: null as Decimal | N,
     candidate: null as Decimal | N,
 
-    domain: [undefined, undefined] as Range<Decimal | N | undefined>,
+    domain: [undefined, undefined] as TimescopeRange<Decimal | N | undefined>,
 
     editing: false as boolean,
     animating: false as boolean,
@@ -141,12 +141,12 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
     return this.#state.current;
   }
 
-  get domain(): Range<Decimal | N | undefined> {
+  get domain(): TimescopeRange<Decimal | N | undefined> {
     return this.#state.domain;
   }
 
-  set domain(domain: Range<NumberLike | N | undefined>) {
-    const domain_ = domain.map((entry) => Decimal(entry)) as Range<Decimal | N | undefined>;
+  set domain(domain: TimescopeRange<NumberLike | N | undefined>) {
+    const domain_ = domain.map((entry) => Decimal(entry)) as TimescopeRange<Decimal | N | undefined>;
     this.#state.domain = domain_;
     this.restore();
     this.#updateNullValue();
@@ -169,7 +169,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
   constructor(opts: TimescopeCommittableOptions<N> = { initialValue: 0 as NumberLike }) {
     super();
     if (opts.domain) {
-      this.#state.domain = opts.domain.map((entry) => Decimal(entry)) as Range<Decimal | N | undefined>;
+      this.#state.domain = opts.domain.map((entry) => Decimal(entry)) as TimescopeRange<Decimal | N | undefined>;
     }
 
     if (opts.onNull) {

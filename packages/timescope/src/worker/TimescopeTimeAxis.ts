@@ -1,7 +1,7 @@
 import type { TimescopeSyncMessage } from '#src/bridge/protocol';
 import { Decimal, type NumberLike } from '#src/core/decimal';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
-import type { Range, TimeRange } from '#src/core/range';
+import type { TimescopeRange, TimeRange } from '#src/core/range';
 import type { TimeLike } from '#src/core/time';
 import { TimescopeState } from '#src/core/TimescopeState';
 import { resolutionFor, zoomFor } from '#src/core/zoom';
@@ -77,8 +77,8 @@ export class TimescopeTimeAxis extends TimescopeObservable<TimescopeTimeAxisEven
 
   /** time -> pixel position */
   p(t: NumberLike | undefined | null, idx?: number): number;
-  p(t: Range<Decimal | undefined | null>): PointRange;
-  p(t: (NumberLike | undefined | null) | Range<Decimal | undefined | null>, idx?: number): number | PointRange {
+  p(t: TimescopeRange<Decimal | undefined | null>): PointRange;
+  p(t: (NumberLike | undefined | null) | TimescopeRange<Decimal | undefined | null>, idx?: number): number | PointRange {
     if (Array.isArray(t)) {
       return t.map((t, idx) => this.p(t, idx)) as PointRange;
     }
@@ -96,10 +96,10 @@ export class TimescopeTimeAxis extends TimescopeObservable<TimescopeTimeAxisEven
 
   /** pixel position -> time */
   t(p: number): Decimal;
-  t(p: PointRange): Range<Decimal | undefined | null>;
-  t(p: number | PointRange): Decimal | Range<Decimal | undefined | null> {
+  t(p: PointRange): TimescopeRange<Decimal | undefined | null>;
+  t(p: number | PointRange): Decimal | TimescopeRange<Decimal | undefined | null> {
     if (Array.isArray(p)) {
-      return p.map((p) => this.t(p)) as Range<Decimal | undefined | null>;
+      return p.map((p) => this.t(p)) as TimescopeRange<Decimal | undefined | null>;
     }
 
     const resolution = this.r(this.#timezoom.zoom.current);
@@ -195,7 +195,7 @@ export class TimescopeTimeAxis extends TimescopeObservable<TimescopeTimeAxisEven
     };
   }
 
-  rangeFor(centerTime: Decimal | null, zoom: Decimal): Range<Decimal> {
+  rangeFor(centerTime: Decimal | null, zoom: Decimal): TimescopeRange<Decimal> {
     return [
       (centerTime ?? this.now).sub(this.r(zoom).mul(this.#state.axisLength[0])),
       (centerTime ?? this.now).add(this.r(zoom).mul(this.#state.axisLength[1])),
