@@ -87,13 +87,13 @@ type Combination =
   | ['change', 'animating']
   | ['change', 'editing'];
 
-function createTimescopeRef(...args: Combination) {
-  return customRef((track, trigger) => {
+function createTimescopeRef<T extends Combination>(...args: T) {
+  return customRef<typeof timescope[T[1]]>((track, trigger) => {
     timescope.on(args[0], () => trigger());
     return {
       get() {
         track();
-        return timescope[args[1]];
+        return timescope[args[1]] as typeof timescope[T[1]];
       },
       set() {
       },
