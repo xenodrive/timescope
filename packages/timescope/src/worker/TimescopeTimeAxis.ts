@@ -1,7 +1,7 @@
 import type { TimescopeSyncMessage } from '#src/bridge/protocol';
 import { Decimal, type NumberLike } from '#src/core/decimal';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
-import type { TimescopeRange, TimeRange } from '#src/core/range';
+import type { TimeRange, TimescopeRange } from '#src/core/range';
 import type { TimeLike } from '#src/core/time';
 import { TimescopeState } from '#src/core/TimescopeState';
 import { resolutionFor, zoomFor } from '#src/core/zoom';
@@ -78,7 +78,10 @@ export class TimescopeTimeAxis extends TimescopeObservable<TimescopeTimeAxisEven
   /** time -> pixel position */
   p(t: NumberLike | undefined | null, idx?: number): number;
   p(t: TimescopeRange<Decimal | undefined | null>): PointRange;
-  p(t: (NumberLike | undefined | null) | TimescopeRange<Decimal | undefined | null>, idx?: number): number | PointRange {
+  p(
+    t: (NumberLike | undefined | null) | TimescopeRange<Decimal | undefined | null>,
+    idx?: number,
+  ): number | PointRange {
     if (Array.isArray(t)) {
       return t.map((t, idx) => this.p(t, idx)) as PointRange;
     }
@@ -202,8 +205,8 @@ export class TimescopeTimeAxis extends TimescopeObservable<TimescopeTimeAxisEven
     ];
   }
 
-  #scrollStart(p: number) {
-    this.#timezoom.time.begin(this.t(p));
+  #scrollStart() {
+    this.#timezoom.time.begin();
     this.#kinetic.begin();
   }
 
@@ -231,10 +234,10 @@ export class TimescopeTimeAxis extends TimescopeObservable<TimescopeTimeAxisEven
     this.#timezoom.time.commit();
   }
 
-  dragStart(p: number) {
+  dragStart() {
     if (this.disabled) return;
 
-    this.#scrollStart(p);
+    this.#scrollStart();
     this.#state.dragging = true;
   }
 

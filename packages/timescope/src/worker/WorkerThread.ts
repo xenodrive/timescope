@@ -51,7 +51,7 @@ export function createTimescopeWorkerThread(
     onPointerEvent: (info: InteractionInfo) => {
       const events = {
         click: (p1: number) => timeAxis.click(p1),
-        'drag:start': (p1: number) => timeAxis.dragStart(p1),
+        'drag:start': () => timeAxis.dragStart(),
         'drag:update': (p1: number, d1: number) => timeAxis.dragUpdate(p1, d1),
         'drag:end': () => timeAxis.dragEnd(),
         'pinch:start': (p1: number, _d1: number, p2: number) => timeAxis.pinchStart(p1, p2),
