@@ -1,7 +1,7 @@
 {
   "name": "timescope",
   "private": true,
-  "version": "0.0.0-alpha.6",
+  "version": "0.0.0-alpha.7",
   "type": "module",
   "description": "Timescope - Canvas for Time-Series Visualization",
   "author": "Xenodrive, Inc.",
@@ -11,7 +11,13 @@
     "url": "https://github.com/xenodrive/timescope/"
   },
   "keywords": [
-    "time-series", "timeseries", "timeline", "chart", "library", "typescript", "javascript"
+    "time-series",
+    "timeseries",
+    "timeline",
+    "chart",
+    "library",
+    "typescript",
+    "javascript"
   ],
   "scripts": {
     "dev": "vite",
