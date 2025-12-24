@@ -64,6 +64,7 @@ export default withMermaid({
                 { text: 'Chart Presets', link: '/guide/examples/chart-presets' },
                 { text: 'Marks & Links', link: '/guide/examples/marks-and-links' },
                 { text: 'Multiple Tracks', link: '/guide/examples/multiple-tracks' },
+                { text: 'Gantt Chart', link: '/guide/examples/gantt-chart' },
                 { text: 'Dynamic Loader', link: '/guide/examples/dynamic-loader' },
                 { text: 'System Metrics', link: '/guide/examples/system-metrics' },
                 { text: 'Log Viewer', link: '/guide/examples/log-viewer' },

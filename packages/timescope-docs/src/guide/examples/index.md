@@ -16,6 +16,7 @@ import FinancialChart from '@/guide/examples/financial-chart.vue';
 import AudioWaveform from '@/guide/examples/audio-waveform.vue';
 import Styling from '@/guide/examples/styling.vue';
 import ChartPresets from '@/guide/examples/chart-presets.vue';
+import GanttChart from '@/guide/examples/gantt-chart.vue';
 </script>
 
 # Examples
@@ -47,6 +48,10 @@ import ChartPresets from '@/guide/examples/chart-presets.vue';
 ## [Multiple Tracks & Charts](/guide/examples/multiple-tracks)
 
 <MultipleTracks class="border" />
+
+## [Gantt Chart](/guide/examples/gantt-chart)
+
+<GanttChart class="border" />
 
 ## [Dynamic Loader](/guide/examples/dynamic-loader)
 
