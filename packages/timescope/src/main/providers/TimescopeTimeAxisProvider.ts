@@ -75,7 +75,11 @@ export function scaleTimeUnit(v: Decimal, from: TimeUnit, to: TimeUnit): Decimal
   return v.shift10(shift);
 }
 
-function* createLinearTicks(range: TimescopeRange<Decimal | undefined>, resolution: Decimal, options: TimescopeTimeAxisOptions) {
+function* createLinearTicks(
+  range: TimescopeRange<Decimal | undefined>,
+  resolution: Decimal,
+  options: TimescopeTimeAxisOptions,
+) {
   if (!range[0] || !range[1]) return;
 
   const timeFormat = typeof options.timeFormat === 'function' ? options.timeFormat : undefined;

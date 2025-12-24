@@ -25,7 +25,7 @@ export class TimescopeDataCacheSeries<
 
     let amp: Decimal;
     let base: Decimal;
-    if (meta.scale === 'log') {
+    if (scale === 'log') {
       // log
       amp = pmax?.log(10) ?? Decimal(0);
       base = pmin?.log(10) ?? Decimal(0);
