@@ -74,7 +74,11 @@ new Timescope({
       data: {
         source: 'price',
         value: ['open', 'close', 'high', 'low', 'ma'],
-        range: [undefined, undefined],
+        range: {
+          shrink: true,
+          expand: true,
+          default: [undefined, undefined],
+        },
       },
       chart: {
         marks: [
