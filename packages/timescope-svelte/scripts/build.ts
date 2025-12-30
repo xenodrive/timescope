@@ -8,6 +8,10 @@ function pkgPath(pkgName: string) {
 const root = path.join(import.meta.dirname, '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf-8'));
 const outDir = path.join(root, '..', '..', 'dist', pkgPath(pkg.name));
+const rootpkgAll = JSON.parse(fs.readFileSync(path.join(root, '..', '..', 'package.json'), 'utf-8'));
+const rootpkg = Object.fromEntries(
+  ['type', 'version', 'description', 'author', 'license', 'homepage', 'repository'].map((k) => [k, rootpkgAll[k]]),
+);
 
 function replaceRecursive(obj: Record<string, unknown>, replacer: (s: string, k: string) => string) {
   const results: Record<string, unknown> = {};
@@ -24,7 +28,10 @@ function replaceRecursive(obj: Record<string, unknown>, replacer: (s: string, k:
 }
 
 const pkgJson = {
+  name: pkg.name,
+  ...rootpkg,
   ...pkg,
+  keywords: [...rootpkgAll.keywords, ...(pkg.keywords ?? [])],
   types: './index.d.ts',
   main: './index.js',
   exports: {
@@ -38,8 +45,7 @@ const pkgJson = {
   dependencies: replaceRecursive(pkg.dependencies, (s, k) => {
     if (s !== 'workspace:*') return s;
 
-    const ppkg = JSON.parse(fs.readFileSync(path.join(root, '..', pkgPath(k), 'package.json'), 'utf-8'));
-    if (ppkg?.version) return `^${ppkg.version}`;
+    if (rootpkg?.version) return `^${rootpkg.version}`;
     return '*';
   }),
   devDependencies: undefined,

@@ -2,28 +2,15 @@
   "name": "@timescope/react",
   "private": true,
   "type": "module",
-  "version": "0.0.0-alpha.0",
+  "description": "Timescope component for React",
+  "keywords": [
+    "react"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsdown",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Xenodrive, Inc.",
-  "license": "MIT",
-  "homepage": "https://xenodrive.github.io/timescope/",
-  "repository": {
-    "url": "https://github.com/xenodrive/timescope/"
-  },
-  "keywords": [
-    "time-series",
-    "timeseries",
-    "timeline",
-    "chart",
-    "library",
-    "typescript",
-    "javascript",
-    "react"
-  ],
   "main": "./src/index.ts",
   "exports": {
     "import": "./src/index.ts"
