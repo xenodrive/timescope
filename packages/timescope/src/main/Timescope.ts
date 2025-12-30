@@ -128,6 +128,10 @@ export class Timescope<
     this.#state.setTimeRange(domain);
   }
 
+  setPlaybackTime(t: TimeLike<null>) {
+    this.#state.setPlaybackTime(t);
+  }
+
   get zoom(): number {
     return this.#state.zoom.value.number();
   }

@@ -141,23 +141,27 @@ let playing = false;
 
 function update() {
   if (playing) requestAnimationFrame(update);
-  timescope.setTime(player.currentTime, false);
+  timescope.setPlaybackTime(player.currentTime);
 }
+
 player.addEventListener('play', () => {
   playing = true;
-  timescope.setTime(player.currentTime, false);
+  timescope.setPlaybackTime(player.currentTime);
+  timescope.setTime(null, false);
   update();
 });
 
 player.addEventListener('ended', () => {
   playing = false;
+  timescope.setPlaybackTime(player.currentTime);
 });
 
-player.addEventListener('timeupdate', () => {
-  if (!playing && !timescope.animating && !timescope.editing) {
+player.addEventListener('seeking', () => {
+  if (!playing && !timescope.editing && !timescope.animating) {
     timescope.setTime(player.currentTime, false);
   }
 });
+
 timescope.on('timechanging', (e) => {
   if (!playing) {
     player.currentTime = e.value?.number() ?? 0;

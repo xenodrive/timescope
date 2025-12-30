@@ -32,7 +32,7 @@ export class TimescopeState extends TimescopeObservable<
     this.time = new TimescopeCommittable<null>({
       initialValue: parseTimeLike(opts.time ?? null),
       domain: parseTimeDomainLike(opts.timeRange ?? [undefined, null]),
-      onNull: () => Date.now() / 1000.0,
+      onNull: () => Date.now() / 1000,
     });
     this.zoom = new TimescopeCommittable<never>({
       initialValue: opts.zoom ?? 0,
@@ -68,6 +68,10 @@ export class TimescopeState extends TimescopeObservable<
     this.time.domain = parseTimeDomainLike(domain ?? [undefined, null]);
   }
 
+  setPlaybackTime(t: TimeLike<null>) {
+    this.time.setNullValue(parseTimeLike(t));
+  }
+
   setZoom(v: ZoomLike, animation?: TimescopeAnimationInput) {
     if (typeof v === 'number' && !isFinite(v)) return false;
     if (typeof v === 'number' && isNaN(v)) return false;
@@ -90,5 +94,9 @@ export class TimescopeState extends TimescopeObservable<
 
   setZoomRange(domain?: TimescopeRange<ZoomLike | undefined>) {
     this.zoom.domain = (domain ?? [undefined, undefined]).map(Decimal) as TimescopeRange<Decimal | undefined>;
+  }
+
+  get now() {
+    return this.time.nullValue;
   }
 }

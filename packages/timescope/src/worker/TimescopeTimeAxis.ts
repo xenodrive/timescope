@@ -89,9 +89,9 @@ export class TimescopeTimeAxis extends TimescopeObservable<TimescopeTimeAxisEven
     if (t === undefined) return idx === 0 ? -100 : this.#state.axisLength[0] + this.#state.axisLength[1] + 100;
 
     const resolution = this.r(this.#timezoom.zoom.current);
-    const centerTime = this.#timezoom.time.current ?? this.now;
+    const centerTime = this.#timezoom.time.current ?? this.#timezoom.now;
 
-    const target = t ?? this.now;
+    const target = t ?? this.#timezoom.now;
     const targetDecimal = Decimal(target as NumberLike)!;
 
     return targetDecimal.sub(centerTime).div$(resolution, 3).number() + this.#state.axisLength[0];
@@ -106,7 +106,7 @@ export class TimescopeTimeAxis extends TimescopeObservable<TimescopeTimeAxisEven
     }
 
     const resolution = this.r(this.#timezoom.zoom.current);
-    const centerTime = this.#timezoom.time.current ?? this.now;
+    const centerTime = this.#timezoom.time.current ?? this.#timezoom.now;
 
     return resolution
       .mul(p - this.#state.axisLength[0])
@@ -200,8 +200,8 @@ export class TimescopeTimeAxis extends TimescopeObservable<TimescopeTimeAxisEven
 
   rangeFor(centerTime: Decimal | null, zoom: Decimal): TimescopeRange<Decimal> {
     return [
-      (centerTime ?? this.now).sub(this.r(zoom).mul(this.#state.axisLength[0])),
-      (centerTime ?? this.now).add(this.r(zoom).mul(this.#state.axisLength[1])),
+      (centerTime ?? this.#timezoom.now).sub(this.r(zoom).mul(this.#state.axisLength[0])),
+      (centerTime ?? this.#timezoom.now).add(this.r(zoom).mul(this.#state.axisLength[1])),
     ];
   }
 
@@ -310,12 +310,12 @@ export class TimescopeTimeAxis extends TimescopeObservable<TimescopeTimeAxisEven
     this.dispatchEvent('viewchanging');
   }
 
-  get axisLength() {
-    return this.#state.axisLength;
+  get now() {
+    return this.#timezoom.now;
   }
 
-  get now() {
-    return Decimal(Date.now() / 1000.0);
+  get axisLength() {
+    return this.#state.axisLength;
   }
 
   handleSyncEvent(sync: TimescopeSyncMessage) {

@@ -36,7 +36,7 @@ type TimescopeCommittableMessageCommit<N extends null> = {
 };
 type TimescopeCommittableMessageSetNullValue = {
   type: 'set:nullvalue';
-  nullValue: Decimal;
+  nullValue: Decimal | null;
 };
 
 type TimescopeCommittableMessageRestore<N extends null> = {
@@ -94,7 +94,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
   #state = {
     id: undefined as string | undefined,
     value: null as Decimal | N,
-    nullValue: Decimal(0)!,
+    nullValue: Decimal(0) as Decimal | null,
     committed: null as Decimal | N,
     committing: null as Decimal | N,
     current: null as Decimal | N,
@@ -154,8 +154,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
     if (Decimal_equals(this.#state.domain[0], domain_[0]) && Decimal_equals(this.#state.domain[1], domain_[1])) return;
     this.#state.domain = domain_;
     this.restore();
-    this.#updateNullValue();
-    this.setValue(clampToRange(this.value, domain_, this.#state.nullValue));
+    this.setValue(clampToRange(this.value, domain_, this.nullValue));
     this.changed();
   }
 
@@ -179,12 +178,11 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
 
     if (opts.onNull) {
       this.#onNull = opts.onNull;
-      this.#updateNullValue();
     }
     this.#lazy = opts.lazy ?? false;
 
     const initialDecimal = Decimal(opts.initialValue) as Decimal | N;
-    const value = clampToRange(initialDecimal, this.#state.domain, this.#state.nullValue);
+    const value = clampToRange(initialDecimal, this.#state.domain, this.nullValue);
     this.#state.value = value;
     this.#state.committed = value;
     this.#state.current = value;
@@ -213,10 +211,8 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
   }
 
   begin(candidate?: Decimal | N) {
-    this.#updateNullValue();
-
     if (candidate === undefined) candidate = this.#state.current;
-    const clamped = clampToRange(candidate, this.#state.domain, this.#state.nullValue);
+    const clamped = clampToRange(candidate, this.#state.domain, this.nullValue);
 
     const message: TimescopeCommittableMessageBegin<N> = { type: 'begin', candidate: clamped };
     this.dispatchEvent(new TimescopeEvent('sync', message));
@@ -236,9 +232,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
   }
 
   update(candidate: Decimal | N) {
-    this.#updateNullValue();
-
-    const nullValue = this.#state.nullValue;
+    const nullValue = this.nullValue;
     const clamped = clampToRange(candidate, this.#state.domain, nullValue);
     const current = (candidate ?? nullValue)
       .sub(this.#state.current ?? nullValue)
@@ -263,11 +257,9 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
   }
 
   commit(opts: TimescopeCommittableCommitOptions<N> = {}) {
-    this.#updateNullValue();
-
     const value = opts.value !== undefined ? opts.value : this.#state.candidate;
     const divergentValue = value;
-    const targetValue = clampToRange(value, this.#state.domain, this.#state.nullValue);
+    const targetValue = clampToRange(value, this.#state.domain, this.nullValue);
     const cursorMode =
       opts.animation === undefined ? (this.#state.updated ? 'current' : 'target') : this.#state.cursorMode;
     const animation = opts.animation === undefined ? (this.#state.editing ? 'out' : 'in-out') : opts.animation;
@@ -303,9 +295,10 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
       this.changed();
     };
 
-    const originValue = this.#state.current ?? this.#state.nullValue;
-    const a = targetValue ?? this.#state.nullValue;
-    const b = divergentValue ?? this.#state.nullValue;
+    const nullValue = this.nullValue;
+    const originValue = this.#state.current ?? nullValue;
+    const a = targetValue ?? nullValue;
+    const b = divergentValue ?? nullValue;
 
     let overshoot = 0;
     if (a.neq(b) && b.neq(originValue)) {
@@ -326,9 +319,8 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
       target: () => target,
 
       update: (v) => {
-        this.#updateNullValue();
         this.#state.animating = true;
-        const current = (targetValue ?? this.#state.nullValue).sub(originValue).mul(v).add(originValue);
+        const current = (targetValue ?? this.nullValue).sub(originValue).mul(v).add(originValue);
         this.#state.current = current;
         this.dispatchEvent(new TimescopeEvent('valueanimating', this.#state.current));
         this.changed();
@@ -351,19 +343,20 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
 
   #setNullValue({ nullValue }: TimescopeCommittableMessageSetNullValue) {
     this.#state.nullValue = nullValue;
+    this.changed();
   }
 
-  #updateNullValue() {
-    if (!this.#onNull) return;
-    const nullValue = this.parseValue(this.#onNull()) ?? this.#state.nullValue;
-    this.#state.nullValue = nullValue;
-    /*
-        const message: TimescopeCommittableMessageSetNullValue = {
-          type: 'set:nullvalue',
-          nullValue,
-        };
-        this.dispatchEvent(new TimescopeEvent('sync', message));
-      */
+  setNullValue(nullValue: Decimal | null) {
+    const message: TimescopeCommittableMessageSetNullValue = {
+      type: 'set:nullvalue',
+      nullValue,
+    };
+    this.dispatchEvent(new TimescopeEvent('sync', message));
+    this.#setNullValue(message);
+  }
+
+  get nullValue(): Decimal {
+    return this.#state.nullValue ?? this.parseValue(this.#onNull?.()) ?? Decimal(0);
   }
 
   toString() {
