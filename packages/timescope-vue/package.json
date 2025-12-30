@@ -38,7 +38,7 @@
     "jiti": "^2.6.1",
     "prettier-plugin-organize-imports": "^4.3.0",
     "rolldown-plugin-inline-worker": "0.0.1-alpha.1",
-    "tsdown": "^0.18.3",
+    "tsdown": "^0.18.4",
     "typescript": "^5.9.3",
     "unplugin-dts": "1.0.0-beta.6",
     "unplugin-vue": "^7.1.0",
