@@ -141,11 +141,11 @@ let playing = false;
 
 function update() {
   if (playing) requestAnimationFrame(update);
-  timescope.setTime(player.currentTime, 'linear');
+  timescope.setTime(player.currentTime, false);
 }
 player.addEventListener('play', () => {
-  timescope.setTime(player.currentTime, false);
   playing = true;
+  timescope.setTime(player.currentTime, false);
   update();
 });
 
