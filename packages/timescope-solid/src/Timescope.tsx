@@ -1,10 +1,51 @@
-import { createEffect, onCleanup } from 'solid-js';
-import { Decimal, Timescope, TimescopeRange } from 'timescope';
+import { createEffect, onCleanup, untrack } from 'solid-js';
+import {
+  Decimal,
+  FieldDefLike,
+  Timescope,
+  TimescopeNumberLike,
+  TimescopeOptions,
+  TimescopeOptionsInitial,
+  TimescopeOptionsSelection,
+  TimescopeOptionsSeries,
+  TimescopeOptionsSources,
+  TimescopeOptionsTracks,
+  TimescopeRange,
+  TimescopeSourceInput,
+  TimescopeTimeLike,
+} from 'timescope';
 
-type TimescopeProps = {
-  time?: Decimal | null;
+type TimescopeProps<
+  Source extends Record<string, TimescopeSourceInput>,
+  SourceName extends Record<string, keyof Source>,
+  TimeDef extends Record<string, FieldDefLike<TimescopeTimeLike<never>>>,
+  ValueDef extends Record<string, FieldDefLike<TimescopeNumberLike | null>>,
+  Track extends string,
+> = {
+  width?: string;
+  height?: string;
+
+  time?: Decimal | number | null | string | Date;
+  timeRange?: [
+    Decimal | number | null | string | Date | undefined,
+    Decimal | number | null | string | Date | undefined,
+  ];
   zoom?: number;
-  selectedRange?: [Decimal, Decimal] | null;
+  zoomRange?: [number | undefined, number | undefined];
+
+  sources?: TimescopeOptionsSources<Source>;
+  series?: TimescopeOptionsSeries<Source, SourceName, TimeDef, ValueDef, Track>;
+  tracks?: TimescopeOptionsTracks<Track>;
+
+  indicator?: boolean;
+  selection?: TimescopeOptionsSelection;
+
+  selectedRange?: TimescopeRange<Decimal> | null;
+
+  showFps?: boolean;
+
+  fonts?: TimescopeOptionsInitial<Source, SourceName, TimeDef, ValueDef, Track>['fonts'];
+
   onTimeAnimating?: (v: Decimal | null) => void;
   onTimeChanging?: (v: Decimal | null) => void;
   onTimeChanged?: (v: Decimal | null) => void;
@@ -17,12 +58,19 @@ type TimescopeProps = {
   class?: any;
 };
 
-function TimescopeComponent(props: TimescopeProps) {
+function TimescopeComponent<
+  Source extends Record<string, TimescopeSourceInput>,
+  SourceName extends Record<string, keyof Source>,
+  TimeDef extends Record<string, FieldDefLike<TimescopeTimeLike<never>>>,
+  ValueDef extends Record<string, FieldDefLike<TimescopeNumberLike | null>>,
+  Track extends string,
+>(props: TimescopeProps<Source, SourceName, TimeDef, ValueDef, Track>) {
   const timescope = new Timescope({
-    // eslint-disable-next-line solid/reactivity
-    time: props.time ?? null,
-    // eslint-disable-next-line solid/reactivity
-    zoom: props.zoom ?? 0,
+    time: untrack(() => props.time ?? null),
+    timeRange: untrack(() => props.timeRange),
+    zoom: untrack(() => props.zoom ?? 0),
+    zoomRange: untrack(() => props.zoomRange),
+    fonts: untrack(() => props.fonts),
   });
 
   createEffect(() => {
@@ -55,10 +103,39 @@ function TimescopeComponent(props: TimescopeProps) {
     if (props.time !== undefined) timescope.setTime(props.time);
   });
   createEffect(() => {
+    timescope.setTimeRange(props.timeRange);
+  });
+  createEffect(() => {
     if (props.zoom !== undefined) timescope.setZoom(props.zoom);
   });
   createEffect(() => {
+    timescope.setZoomRange(props.zoomRange);
+  });
+  createEffect(() => {
     if (props.selectedRange !== undefined) timescope.setSelectedRange(props.selectedRange);
+  });
+  createEffect(() => {
+    timescope.updateOptions({
+      style: { width: props.width ?? '100%', height: props.height ?? '36px' },
+    });
+  });
+  createEffect(() => {
+    timescope.updateOptions({ sources: props.sources } as TimescopeOptions);
+  });
+  createEffect(() => {
+    timescope.updateOptions({ series: props.series } as TimescopeOptions);
+  });
+  createEffect(() => {
+    timescope.updateOptions({ tracks: props.tracks } as TimescopeOptions);
+  });
+  createEffect(() => {
+    timescope.updateOptions({ indicator: props.indicator ?? true } as TimescopeOptions);
+  });
+  createEffect(() => {
+    timescope.updateOptions({ selection: props.selection } as TimescopeOptions);
+  });
+  createEffect(() => {
+    timescope.updateOptions({ showFps: props.showFps } as TimescopeOptions);
   });
 
   onCleanup(() => {

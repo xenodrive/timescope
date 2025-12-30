@@ -1,10 +1,50 @@
 import { Accessor, effect, onCleanup } from '@luna_ui/luna';
-import { Decimal, Timescope, TimescopeRange } from 'timescope';
+import {
+  Decimal,
+  FieldDefLike,
+  Timescope,
+  TimescopeNumberLike,
+  TimescopeOptions,
+  TimescopeOptionsInitial,
+  TimescopeOptionsSelection,
+  TimescopeOptionsSeries,
+  TimescopeOptionsSources,
+  TimescopeOptionsTracks,
+  TimescopeRange,
+  TimescopeSourceInput,
+  TimescopeTimeLike,
+} from 'timescope';
 
-type TimescopeProps = {
-  time?: Accessor<Decimal | null>;
-  zoom?: Accessor<number>;
-  selectedRange?: Accessor<[Decimal, Decimal] | null>;
+type TimescopeProps<
+  Source extends Record<string, TimescopeSourceInput>,
+  SourceName extends Record<string, keyof Source>,
+  TimeDef extends Record<string, FieldDefLike<TimescopeTimeLike<never>>>,
+  ValueDef extends Record<string, FieldDefLike<TimescopeNumberLike | null>>,
+  Track extends string,
+> = {
+  width?: Accessor<string | undefined>;
+  height?: Accessor<string | undefined>;
+
+  time?: Accessor<Decimal | number | null | string | Date | undefined>;
+  timeRange?: Accessor<
+    | [Decimal | number | null | string | Date | undefined, Decimal | number | null | string | Date | undefined]
+    | undefined
+  >;
+  zoom?: Accessor<number | undefined>;
+  zoomRange?: Accessor<[number | undefined, number | undefined] | undefined>;
+
+  sources?: Accessor<TimescopeOptionsSources<Source> | undefined>;
+  series?: Accessor<TimescopeOptionsSeries<Source, SourceName, TimeDef, ValueDef, Track> | undefined>;
+  tracks?: Accessor<TimescopeOptionsTracks<Track> | undefined>;
+
+  indicator?: Accessor<boolean | undefined>;
+  selection?: Accessor<TimescopeOptionsSelection | undefined>;
+
+  selectedRange?: Accessor<TimescopeRange<Decimal> | null | undefined>;
+
+  showFps?: Accessor<boolean | undefined>;
+
+  fonts?: Accessor<TimescopeOptionsInitial<Source, SourceName, TimeDef, ValueDef, Track>['fonts'] | undefined>;
 
   onTimeAnimating?: (v: Decimal | null) => void;
   onTimeChanging?: (v: Decimal | null) => void;
@@ -16,10 +56,27 @@ type TimescopeProps = {
   onSelectedRangeChanged?: (v: TimescopeRange<Decimal> | null) => void;
 };
 
-function TimescopeComponent({
+function TimescopeComponent<
+  Source extends Record<string, TimescopeSourceInput>,
+  SourceName extends Record<string, keyof Source>,
+  TimeDef extends Record<string, FieldDefLike<TimescopeTimeLike<never>>>,
+  ValueDef extends Record<string, FieldDefLike<TimescopeNumberLike | null>>,
+  Track extends string,
+>({
+  width,
+  height,
   time,
+  timeRange,
   zoom,
+  zoomRange,
+  sources,
+  series,
+  tracks,
+  indicator,
+  selection,
   selectedRange,
+  showFps,
+  fonts,
   onTimeAnimating,
   onTimeChanging,
   onTimeChanged,
@@ -28,10 +85,13 @@ function TimescopeComponent({
   onZoomChanged,
   onSelectedRangeChanging,
   onSelectedRangeChanged,
-}: TimescopeProps) {
+}: TimescopeProps<Source, SourceName, TimeDef, ValueDef, Track>) {
   const timescope = new Timescope({
-    time: time?.(),
+    time: time?.() ?? null,
+    timeRange: timeRange?.(),
     zoom: zoom?.() ?? 0,
+    zoomRange: zoomRange?.(),
+    fonts: fonts?.(),
   });
 
   timescope.on('timeanimating', (e) => onTimeAnimating?.(e.value));
@@ -44,13 +104,42 @@ function TimescopeComponent({
   timescope.on('selectedrangechanged', (e) => onSelectedRangeChanged?.(e.value));
 
   effect(() => {
-    if (time) timescope.setTime(time());
+    if (time) timescope.setTime(time() ?? null);
   });
   effect(() => {
-    if (zoom) timescope.setZoom(zoom());
+    timescope.setTimeRange(timeRange?.());
   });
   effect(() => {
-    if (selectedRange) timescope.setSelectedRange(selectedRange());
+    if (zoom) timescope.setZoom(zoom() ?? 0);
+  });
+  effect(() => {
+    timescope.setZoomRange(zoomRange?.());
+  });
+  effect(() => {
+    if (selectedRange) timescope.setSelectedRange(selectedRange() ?? null);
+  });
+  effect(() => {
+    timescope.updateOptions({
+      style: { width: width?.() ?? '100%', height: height?.() ?? '36px' },
+    });
+  });
+  effect(() => {
+    timescope.updateOptions({ sources: sources?.() } as TimescopeOptions);
+  });
+  effect(() => {
+    timescope.updateOptions({ series: series?.() } as TimescopeOptions);
+  });
+  effect(() => {
+    timescope.updateOptions({ tracks: tracks?.() } as TimescopeOptions);
+  });
+  effect(() => {
+    timescope.updateOptions({ indicator: indicator?.() ?? true } as TimescopeOptions);
+  });
+  effect(() => {
+    timescope.updateOptions({ selection: selection?.() } as TimescopeOptions);
+  });
+  effect(() => {
+    timescope.updateOptions({ showFps: showFps?.() } as TimescopeOptions);
   });
 
   onCleanup(() => {
