@@ -115,8 +115,8 @@ Available easing types:
 | `timechanged` | `Decimal \| null` | Fired once when time settles. |
 | `zoomchanging` | `number` | Fired continuously while zoom changes. |
 | `zoomchanged` | `number` | Fired once when zoom settles. |
-| `rangechanging` | `[Decimal, Decimal]` | Fired while a selection range is being resized. |
-| `rangechanged` | `[Decimal, Decimal] \| null` | Fired after selection settles or clears. |
+| `selectionchanging` | `[Decimal, Decimal]` | Fired while a selection range is being resized. |
+| `selectionchanged` | `[Decimal, Decimal] \| null` | Fired after selection settles or clears. |
 
 Range events are emitted when the selection overlay is active. Enable selection via the `selection` option or `setSelection()` method.
 

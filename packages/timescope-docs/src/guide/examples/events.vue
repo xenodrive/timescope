@@ -19,7 +19,10 @@ title: Events
       <th>timeanimating</th><td><span id="timeanimating" /></td>
       <th>zoomanimating</th><td><span id="zoomanimating" /></td>
     </tr>
-
+    <tr>
+      <th>selectionchanging</th><td><span id="selectionchanging" /></td>
+      <th>selectionchanged</th><td><span id="selectionchanged" /></td>
+    </tr>
   </tbody>
 </table>
 <!-- #endregion html -->
@@ -36,9 +39,9 @@ import { Timescope, type Decimal } from 'timescope';
 
 onMounted(() => { // ignore:
 
-function setValueOn(id: string, value: string | number | Decimal | null) {
+function setValueOn(id: string, value: string | number | Decimal | null | [Decimal, Decimal]) {
   const elm = document.getElementById(id);
-  if (elm) elm.innerText = value?.toString() ?? 'null';
+  if (elm) elm.innerText = value?.toString()?.replace(',', '\n') ?? 'null';
 }
 
 const timescope = new Timescope({
@@ -51,14 +54,18 @@ timescope.on('timeanimating', (e) => setValueOn('timeanimating', e.value));
 timescope.on('zoomchanged', (e) => setValueOn('zoomchanged', e.value));
 timescope.on('zoomchanging', (e) => setValueOn('zoomchanging', e.value));
 timescope.on('zoomanimating', (e) => setValueOn('zoomanimating', e.value));
+timescope.on('selectionchanging', (e) => setValueOn('selectionchanging', e.value));
+timescope.on('selectionchanged', (e) => setValueOn('selectionchanged', e.value));
 
-// #endregion code
 setValueOn('timechanged', 'null');
 setValueOn('timechanging', 'null');
 setValueOn('timeanimating', 'null');
 setValueOn('zoomchanged', '0');
 setValueOn('zoomchanging', '0');
 setValueOn('zoomanimating', '0');
+setValueOn('selectionchanging', 'null');
+setValueOn('selectionchanged', 'null');
+// #endregion code
 
 onBeforeUnmount(() => timescope?.dispose());
 });
@@ -66,7 +73,7 @@ onBeforeUnmount(() => timescope?.dispose());
 </script>
 
 <style scoped>
-#timechanged, #timechanging, #timeanimating {
+#timechanged, #timechanging, #timeanimating, #selectionchanging, #selectionchanged {
   display: block;
   width: 10rem;
   overflow: hidden;
@@ -79,5 +86,8 @@ onBeforeUnmount(() => timescope?.dispose());
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+#selectionchanging, #selectionchanged {
+  height: 3rem;
 }
 </style>

@@ -273,7 +273,7 @@ selection: {
 }
 ```
 
-The `setSelection([start, end])` and `clearSelection()` methods control selection at runtime. Selection changes emit `rangechanging` and `rangechanged` events.
+The `setSelection([start, end])` and `clearSelection()` methods control selection at runtime. Selection changes emit `selectionchanging` and `selectionchanged` events.
 
 ## See Also
 

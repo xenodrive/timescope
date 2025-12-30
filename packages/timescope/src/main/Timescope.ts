@@ -82,14 +82,16 @@ export class Timescope<
   | TimescopeEvent<'zoomchanging', number>
   | TimescopeEvent<'zoomchanged', number>
   | TimescopeEvent<'zoomanimating', number>
-  | TimescopeEvent<'rangechanging', TimescopeRange<Decimal>>
-  | TimescopeEvent<'rangechanged', TimescopeRange<Decimal> | null>
+  | TimescopeEvent<'selectedrangechanging', TimescopeRange<Decimal> | null>
+  | TimescopeEvent<'selectedrangechanged', TimescopeRange<Decimal> | null>
 > {
   #element: HTMLCanvasElement | null = null;
   #renderer: TimescopeWorkerRenderer | null = null;
   #interactionManager: InteractionManager | null = null;
 
   #state: TimescopeState;
+  #selectedRange: TimescopeRange<Decimal> | null = null;
+  #selectedRangeChanging: TimescopeRange<Decimal> | null = null;
 
   #options: TimescopeOptions;
   #fonts: (string | TimescopeFont)[];
@@ -180,20 +182,35 @@ export class Timescope<
     this.#state.setZoomRange(domain);
   }
 
-  setSelection(domain: TimescopeRange<TimeLike<undefined>> | null) {
+  setSelectedRange(domain: TimescopeRange<TimeLike<undefined>> | null) {
     if (this.#options.selection === false) return;
 
     const range = (domain?.map((t) => parseTimeLike(t)) ?? null) as TimescopeRange<Decimal | undefined> | null;
 
-    this.#renderer?.updateOptions({
+    if (
+      range === this.#selectedRange ||
+      (range && this.#selectedRange && range?.every((v, i) => v?.eq(this.#selectedRange![i])))
+    ) {
+      return;
+    }
+
+    this.updateOptions({
       selection: {
         range,
       },
     });
   }
 
-  clearSelection() {
-    this.setSelection(null);
+  clearSelectedRange() {
+    this.setSelectedRange(null);
+  }
+
+  get selectedRange() {
+    return this.#selectedRange;
+  }
+
+  get selectedRangeChanging() {
+    return this.#selectedRangeChanging;
   }
 
   get animating() {
@@ -377,13 +394,16 @@ export class Timescope<
 
     this.#renderer.on('renderer:event', (e) => {
       if (typeof e.value === 'object' && e.value && 'range' in e.value && 'resizing' in e.value) {
+        this.#selectedRangeChanging = e.value.range as TimescopeRange<Decimal> | null;
         this.dispatchEvent(
-          new TimescopeEvent(
-            e.value.resizing ? 'rangechanging' : 'rangechanged',
-            e.value.range as TimescopeRange<Decimal>,
-            e.origin,
-          ),
+          new TimescopeEvent('selectedrangechanging', e.value.range as TimescopeRange<Decimal> | null, e.origin),
         );
+        if (!e.value.resizing) {
+          this.#selectedRange = e.value.range as TimescopeRange<Decimal> | null;
+          this.dispatchEvent(
+            new TimescopeEvent('selectedrangechanged', e.value.range as TimescopeRange<Decimal> | null, e.origin),
+          );
+        }
       }
     });
 

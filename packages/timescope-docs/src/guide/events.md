@@ -19,8 +19,8 @@ flowchart LR
   TL -- timechanged --> L
   TL -- zoomchanging --> L
   TL -- zoomchanged --> L
-  TL -- rangechanging --> L
-  TL -- rangechanged --> L
+  TL -- selectionchanging --> L
+  TL -- selectionchanged --> L
 
   classDef node fill:#e8f0ff,stroke:#3553a5,color:#0b1e66;
   classDef listener fill:#ffe3f0,stroke:#b0003a,color:#4b001a;
@@ -48,8 +48,8 @@ flowchart LR
 | `timechanged` | Time change complete |
 | `zoomchanging` | During zoom change |
 | `zoomchanged` | Zoom change complete |
-| `rangechanging` | During selection resize |
-| `rangechanged` | Selection update complete |
+| `selectionchanging` | During selection resize |
+| `selectionchanged` | Selection update complete |
 
 ```typescript
 import { Timescope } from 'timescope';
@@ -67,7 +67,7 @@ timescope.on('zoomchanged', (e) => {
   console.log('Zoom:', e.value.toString());
 });
 
-timescope.on('rangechanged', (e) => {
+timescope.on('selectionchanged', (e) => {
   const payload = e.value ? e.value.map((t) => t.toString()) : 'none';
   console.log('Selection:', payload);
 });

@@ -41,6 +41,8 @@ export class TimescopeSelectionRenderer extends TimescopeRenderer<TimescopeEvent
       this.#range = null;
     } else if (opts === true) {
       this.#resizable = true;
+    } else if (opts === null) {
+      this.#range = null;
     } else {
       if (opts.resizable !== undefined) this.#resizable = opts.resizable;
       if (opts.color !== undefined) this.#color = opts.color;
