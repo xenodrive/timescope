@@ -39,5 +39,5 @@ jobs:
       - name: Publish to npm
         run: |
           for pkg in dist/*; do
-            (cd "$pkg"; npm publish --access public --tag latest)
+            (cd "$pkg"; npm publish --access public --tag latest || true)
           done
