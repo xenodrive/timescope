@@ -27,7 +27,9 @@
   ],
   "main": "./src/index.ts",
   "exports": {
-    "import": "./src/index.ts"
+    ".": {
+      "import": "./src/index.ts"
+    }
   },
   "devDependencies": {
     "@eslint/compat": "^2.0.0",
