@@ -7,5 +7,5 @@
     "docs": "pnpm run -C packages/timescope-docs start",
     "build": "pnpm run --parallel build"
   },
-  "packageManager": "pnpm@10.26.1"
+  "packageManager": "pnpm@10.26.2"
 }
