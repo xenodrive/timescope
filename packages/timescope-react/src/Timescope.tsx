@@ -2,7 +2,6 @@ import type { ForwardedRef } from 'react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
   Timescope,
-  type Decimal,
   type FieldDefLike,
   type TimescopeNumberLike,
   type TimescopeOptions,
@@ -14,6 +13,7 @@ import {
   type TimescopeSourceInput,
   type TimescopeTimeLike,
 } from 'timescope';
+import type { Decimal } from '@kikuchan/decimal';
 
 type TimescopeProps<
   Source extends Record<string, TimescopeSourceInput>,

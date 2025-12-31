@@ -26,7 +26,7 @@ import type {
   TimescopeTimeLike,
 } from 'timescope';
 import { Timescope } from 'timescope';
-import type { Decimal } from 'timescope';
+import type { Decimal } from '@kikuchan/decimal';
 import { customRef, markRaw, onBeforeUnmount, useTemplateRef, watch } from 'vue';
 
 const emit = defineEmits<{

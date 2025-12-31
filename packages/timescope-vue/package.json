@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@eslint/compat": "^2.0.0",
+    "@kikuchan/decimal": "0.1.0-alpha.5",
     "@vitejs/plugin-vue": "^6.0.3",
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.6.0",
@@ -36,6 +37,7 @@
     "vue-tsc": "^3.2.1"
   },
   "peerDependencies": {
+    "@kikuchan/decimal": "0.1.0-alpha.5",
     "vue": "^3.5.26"
   },
   "dependencies": {

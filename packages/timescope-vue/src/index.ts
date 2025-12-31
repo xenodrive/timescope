@@ -6,7 +6,7 @@ import {
 } from 'timescope';
 import { reactive } from 'vue';
 
-export { Decimal } from 'timescope';
+export { Decimal } from '@kikuchan/decimal';
 export { default as Timescope } from './Timescope.vue';
 
 export const defineTimescopeOptions = createDefineTimescopeOptions(reactive);

@@ -1,6 +1,6 @@
+import { Decimal } from '@kikuchan/decimal';
 import { Accessor, effect, onCleanup } from '@luna_ui/luna';
 import {
-  Decimal,
   FieldDefLike,
   Timescope,
   TimescopeNumberLike,
