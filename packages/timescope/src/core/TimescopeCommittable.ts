@@ -94,7 +94,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
   #state = {
     id: undefined as string | undefined,
     value: null as Decimal | N,
-    nullValue: Decimal(0) as Decimal | null,
+    nullValue: null as Decimal | null,
     committed: null as Decimal | N,
     committing: null as Decimal | N,
     current: null as Decimal | N,
