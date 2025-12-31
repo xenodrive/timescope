@@ -24,6 +24,7 @@ type TimescopeProps<
 > = {
   width?: string;
   height?: string;
+  background?: string;
 
   time?: Decimal | number | null | string | Date;
   timeRange?: [
@@ -52,6 +53,8 @@ type TimescopeProps<
   onZoomAnimating?: (value: number) => void;
   onSelectedRangeChanging?: (value: [Decimal, Decimal] | null) => void;
   onSelectedRangeChanged?: (value: [Decimal, Decimal] | null) => void;
+  onAnimating?: (value: boolean) => void;
+  onEditing?: (value: boolean) => void;
 };
 
 export type TimescopeAPI = {
@@ -86,6 +89,8 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
     onZoomAnimating: props.onZoomAnimating,
     onSelectedRangeChanging: props.onSelectedRangeChanging,
     onSelectedRangeChanged: props.onSelectedRangeChanged,
+    onAnimating: props.onAnimating,
+    onEditing: props.onEditing,
   });
 
   useEffect(() => {
@@ -98,6 +103,8 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
       onZoomAnimating: props.onZoomAnimating,
       onSelectedRangeChanging: props.onSelectedRangeChanging,
       onSelectedRangeChanged: props.onSelectedRangeChanged,
+      onAnimating: props.onAnimating,
+      onEditing: props.onEditing,
     };
   }, [
     props.onTimeChanged,
@@ -108,6 +115,8 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
     props.onZoomAnimating,
     props.onSelectedRangeChanging,
     props.onSelectedRangeChanged,
+    props.onAnimating,
+    props.onEditing,
   ]);
 
   useImperativeHandle(
@@ -154,6 +163,19 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
     instance.on('selectedrangechanging', (e) => callbacksRef.current.onSelectedRangeChanging?.(e.value));
     instance.on('selectedrangechanged', (e) => callbacksRef.current.onSelectedRangeChanged?.(e.value));
 
+    let animating = instance.animating;
+    let editing = instance.editing;
+    instance.on('change', () => {
+      if (instance.animating !== animating) {
+        animating = instance.animating;
+        callbacksRef.current.onAnimating?.(animating);
+      }
+      if (instance.editing !== editing) {
+        editing = instance.editing;
+        callbacksRef.current.onEditing?.(editing);
+      }
+    });
+
     return () => {
       instance.dispose();
       timescopeRef.current = null;
@@ -185,9 +207,9 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
 
   useEffect(() => {
     timescopeRef.current?.updateOptions({
-      style: { width: props.width ?? '100%', height: props.height ?? '36px' },
+      style: { width: props.width ?? '100%', height: props.height ?? '36px', background: props.background },
     });
-  }, [props.width, props.height]);
+  }, [props.width, props.height, props.background]);
 
   useEffect(() => {
     timescopeRef.current?.updateOptions({ sources: props.sources } as TimescopeOptions);

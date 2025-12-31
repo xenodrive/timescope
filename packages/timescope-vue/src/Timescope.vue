@@ -38,6 +38,8 @@ const emit = defineEmits<{
   zoomanimating: [number];
   selectedrangechanging: [[Decimal, Decimal] | null];
   selectedrangechanged: [[Decimal, Decimal] | null];
+  animating: [boolean];
+  editing: [boolean];
 
   'update:time': [Decimal | null];
   'update:zoom': [number];
@@ -53,6 +55,7 @@ const props = withDefaults(
   defineProps<{
     width?: string;
     height?: string;
+    background?: string;
 
     time?: Decimal | number | null | string | Date;
     timeRange?: [
@@ -147,6 +150,19 @@ timescope.on('zoomanimating', (e) => emit('zoomanimating', e.value));
 timescope.on('selectedrangechanging', (e) => emit('selectedrangechanging', e.value));
 timescope.on('selectedrangechanged', (e) => emit('selectedrangechanged', e.value));
 
+let animating = timescope.animating;
+let editing = timescope.editing;
+timescope.on('change', () => {
+  if (timescope.animating !== animating) {
+    animating = timescope.animating;
+    emit('animating', animating);
+  }
+  if (timescope.editing !== editing) {
+    editing = timescope.editing;
+    emit('editing', editing);
+  }
+});
+
 timescope.on('timechanged', (e) => emit('update:time', e.value));
 timescope.on('zoomchanged', (e) => emit('update:zoom', e.value));
 timescope.on('timechanging', (e) => emit('update:timechanging', e.value));
@@ -185,8 +201,8 @@ watch(
 );
 
 watch(
-  () => [props.width, props.height],
-  () => timescope.updateOptions({ style: { width: props.width, height: props.height } }),
+  () => [props.width, props.height, props.background],
+  () => timescope.updateOptions({ style: { width: props.width, height: props.height, background: props.background } }),
   { immediate: true },
 );
 

@@ -24,6 +24,7 @@ type TimescopeProps<
 > = {
   width?: Accessor<string | undefined>;
   height?: Accessor<string | undefined>;
+  background?: Accessor<string>;
 
   time?: Accessor<Decimal | number | null | string | Date | undefined>;
   timeRange?: Accessor<
@@ -54,6 +55,8 @@ type TimescopeProps<
   onZoomChanged?: (v: number) => void;
   onSelectedRangeChanging?: (v: TimescopeRange<Decimal> | null) => void;
   onSelectedRangeChanged?: (v: TimescopeRange<Decimal> | null) => void;
+  onEditing?: (v: boolean) => void;
+  onAnimating?: (v: boolean) => void;
 };
 
 function TimescopeComponent<
@@ -80,6 +83,17 @@ function TimescopeComponent<
   timescope.on('selectedrangechanging', (e) => props.onSelectedRangeChanging?.(e.value));
   timescope.on('selectedrangechanged', (e) => props.onSelectedRangeChanged?.(e.value));
 
+  let animating = false;
+  let editing = false;
+  timescope.on('change', () => {
+    if (timescope.animating != animating) props.onAnimating?.(timescope.animating);
+    animating = timescope.animating;
+  });
+  timescope.on('change', () => {
+    if (timescope.editing != editing) props.onEditing?.(timescope.editing);
+    editing = timescope.editing;
+  });
+
   effect(() => {
     if (props.time) timescope.setTime(props.time() ?? null);
   });
@@ -97,7 +111,7 @@ function TimescopeComponent<
   });
   effect(() => {
     timescope.updateOptions({
-      style: { width: props.width?.() ?? '100%', height: props.height?.() ?? '36px' },
+      style: { width: props.width?.() ?? '100%', height: props.height?.() ?? '36px', background: props.background?.() },
     });
   });
   effect(() => {

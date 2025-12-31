@@ -12,6 +12,7 @@
   export type TimescopeProps = {
     width?: string;
     height?: string;
+    background?: string;
 
     time?: Decimal | number | null | string | Date;
     timeRange?: [
@@ -44,11 +45,14 @@
     zoomanimating: number;
     selectedrangechanging: [Decimal, Decimal] | null;
     selectedrangechanged: [Decimal, Decimal] | null;
+    animating: boolean;
+    editing: boolean;
   };
 
   let {
     width = '100%',
     height = '36px',
+    background,
     time = $bindable<Decimal | number | null | string | Date | undefined>(undefined),
     timeRange,
     zoom = $bindable<number | undefined>(undefined),
@@ -95,6 +99,19 @@
       dispatch('selectedrangechanged', e.value);
     });
 
+    let animating = timescope.animating;
+    let editing = timescope.editing;
+    timescope.on('change', () => {
+      if (timescope?.animating !== animating) {
+        animating = timescope?.animating ?? false;
+        dispatch('animating', animating);
+      }
+      if (timescope?.editing !== editing) {
+        editing = timescope?.editing ?? false;
+        dispatch('editing', editing);
+      }
+    });
+
     return () => {
       timescope?.dispose();
       timescope = null;
@@ -134,7 +151,7 @@
 
   $effect(() => {
     if (!timescope) return;
-    timescope.updateOptions({ style: { width, height } });
+    timescope.updateOptions({ style: { width, height, background } });
   });
 
   $effect(() => {

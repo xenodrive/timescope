@@ -24,6 +24,7 @@ type TimescopeProps<
 > = {
   width?: string;
   height?: string;
+  background?: string;
 
   time?: Decimal | number | null | string | Date;
   timeRange?: [
@@ -54,6 +55,8 @@ type TimescopeProps<
   onZoomChanged?: (v: number) => void;
   onSelectedRangeChanging?: (v: TimescopeRange<Decimal> | null) => void;
   onSelectedRangeChanged?: (v: TimescopeRange<Decimal> | null) => void;
+  onAnimating?: (v: boolean) => void;
+  onEditing?: (v: boolean) => void;
   style?: any;
   class?: any;
 };
@@ -82,6 +85,8 @@ function TimescopeComponent<
     const onZoomChanged = props.onZoomChanged;
     const onSelectedRangeChanging = props.onSelectedRangeChanging;
     const onSelectedRangeChanged = props.onSelectedRangeChanged;
+    const onAnimating = props.onAnimating;
+    const onEditing = props.onEditing;
 
     const uns = [
       timescope.on('timeanimating', (e) => onTimeAnimating?.(e.value)),
@@ -93,6 +98,21 @@ function TimescopeComponent<
       timescope.on('selectedrangechanging', (e) => onSelectedRangeChanging?.(e.value)),
       timescope.on('selectedrangechanged', (e) => onSelectedRangeChanged?.(e.value)),
     ];
+
+    let animating = timescope.animating;
+    let editing = timescope.editing;
+    uns.push(
+      timescope.on('change', () => {
+        if (timescope.animating !== animating) {
+          animating = timescope.animating;
+          onAnimating?.(animating);
+        }
+        if (timescope.editing !== editing) {
+          editing = timescope.editing;
+          onEditing?.(editing);
+        }
+      }),
+    );
 
     onCleanup(() => {
       for (const un of uns) un();
@@ -116,7 +136,7 @@ function TimescopeComponent<
   });
   createEffect(() => {
     timescope.updateOptions({
-      style: { width: props.width ?? '100%', height: props.height ?? '36px' },
+      style: { width: props.width ?? '100%', height: props.height ?? '36px', background: props.background },
     });
   });
   createEffect(() => {
