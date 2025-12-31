@@ -62,84 +62,61 @@ function TimescopeComponent<
   TimeDef extends Record<string, FieldDefLike<TimescopeTimeLike<never>>>,
   ValueDef extends Record<string, FieldDefLike<TimescopeNumberLike | null>>,
   Track extends string,
->({
-  width,
-  height,
-  time,
-  timeRange,
-  zoom,
-  zoomRange,
-  sources,
-  series,
-  tracks,
-  indicator,
-  selection,
-  selectedRange,
-  showFps,
-  fonts,
-  onTimeAnimating,
-  onTimeChanging,
-  onTimeChanged,
-  onZoomAnimating,
-  onZoomChanging,
-  onZoomChanged,
-  onSelectedRangeChanging,
-  onSelectedRangeChanged,
-}: TimescopeProps<Source, SourceName, TimeDef, ValueDef, Track>) {
+>(props: TimescopeProps<Source, SourceName, TimeDef, ValueDef, Track>) {
   const timescope = new Timescope({
-    time: time?.() ?? null,
-    timeRange: timeRange?.(),
-    zoom: zoom?.() ?? 0,
-    zoomRange: zoomRange?.(),
-    fonts: fonts?.(),
+    time: props.time?.() ?? null,
+    timeRange: props.timeRange?.(),
+    zoom: props.zoom?.() ?? 0,
+    zoomRange: props.zoomRange?.(),
+    fonts: props.fonts?.(),
   });
 
-  timescope.on('timeanimating', (e) => onTimeAnimating?.(e.value));
-  timescope.on('timechanging', (e) => onTimeChanging?.(e.value));
-  timescope.on('timechanged', (e) => onTimeChanged?.(e.value));
-  timescope.on('zoomanimating', (e) => onZoomAnimating?.(e.value));
-  timescope.on('zoomchanging', (e) => onZoomChanging?.(e.value));
-  timescope.on('zoomchanged', (e) => onZoomChanged?.(e.value));
-  timescope.on('selectedrangechanging', (e) => onSelectedRangeChanging?.(e.value));
-  timescope.on('selectedrangechanged', (e) => onSelectedRangeChanged?.(e.value));
+  timescope.on('timeanimating', (e) => props.onTimeAnimating?.(e.value));
+  timescope.on('timechanging', (e) => props.onTimeChanging?.(e.value));
+  timescope.on('timechanged', (e) => props.onTimeChanged?.(e.value));
+  timescope.on('zoomanimating', (e) => props.onZoomAnimating?.(e.value));
+  timescope.on('zoomchanging', (e) => props.onZoomChanging?.(e.value));
+  timescope.on('zoomchanged', (e) => props.onZoomChanged?.(e.value));
+  timescope.on('selectedrangechanging', (e) => props.onSelectedRangeChanging?.(e.value));
+  timescope.on('selectedrangechanged', (e) => props.onSelectedRangeChanged?.(e.value));
 
   effect(() => {
-    if (time) timescope.setTime(time() ?? null);
+    if (props.time) timescope.setTime(props.time() ?? null);
   });
   effect(() => {
-    timescope.setTimeRange(timeRange?.());
+    timescope.setTimeRange(props.timeRange?.());
   });
   effect(() => {
-    if (zoom) timescope.setZoom(zoom() ?? 0);
+    if (props.zoom) timescope.setZoom(props.zoom() ?? 0);
   });
   effect(() => {
-    timescope.setZoomRange(zoomRange?.());
+    timescope.setZoomRange(props.zoomRange?.());
   });
   effect(() => {
-    if (selectedRange) timescope.setSelectedRange(selectedRange() ?? null);
+    if (props.selectedRange) timescope.setSelectedRange(props.selectedRange() ?? null);
   });
   effect(() => {
     timescope.updateOptions({
-      style: { width: width?.() ?? '100%', height: height?.() ?? '36px' },
+      style: { width: props.width?.() ?? '100%', height: props.height?.() ?? '36px' },
     });
   });
   effect(() => {
-    timescope.updateOptions({ sources: sources?.() } as TimescopeOptions);
+    timescope.updateOptions({ sources: props.sources?.() } as TimescopeOptions);
   });
   effect(() => {
-    timescope.updateOptions({ series: series?.() } as TimescopeOptions);
+    timescope.updateOptions({ series: props.series?.() } as TimescopeOptions);
   });
   effect(() => {
-    timescope.updateOptions({ tracks: tracks?.() } as TimescopeOptions);
+    timescope.updateOptions({ tracks: props.tracks?.() } as TimescopeOptions);
   });
   effect(() => {
-    timescope.updateOptions({ indicator: indicator?.() ?? true } as TimescopeOptions);
+    timescope.updateOptions({ indicator: props.indicator?.() ?? true } as TimescopeOptions);
   });
   effect(() => {
-    timescope.updateOptions({ selection: selection?.() } as TimescopeOptions);
+    timescope.updateOptions({ selection: props.selection?.() } as TimescopeOptions);
   });
   effect(() => {
-    timescope.updateOptions({ showFps: showFps?.() } as TimescopeOptions);
+    timescope.updateOptions({ showFps: props.showFps?.() } as TimescopeOptions);
   });
 
   onCleanup(() => {
