@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Timescope } from '$lib';
-  import type { Decimal } from '$lib';
+  import { Timescope } from '@timescope/svelte';
+  import type { Decimal } from '@timescope/svelte';
   import type { TimescopeRange } from 'timescope';
 
   let time: Decimal | null = null;
@@ -13,8 +13,7 @@
   bind:time
   on:timechanging={(e) => (timeChanging = e.detail)}
   on:timeanimating={(e) => (timeAnimating = e.detail)}
-  on:selectedrangechanging={(e) => (selectedRangeChanging = e.detail)}
-/>
+  on:selectedrangechanging={(e) => (selectedRangeChanging = e.detail)} />
 
 <pre>time: {time?.toString()}</pre>
 <pre>timeChanging: {timeChanging?.toString()}</pre>

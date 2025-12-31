@@ -8,6 +8,7 @@ node_modules
 /.svelte-kit
 /build
 /dist
+/.tmp
 
 # OS
 .DS_Store
