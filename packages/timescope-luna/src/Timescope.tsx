@@ -15,6 +15,8 @@ import {
   TimescopeTimeLike,
 } from 'timescope';
 
+type MaybeAccessor<T> = (() => T) | T;
+
 type TimescopeProps<
   Source extends Record<string, TimescopeSourceInput>,
   SourceName extends Record<string, keyof Source>,
@@ -22,30 +24,30 @@ type TimescopeProps<
   ValueDef extends Record<string, FieldDefLike<TimescopeNumberLike | null>>,
   Track extends string,
 > = {
-  width?: Accessor<string | undefined>;
-  height?: Accessor<string | undefined>;
-  background?: Accessor<string>;
+  width?: MaybeAccessor<string | undefined>;
+  height?: MaybeAccessor<string | undefined>;
+  background?: MaybeAccessor<string>;
 
-  time?: Accessor<Decimal | number | null | string | Date | undefined>;
-  timeRange?: Accessor<
+  time?: MaybeAccessor<Decimal | number | null | string | Date | undefined>;
+  timeRange?: MaybeAccessor<
     | [Decimal | number | null | string | Date | undefined, Decimal | number | null | string | Date | undefined]
     | undefined
   >;
-  zoom?: Accessor<number | undefined>;
-  zoomRange?: Accessor<[number | undefined, number | undefined] | undefined>;
+  zoom?: MaybeAccessor<number | undefined>;
+  zoomRange?: MaybeAccessor<[number | undefined, number | undefined] | undefined>;
 
-  sources?: Accessor<TimescopeOptionsSources<Source> | undefined>;
-  series?: Accessor<TimescopeOptionsSeries<Source, SourceName, TimeDef, ValueDef, Track> | undefined>;
-  tracks?: Accessor<TimescopeOptionsTracks<Track> | undefined>;
+  sources?: MaybeAccessor<TimescopeOptionsSources<Source> | undefined>;
+  series?: MaybeAccessor<TimescopeOptionsSeries<Source, SourceName, TimeDef, ValueDef, Track> | undefined>;
+  tracks?: MaybeAccessor<TimescopeOptionsTracks<Track> | undefined>;
 
-  indicator?: Accessor<boolean | undefined>;
-  selection?: Accessor<TimescopeOptionsSelection | undefined>;
+  indicator?: MaybeAccessor<boolean | undefined>;
+  selection?: MaybeAccessor<TimescopeOptionsSelection | undefined>;
 
-  selectedRange?: Accessor<TimescopeRange<Decimal> | null | undefined>;
+  selectedRange?: MaybeAccessor<TimescopeRange<Decimal> | null | undefined>;
 
-  showFps?: Accessor<boolean | undefined>;
+  showFps?: MaybeAccessor<boolean | undefined>;
 
-  fonts?: Accessor<TimescopeOptionsInitial<Source, SourceName, TimeDef, ValueDef, Track>['fonts'] | undefined>;
+  fonts?: MaybeAccessor<TimescopeOptionsInitial<Source, SourceName, TimeDef, ValueDef, Track>['fonts'] | undefined>;
 
   onTimeAnimating?: (v: Decimal | null) => void;
   onTimeChanging?: (v: Decimal | null) => void;
@@ -59,13 +61,25 @@ type TimescopeProps<
   onAnimating?: (v: boolean) => void;
 };
 
+type NormalizedProp<T> = T extends MaybeAccessor<infer A> ? Accessor<A> : T & Accessor<unknown>;
+type NormalizedProps<T> = {
+  [K in keyof T]: NormalizedProp<T[K]>;
+};
+
+function normalizeProps<T extends object>(props: T): NormalizedProps<T> {
+  return Object.fromEntries(
+    Object.entries(props).map(([k, v]) => [k, typeof v === 'function' ? v : v == null ? v : () => v]),
+  ) as NormalizedProps<T>;
+}
+
 function TimescopeComponent<
   Source extends Record<string, TimescopeSourceInput>,
   SourceName extends Record<string, keyof Source>,
   TimeDef extends Record<string, FieldDefLike<TimescopeTimeLike<never>>>,
   ValueDef extends Record<string, FieldDefLike<TimescopeNumberLike | null>>,
   Track extends string,
->(props: TimescopeProps<Source, SourceName, TimeDef, ValueDef, Track>) {
+>(props_: TimescopeProps<Source, SourceName, TimeDef, ValueDef, Track>) {
+  const props = normalizeProps(props_);
   const timescope = new Timescope({
     time: props.time?.() ?? null,
     timeRange: props.timeRange?.(),
