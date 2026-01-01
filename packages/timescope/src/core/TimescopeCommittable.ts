@@ -78,9 +78,9 @@ function Decimal_equals(a: Decimal | null | undefined, b: Decimal | null | undef
  | --------------------------------- | --------- | -------- | ---------- | --------------------- | --------- |
  | Stable                            |  ○        |  ○       |  ○         |  ○                    | ○         |
  | After begin                       |  ○        |  ☓       |  ☓         |  ☓                    | ☓         |
- | During update                     |  ○        |  △       |  ☓         |  ☓                    | ☓         |
- | During commit (animation running) |  ○        |  △       |  ○         |  ○ (!lazy) / ☓ (lazy) | ☓         |
- | After commit (animation finished) |  ○        |  ○       |  ○         |  ○                    | ○         |
+ | During update                     |  ○        |  △       |  ☓         |  ☓                    | ☓         | changing
+ | During commit (animation running) |  ○        |  △       |  ○         |  ○ (!lazy) / ☓ (lazy) | ☓         | changing
+ | After commit (animation finished) |  ○        |  ○       |  ○         |  ○                    | ○         | animated
 */
 
 export class TimescopeCommittable<N extends null = null> extends TimescopeObservable<
@@ -291,7 +291,6 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
       this.#state.value = targetValue;
       this.#state.editing = false;
 
-      this.dispatchEvent(new TimescopeEvent('valuechanging', this.#state.value));
       this.dispatchEvent(new TimescopeEvent('valuechanged', this.#state.value));
       this.changed();
     };
@@ -310,6 +309,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
     this.#state.cursorMode = cursorMode;
     this.#state.candidate = targetValue;
     this.#state.committing = targetValue;
+    this.dispatchEvent(new TimescopeEvent('valuechanging', this.#state.candidate));
     if (!lazy) changeValue();
 
     const target = a.eq(originValue) ? 0 : 1;

@@ -73,3 +73,9 @@ button?.addEventListener('click', () => {
   // timescope.fitTo(['2000-01-01', '2020-12-31'], { padding: 100 });
   timescope.redraw();
 });
+document.getElementById('plus')?.addEventListener('click', () => {
+  timescope.setZoom(timescope.zoom + 1);
+});
+document.getElementById('minus')?.addEventListener('click', () => {
+  timescope.setZoom(timescope.zoom - 1);
+});

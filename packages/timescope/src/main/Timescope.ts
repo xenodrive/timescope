@@ -101,7 +101,7 @@ export class Timescope<
   #wheelSensitivity;
 
   get time(): Decimal | null {
-    return this.#state.time.value?.clone() ?? null;
+    return this.#state.time.committing?.clone() ?? null;
   }
 
   set time(v: TimeLike | null) {
@@ -135,7 +135,7 @@ export class Timescope<
   }
 
   get zoom(): number {
-    return this.#state.zoom.value.number();
+    return this.#state.zoom.committing.number();
   }
 
   set zoom(v: ZoomLike) {
