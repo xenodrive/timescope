@@ -17,9 +17,11 @@ export class TimescopeState extends TimescopeObservable<
   | TimescopeEvent<'timechanging', Decimal | null>
   | TimescopeEvent<'timechanged', Decimal | null>
   | TimescopeEvent<'timeanimating', Decimal | null>
+  | TimescopeEvent<'timeanimated', Decimal | null>
   | TimescopeEvent<'zoomchanging', number>
   | TimescopeEvent<'zoomchanged', number>
   | TimescopeEvent<'zoomanimating', number>
+  | TimescopeEvent<'zoomanimated', number>
 > {
   time: TimescopeCommittable<null>;
   zoom: TimescopeCommittable<never>;
@@ -43,11 +45,13 @@ export class TimescopeState extends TimescopeObservable<
     this.time.on('valuechanging', (e) => this.dispatchEvent(new TimescopeEvent('timechanging', e.value)));
     this.time.on('valuechanged', (e) => this.dispatchEvent(new TimescopeEvent('timechanged', e.value)));
     this.time.on('valueanimating', (e) => this.dispatchEvent(new TimescopeEvent('timeanimating', e.value)));
+    this.time.on('valueanimated', (e) => this.dispatchEvent(new TimescopeEvent('timeanimated', e.value)));
 
     this.zoom.on('change', () => this.changed());
     this.zoom.on('valuechanging', (e) => this.dispatchEvent(new TimescopeEvent('zoomchanging', e.value.number())));
     this.zoom.on('valuechanged', (e) => this.dispatchEvent(new TimescopeEvent('zoomchanged', e.value.number())));
     this.zoom.on('valueanimating', (e) => this.dispatchEvent(new TimescopeEvent('zoomanimating', e.value.number())));
+    this.zoom.on('valueanimated', (e) => this.dispatchEvent(new TimescopeEvent('zoomanimated', e.value.number())));
   }
 
   setTime(v: TimeLike | null, animation?: TimescopeAnimationInput) {

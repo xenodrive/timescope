@@ -79,9 +79,11 @@ export class Timescope<
   | TimescopeEvent<'timechanging', Decimal | null>
   | TimescopeEvent<'timechanged', Decimal | null>
   | TimescopeEvent<'timeanimating', Decimal | null>
+  | TimescopeEvent<'timeanimated', Decimal | null>
   | TimescopeEvent<'zoomchanging', number>
   | TimescopeEvent<'zoomchanged', number>
   | TimescopeEvent<'zoomanimating', number>
+  | TimescopeEvent<'zoomanimated', number>
   | TimescopeEvent<'selectedrangechanging', TimescopeRange<Decimal> | null>
   | TimescopeEvent<'selectedrangechanged', TimescopeRange<Decimal> | null>
 > {
@@ -311,9 +313,11 @@ export class Timescope<
     this.#state.on('timechanging', (e) => this.dispatchEvent(e));
     this.#state.on('timechanged', (e) => this.dispatchEvent(e));
     this.#state.on('timeanimating', (e) => this.dispatchEvent(e));
+    this.#state.on('timeanimated', (e) => this.dispatchEvent(e));
     this.#state.on('zoomchanging', (e) => this.dispatchEvent(e));
     this.#state.on('zoomchanged', (e) => this.dispatchEvent(e));
     this.#state.on('zoomanimating', (e) => this.dispatchEvent(e));
+    this.#state.on('zoomanimated', (e) => this.dispatchEvent(e));
 
     time.on('sync', (e) => this.#renderer?.sync({ time: e.value }, e.origin));
     zoom.on('sync', (e) => this.#renderer?.sync({ zoom: e.value }, e.origin));

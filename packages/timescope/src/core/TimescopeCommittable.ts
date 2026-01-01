@@ -87,6 +87,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
   | TimescopeEvent<'valuechanging', Decimal | N>
   | TimescopeEvent<'valuechanged', Decimal | N>
   | TimescopeEvent<'valueanimating', Decimal | N>
+  | TimescopeEvent<'valueanimated', Decimal | N>
   | TimescopeEvent<'sync', TimescopeCommittableMessageSync<N>>
 > {
   #lazy: boolean;
@@ -332,6 +333,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
         if (lazy) changeValue();
         this.#state.committed = targetValue;
         this.dispatchEvent(new TimescopeEvent('valueanimating', this.#state.current));
+        this.dispatchEvent(new TimescopeEvent('valueanimated', this.#state.committed));
         this.changed();
       },
 
