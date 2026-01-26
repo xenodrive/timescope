@@ -33,5 +33,5 @@
 
     "types": ["rolldown-plugin-inline-worker", "node"]
   },
-  "include": ["./src/**/*", "./bench/**/*"]
+  "include": ["./src/**/*", "./tests/**/*"]
 }
