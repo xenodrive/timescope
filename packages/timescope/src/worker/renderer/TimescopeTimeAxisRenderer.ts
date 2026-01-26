@@ -30,8 +30,9 @@ export class TimescopeTimeAxisRenderer extends TimescopeRenderer {
     const opts = normalizeOptions(timescope.options.tracks?.[id].timeAxis, {});
     if (!opts) return;
 
-    const data: TimescopeTimeAxisProviderData[] = timescope.dataCaches[`tracks:${id}:timeAxis`]?.data;
-    if (!data) return;
+    const cache: TimescopeTimeAxisProviderData = timescope.dataCaches[`tracks:${id}:timeAxis`]?.data;
+    if (!cache) return;
+    const data = cache?.data ?? [];
 
     ctx.beginPath();
 
@@ -49,24 +50,37 @@ export class TimescopeTimeAxisRenderer extends TimescopeRenderer {
       const x = timescope.timeAxis.p(tick.time.time);
       if (opts.ticks !== false) {
         ctx.moveTo(x, axisY - (tick.major ? 10 : 5));
-        ctx.lineTo(x, axisY + (timescope.symmetric ? (tick.major ? 10 : 5) : 0));
+        ctx.lineTo(x, axisY + (tick.major ? 10 : 5));
       }
     });
 
     ctx.stroke();
   }
 
+  #lastLabelY = 0;
+  #lastLabelY_t = 0;
+
   #renderLabels(timescope: TimescopeRenderingContext): void {
     const ctx = timescope.ctx;
 
-    const axisY = timescope.renderingTrack!.y0;
-    const labelY = axisY + 2;
+    const track = timescope.renderingTrack!;
+
+    const axisY = track.y0;
+    const labelY = track.top + track.chartHeight / 2 <= axisY ? axisY + 2 : axisY - 16;
+
+    if (this.#lastLabelY !== labelY) {
+      this.#lastLabelY = labelY;
+      this.#lastLabelY_t = Date.now();
+      this.changed();
+    }
+    const t = Math.min(1, (0.2 * (Date.now() - this.#lastLabelY_t)) / 1000);
 
     const id = timescope.renderingTrack!.id;
     const opts = normalizeOptions(timescope.options.tracks?.[id].timeAxis, {});
     if (!opts) return;
-    const data: TimescopeTimeAxisProviderData[] = timescope.dataCaches[`tracks:${id}:timeAxis`]?.data;
-    if (!data) return;
+    const cache: TimescopeTimeAxisProviderData = timescope.dataCaches[`tracks:${id}:timeAxis`]?.data;
+    if (!cache) return;
+    const data = cache?.data ?? [];
 
     if (opts.labels === false) return;
 
@@ -75,10 +89,15 @@ export class TimescopeTimeAxisRenderer extends TimescopeRenderer {
     ctx.font = textStyle?.font;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 3;
 
     data.forEach((tick) => {
       const x = timescope.timeAxis.p(tick.time.time);
-      if (tick.text !== undefined) ctx.fillText(tick.text, x, labelY);
+      if (tick.text !== undefined) {
+        ctx.strokeText(tick.text, x, labelY);
+        ctx.fillText(tick.text, x, labelY);
+      }
     });
   }
 }

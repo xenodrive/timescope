@@ -1,22 +1,18 @@
-import type { TimescopeSeriesProviderMeta } from '#src/bridge/protocol';
+import type { TimescopeSeriesChartProviderData } from '#src/bridge/protocol';
 import { TimescopeObservable } from '#src/core/event';
 import { TimescopeCommittable } from '#src/core/TimescopeCommittable';
-import type { TimescopeDataCacheSeries } from './TimescopeDataCacheSeries';
 import type { TimescopeRenderingContext } from './types';
 
-function findMinMax(caches: TimescopeDataCacheSeries<any, TimescopeSeriesProviderMeta>[]): [min: number, max: number] {
+function findMinMax(caches: TimescopeSeriesChartProviderData[]): [min: number, max: number] {
   let min = Infinity;
   let max = -Infinity;
 
-  for (const { meta, scaleYcommitting } of caches) {
-    if (!scaleYcommitting) continue;
+  // XXX: TODO:
+  for (const { meta } of caches) {
+    if (!meta || !meta.minmax) continue;
 
-    const values = [meta.pmin, meta.pmax, meta.nmin, meta.nmax, meta.zero]
-      .map(scaleYcommitting)
-      .filter((x) => !isNaN(x));
-
-    min = Math.min(...values, min);
-    max = Math.max(...values, max);
+    min = Math.min(meta.minmax[0], min);
+    max = Math.max(meta.minmax[1], max);
   }
 
   if (isFinite(min) && isFinite(max)) {
@@ -48,6 +44,9 @@ export class TimescopeTrack extends TimescopeObservable {
 
   seriesKeys: string[];
 
+  #minNumber: number | undefined = undefined;
+  #maxNumber: number | undefined = undefined;
+
   constructor(opts: TimescopeTrackOptions) {
     super();
     this.id = opts.id;
@@ -61,8 +60,14 @@ export class TimescopeTrack extends TimescopeObservable {
 
     this.seriesKeys = opts.seriesKeys;
 
-    this.#min.on('change', () => this.changed());
-    this.#max.on('change', () => this.changed());
+    this.#min.on('change', () => {
+      this.#minNumber = this.#min.current?.number();
+      this.changed();
+    });
+    this.#max.on('change', () => {
+      this.#maxNumber = this.#max.current?.number();
+      this.changed();
+    });
   }
 
   get chartHeight() {
@@ -79,7 +84,13 @@ export class TimescopeTrack extends TimescopeObservable {
   }
 
   adjustScaleBySeriesChart(timescope: TimescopeRenderingContext) {
-    this.setScale(...findMinMax(this.seriesKeys.map((k) => timescope.dataCaches[`series:${k}:chart`] as any)));
+    this.setScale(
+      ...findMinMax(
+        this.seriesKeys.map(
+          (k) => (timescope.dataCaches[`series:${k}:chart`].data ?? []) as TimescopeSeriesChartProviderData,
+        ),
+      ),
+    );
   }
 
   get y0() {
@@ -90,17 +101,19 @@ export class TimescopeTrack extends TimescopeObservable {
     return this.height - this.paddingY[1];
   }
 
+  get top() {
+    return this.paddingY[0];
+  }
+
   y(value: number | null | undefined, floating: number = 0) {
     const H = this.chartHeight;
     if (value == null || isNaN(value)) return NaN;
-    if (!this.#min.current || !this.#max.current) return NaN;
-    if (this.#max.current.eq(this.#min.current)) return NaN;
 
-    const C = floating ? 10 : 0;
+    const max = this.#maxNumber;
+    const min = this.#minNumber;
+    if (min == null || max == null || min === max) return NaN;
 
-    const max = this.#max.current.number();
-    const min = this.#min.current.number();
-    if (min === max) return NaN;
+    const C = floating;
 
     const b = C / H;
     const a = (min + (1 - b) * (max - min)) / max;

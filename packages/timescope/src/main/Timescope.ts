@@ -1,15 +1,15 @@
 import type { TimescopeFont } from '#src/bridge/protocol';
 import type { TimescopeAnimationInput } from '#src/core/animation';
 import config from '#src/core/config';
-import { Decimal, type NumberLike } from '#src/core/decimal';
+import { Decimal } from '#src/core/decimal';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
 import { parseTimeLike, type TimeLike } from '#src/core/time';
 import { TimescopeState } from '#src/core/TimescopeState';
 import type {
-  FieldDefLike,
   TimescopeOptions,
   TimescopeOptionsInitial,
+  TimescopeOptionsSeries,
   TimescopeSeriesInput,
   TimescopeSourceInput,
 } from '#src/core/types';
@@ -43,25 +43,11 @@ export type TimescopeSize = {
 };
 
 type TimescopeUpdateOptions<
-  Source extends Record<string, TimescopeSourceInput>,
-  SourceName extends Record<string, keyof Source>,
-  TimeDef extends Record<string, FieldDefLike<TimeLike<never>>>,
-  ValueDef extends Record<string, FieldDefLike<NumberLike | null>>,
+  Sources extends Record<string, TimescopeSourceInput>,
+  Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
-> = Omit<TimescopeOptions<Source, SourceName, TimeDef, ValueDef, Track>, 'series'> & {
-  series?: {
-    [K in keyof SourceName & keyof TimeDef & keyof ValueDef]: Omit<
-      TimescopeSeriesInput<Source, SourceName[K] & string, TimeDef[K], ValueDef[K], Track>,
-      'data'
-    > & {
-      data: Omit<
-        TimescopeSeriesInput<Source, SourceName[K] & string, TimeDef[K], ValueDef[K], Track>['data'],
-        'source'
-      > & {
-        source?: TimescopeSeriesInput<Source, SourceName[K] & string, TimeDef[K], ValueDef[K], Track>['data']['source'];
-      };
-    };
-  };
+> = Omit<TimescopeOptions<Sources, Series, Track>, 'series'> & {
+  series?: TimescopeOptionsSeries<Sources, Series, Track>;
 };
 
 export type TimescopeFitOptions = {
@@ -70,12 +56,14 @@ export type TimescopeFitOptions = {
 };
 
 export class Timescope<
-  Source extends Record<string, TimescopeSourceInput> = Record<string, TimescopeSourceInput>,
-  SourceName extends Record<string, keyof Source> = Record<string, keyof Source>,
-  TimeDef extends Record<string, FieldDefLike<TimeLike<never>>> = Record<string, FieldDefLike<TimeLike<never>>>,
-  ValueDef extends Record<string, FieldDefLike<NumberLike | null>> = Record<string, FieldDefLike<NumberLike | null>>,
+  Sources extends Record<string, TimescopeSourceInput> = Record<string, TimescopeSourceInput>,
+  Series extends Record<string, TimescopeSeriesInput> = Record<string, TimescopeSeriesInput>,
   Track extends string = string,
 > extends TimescopeObservable<
+  | 'load'
+  | 'mount'
+  | 'unmount'
+  | 'resize'
   | TimescopeEvent<'timechanging', Decimal | null>
   | TimescopeEvent<'timechanged', Decimal | null>
   | TimescopeEvent<'timeanimating', Decimal | null>
@@ -99,6 +87,8 @@ export class Timescope<
   #fonts: (string | TimescopeFont)[];
 
   #wheelSensitivity;
+
+  #loaded = false;
 
   get time(): Decimal | null {
     return this.#state.time.committing?.clone() ?? null;
@@ -258,15 +248,12 @@ export class Timescope<
     this.#applyOptions(this.#options, true);
   }
 
-  updateOptions(opts: TimescopeUpdateOptions<Source, SourceName, TimeDef, ValueDef, Track>) {
+  updateOptions(opts: TimescopeUpdateOptions<Sources, Series, Track>) {
     mergeOptions(this.#options, opts);
     this.#applyOptions(opts, false);
   }
 
-  #applyOptions(
-    opts: TimescopeOptions | TimescopeUpdateOptions<Source, SourceName, TimeDef, ValueDef, Track>,
-    set: boolean,
-  ) {
+  #applyOptions(opts: TimescopeOptions | TimescopeUpdateOptions<Sources, Series, Track>, set: boolean) {
     if (!this.#element || !this.#renderer) return;
 
     if ('style' in opts) {
@@ -304,6 +291,13 @@ export class Timescope<
     const height = this.#size.height;
 
     this.#renderer.resize({ size: { width, height }, context: { dpr } });
+
+    this.dispatchEvent('resize');
+
+    if (!this.#loaded && width > 0 && height > 0) {
+      this.dispatchEvent('load');
+      this.#loaded = true;
+    }
   }
 
   #installTimeZoomEventHandler() {
@@ -331,7 +325,7 @@ export class Timescope<
     this.#state.setZoom(this.#state.zoom.committing.add(-deltaY / this.#wheelSensitivity));
   }
 
-  constructor(opts?: TimescopeOptionsInitial<Source, SourceName, TimeDef, ValueDef, Track>) {
+  constructor(opts?: TimescopeOptionsInitial<Sources, Series, Track>) {
     super();
 
     const _opts = opts ?? {};
@@ -341,11 +335,14 @@ export class Timescope<
     this.#options = { style: undefined, ..._opts } as TimescopeOptions;
     this.#fonts = _opts.fonts ?? [];
 
-    if (_opts.target) this.mount(_opts.target);
     this.#wheelSensitivity = _opts.wheelSensitivity ?? config.wheelSensitivity;
+
+    queueMicrotask(() => {
+      if (_opts.target) this.mount(_opts.target);
+    });
   }
 
-  reload(sources?: (keyof SourceName & string)[]) {
+  reload(sources?: (keyof Sources & string)[]) {
     this.#renderer?.invalidateSources(sources);
   }
 
@@ -435,10 +432,14 @@ export class Timescope<
 
     el.appendChild(this.#element);
 
+    this.dispatchEvent('mount');
+
     return this;
   }
 
   unmount() {
+    const mounted = Boolean(this.#element);
+
     this.#element?.remove();
     this.#interactionManager?.detach();
     this.#renderer?.dispose();
@@ -446,6 +447,8 @@ export class Timescope<
     this.#renderer = null;
     this.#element = null;
     this.#interactionManager = null;
+
+    if (mounted) this.dispatchEvent('unmount');
   }
 
   dispose() {

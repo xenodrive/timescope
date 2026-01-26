@@ -1,9 +1,10 @@
-import type { TimescopeDataChunkDesc } from '#src/core/chunk';
+import type { TimescopeChunk } from '#src/core/chunk';
 import type { Decimal } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
 import type { TimescopeCommittableMessageSync } from '#src/core/TimescopeCommittable';
 import type { TimescopeChartLink, TimescopeChartMark, TimescopeOptions } from '#src/core/types';
 import { Vector2f } from '#src/core/vector';
+import type { TimescopeSeriesPoint } from '#src/main/TimescopeDataSeries';
 
 // -------------------- Messages --------------------
 
@@ -19,7 +20,7 @@ export type TimescopeEventMessage = {
 
 export type TimescopeLoadChunkMessage = {
   key: string;
-  chunk: TimescopeDataChunkDesc;
+  chunk: TimescopeChunk;
 };
 
 export type TimescopeLoadMetaMessage = {
@@ -41,34 +42,52 @@ export type TimescopeViewChangedMessage = {
   range: TimescopeRange<Decimal>;
 };
 
+export type TimescopeProviderLoadDataMessage = {
+  key: string;
+  time: Decimal | null;
+  zoom: number;
+  range: TimescopeRange<Decimal>;
+  resolution: Decimal;
+};
 // -------------------- Wire Types --------------------
 
 /**
  * Wire payload for transferring chunk data across boundaries.
  */
-export type TimescopeDataChunkWire<T> = TimescopeDataChunkDesc & {
-  /** Chunk payload. */
-  data?: T & { time: Record<string, Decimal> & { _minTime: Decimal; _maxTime: Decimal } }[];
-};
-
 export type TimescopeDataCacheOptionsWire = {
-  instantValue?: boolean;
-  instantZoomLevel?: number;
+  instantWidth?: number;
+  instantResolution?: Decimal | undefined;
   immediate?: boolean;
-
-  chunkSize?: number;
-  zoomLevels?: readonly number[];
 };
 
 // -------------------- RPC Commands --------------------
 
 export type RendererCommands = {
+  // Worker -> Main
   readonly sync: (state: TimescopeSyncMessage) => void;
 
   readonly 'renderer:event': (e: TimescopeEventMessage) => void;
-  readonly 'provider:loadChunk': (e: TimescopeLoadChunkMessage) => Promise<TimescopeDataChunkWire<any>>;
-  readonly 'provider:loadMeta': (e: TimescopeLoadMetaMessage) => Promise<object>;
   readonly 'view:changed': (e: TimescopeViewChangedMessage) => Promise<void>;
+  readonly 'view:changing': (e: TimescopeViewChangedMessage) => void;
+
+  readonly 'provider:loadData': (mgs: TimescopeProviderLoadDataMessage) => Promise<any>;
+};
+
+export type WorkerCommands = {
+  // Main -> Worker
+  readonly init: (opts: RendererInitOptions) => void;
+  readonly fonts: (fonts?: TimescopeFont[]) => void;
+  readonly 'options:update': (options: TimescopeOptionsForWorker) => void;
+  readonly resize: (opts: RendererResizeOptions) => Promise<void> | void;
+
+  readonly pointer: (info: InteractionInfo) => Promise<boolean | void> | boolean | void;
+  readonly cursor: (info: InteractionInfo) => Promise<string | void> | string | void;
+  readonly sync: (sync: TimescopeSyncMessage) => void;
+
+  readonly reload: () => void;
+  readonly redraw: () => void;
+
+  readonly 'provider:changed': (key: string) => void;
 };
 
 // renderer init/resize payloads and shared wire types
@@ -91,20 +110,6 @@ export type TimescopeOptionsForWorker = TimescopeOptions & {
   dataCacheOptions?: {
     [K in string]: TimescopeDataCacheOptionsWire;
   };
-};
-
-export type WorkerCommands = {
-  readonly init: (opts: RendererInitOptions) => void;
-  readonly fonts: (fonts?: TimescopeFont[]) => void;
-  readonly 'options:update': (options: TimescopeOptionsForWorker) => void;
-  readonly resize: (opts: RendererResizeOptions) => Promise<void> | void;
-
-  readonly pointer: (info: InteractionInfo) => Promise<boolean | void> | boolean | void;
-  readonly cursor: (info: InteractionInfo) => Promise<string | void> | string | void;
-  readonly sync: (sync: TimescopeSyncMessage) => void;
-
-  readonly reload: () => void;
-  readonly redraw: () => void;
 };
 
 // -------------------- Layer serialization --------------------
@@ -152,51 +157,72 @@ export type InteractionInfo = {
 
 export type ProviderLoadChunkMessage = {
   key: string;
-  chunk: TimescopeDataChunkDesc;
+  chunk: TimescopeChunk;
 };
 
 export type TimescopeSeriesProviderData = {
-  time: Record<string, Decimal>;
-  value: Record<string, Decimal>;
-};
-
-export type TimescopeSeriesProviderMeta = {
-  pmin: Decimal | null;
-  pmax: Decimal | null;
-  nmin: Decimal | null;
-  nmax: Decimal | null;
-  zero: Decimal | null;
-  scale?: 'linear' | 'log';
+  data: TimescopeSeriesPoint[];
+  meta: {
+    time: Decimal;
+    resolution: Decimal;
+  };
 };
 
 export type TimescopeTimeAxisProviderData = {
-  /** Tick time at the label position. */
-  time: { time: Decimal };
+  data: {
+    /** Tick time at the label position. */
+    time: { time: Decimal };
 
-  /** Human-readable label text. Omit to render no label. */
-  text?: string;
-  /** Whether to render a tick mark. */
-  tick?: boolean;
-  /** Whether this tick is a major tick. */
-  major?: boolean;
+    /** Human-readable label text. Omit to render no label. */
+    text?: string;
+    /** Whether to render a tick mark. */
+    tick?: boolean;
+    /** Whether this tick is a major tick. */
+    major?: boolean;
+  }[];
+  meta: {
+    time: Decimal;
+    resolution: Decimal;
+  };
 };
 
-export type TimescopeSeriesChartProviderData = TimescopeSeriesProviderData & {
-  marks: TimescopeChartMark<false>[];
-};
+export type TimescopeSeriesChartProviderData = {
+  data: {
+    marks: TimescopeChartMark<false>[];
+    point: {
+      x: Record<string, number>;
+      y: Record<string, number>;
+    };
+  }[];
 
-export type TimescopeSeriesChartProviderMeta = TimescopeSeriesProviderMeta & {
-  links: TimescopeChartLink<false>[];
-  color: string;
+  meta: {
+    links: TimescopeChartLink<false>[];
+    color: string;
+    time: Decimal;
+    resolution: Decimal;
+
+    minmax: [number, number];
+    floating?: number;
+
+    start_t: number;
+    scaleY: number;
+    baseY: number;
+  };
 };
 
 export type TimescopeSeriesInstantaneousValueProviderData = {
-  time: { time: Decimal };
-  value: { value: Decimal };
+  data: {
+    time: { time: Decimal };
+    value: { value: Decimal | null };
 
-  text: string;
-};
+    point: { y: number };
 
-export type TimescopeSeriesInstantaneousValueProviderMeta = TimescopeSeriesProviderMeta & {
-  color: string;
+    text: string;
+  }[];
+
+  meta: {
+    time: Decimal;
+    resolution: Decimal;
+    color: string;
+  };
 };

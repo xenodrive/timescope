@@ -1,17 +1,4 @@
-import type { TimescopeDataChunkWire } from '#src/bridge/protocol';
-import {
-  addSeconds,
-  alignToDay,
-  alignToMonth,
-  alignToSecond,
-  alignToYear,
-  dayOfWeek,
-  epochSecondsToLocalDateTime,
-  nextDay,
-  nextMonth,
-  nextYear,
-} from '#src/core/calendar';
-import type { TimescopeDataChunkDesc } from '#src/core/chunk';
+import type { TimescopeTimeAxisProviderData } from '#src/bridge/protocol';
 import config from '#src/core/config';
 import { Decimal } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
@@ -25,6 +12,7 @@ import type {
 } from '#src/core/types';
 import { TimescopeDataProvider } from '#src/main/providers/TimescopeDataProvider';
 import { normalizeOptions } from '#src/worker/utils';
+import { Calendar } from '@kikuchan/calendar';
 
 const UNIT_EXPONENTS: Record<TimeUnit, bigint> = { s: 0n, ms: 3n, us: 6n, ns: 9n } as const;
 
@@ -38,6 +26,69 @@ export type TickLabel = {
   /** Whether this tick is a major tick. */
   major?: boolean;
 };
+
+type CalendarParts = {
+  year: bigint;
+  month: bigint;
+  day: bigint;
+  hour: bigint;
+  minute: bigint;
+  second: bigint;
+  subseconds: Decimal;
+  weekday: number;
+};
+
+function toLocalDate(value: Decimal): Calendar {
+  return Calendar.fromEpoch(value, 'local');
+}
+
+function epochSecondsToLocalDateTime(value: Decimal): CalendarParts {
+  const parts = toLocalDate(value).components();
+  const seconds = Decimal(parts.seconds);
+  const [secondIntegral, subseconds] = seconds.split();
+  return {
+    year: parts.year,
+    month: parts.month,
+    day: parts.day,
+    hour: parts.hour,
+    minute: parts.minutes,
+    second: secondIntegral.integer(),
+    subseconds,
+    weekday: parts.weekday,
+  };
+}
+
+function alignToDay(value: Decimal, step?: bigint | bigint[]): Decimal {
+  return toLocalDate(value).alignToDay(step).epoch();
+}
+
+function nextDay(value: Decimal, step?: bigint | bigint[]): Decimal {
+  return toLocalDate(value).nextDay(step).epoch();
+}
+
+function alignToMonth(value: Decimal, step?: bigint | bigint[]): Decimal {
+  return toLocalDate(value).alignToMonth(step).epoch();
+}
+
+function nextMonth(value: Decimal, step?: bigint | bigint[]): Decimal {
+  return toLocalDate(value).nextMonth(step).epoch();
+}
+
+function alignToYear(value: Decimal, step?: bigint): Decimal {
+  return toLocalDate(value).alignToYear(step, { era: true }).epoch();
+}
+
+function nextYear(value: Decimal, step?: bigint): Decimal {
+  return toLocalDate(value).nextYear(step, { era: true }).epoch();
+}
+
+function alignToSecond(value: Decimal, align: Decimal | bigint | number): Decimal {
+  return toLocalDate(value).alignToSecond(Decimal(align)).epoch();
+}
+
+function addSeconds(value: Decimal, seconds: number | Decimal): Decimal {
+  return value.add(Decimal(seconds));
+}
 
 function defaultTimeFormatRelative({
   time,
@@ -333,11 +384,11 @@ const definitionCandidatesByLevel = definitionCandidates.reduce((map, candidate)
 }, new Map<DefinitionLevel, Candidate[]>());
 
 function subsecondDecimals(step: Decimal): number {
-  if (step.digits <= 0n) return 0;
+  if (step.digits <= 0) return 0;
   let digits = step.digits;
-  const maxSafe = BigInt(Number.MAX_SAFE_INTEGER);
+  const maxSafe = Number.MAX_SAFE_INTEGER;
   if (digits > maxSafe) digits = maxSafe;
-  return Number(digits);
+  return digits;
 }
 
 function createSubsecondCandidate(step: Decimal, exponent: bigint, factor: bigint): Candidate {
@@ -569,10 +620,10 @@ function defaultTimeFormatCalendar(
 ): string {
   const { time, unit } = opts;
   const context = opts;
-  const { year, month, day, hour, minute, second, subseconds } = epochSecondsToLocalDateTime(
+  const { year, month, day, hour, minute, second, subseconds, weekday } = epochSecondsToLocalDateTime(
     scaleTimeUnit(time, unit, 's'),
   );
-  const week = dayOfWeek({ year, month, day });
+  const week = weekday;
   const quarter = Math.floor((Number(month) - 1) / 3) + 1;
 
   const padNumber = (value: number | bigint, length: number) => value.toString().padStart(length, '0');
@@ -712,8 +763,7 @@ export type TimescopeTimeAxisProviderOptions = {
 };
 
 export class TimescopeTimeAxisProvider extends TimescopeDataProvider<
-  TickLabel[],
-  unknown,
+  { data: TickLabel[] },
   TimescopeTimeAxisProviderOptions
 > {
   constructor(opts: TimescopeTimeAxisProviderOptions) {
@@ -726,19 +776,23 @@ export class TimescopeTimeAxisProvider extends TimescopeDataProvider<
     super(opts);
   }
 
-  async loadChunk(chunk: TimescopeDataChunkDesc): Promise<TimescopeDataChunkWire<TickLabel[]>> {
+  async loadData(range: TimescopeRange<Decimal>, resolution: Decimal): Promise<TimescopeTimeAxisProviderData> {
     const ticks = this.options.timeAxis.relative
-      ? createLinearTicks(chunk.range, chunk.resolution, this.options.timeAxis)
-      : createCalendarTicks(chunk.range, chunk.resolution, this.options.timeAxis);
+      ? createLinearTicks(range, resolution, this.options.timeAxis)
+      : createCalendarTicks(range, resolution, this.options.timeAxis);
 
     const data = [...ticks].map((tick) => ({
       ...tick,
       time: {
         time: tick.time.time,
-        _minTime: tick.time.time,
-        _maxTime: tick.time.time,
       },
     }));
-    return { ...chunk, data };
+    return {
+      data,
+      meta: {
+        time: range[0]!,
+        resolution,
+      },
+    };
   }
 }

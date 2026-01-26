@@ -1,12 +1,12 @@
 import config from '#src/core/config';
-import type { Decimal } from '#src/core/decimal';
+import { Decimal } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
-import { resolutionFor } from '#src/core/zoom';
+import { zoomFor } from '#src/core/zoom';
 
 /**
- * Minimal descriptor for a data chunk (no payload).
+ * Chunk descriptor with optional payload.
  */
-export type TimescopeDataChunkDesc = {
+export type TimescopeChunk<T = never> = {
   /** Chunk id string. */
   id: string;
   /** Sequence number (monotonic along time). */
@@ -20,44 +20,93 @@ export type TimescopeDataChunkDesc = {
   resolution: Decimal;
   /** Zoom level. */
   zoom: number;
-};
+  /** Iterator for time points. */
+  [Symbol.iterator]: () => Generator<Decimal>;
+} & ([T] extends [never] ? unknown : { data?: T });
 
-export type TimescopeDataChunkResult<T, M = never> = TimescopeDataChunkDesc & {
-  data?: T;
-  meta?: M & { revision: number };
-};
-
-export type TimescopeDataChunkLoaderApi = { expiresAt: (t: number) => void; expiresIn: (t: number) => void };
+export type TimescopeChunkLoaderContext = { expiresAt: (t: number) => void; expiresIn: (t: number) => void };
 
 /**
  * Loader function that receives a chunk descriptor and returns its payload.
  */
-export type TimescopeDataChunkLoader<T> = (
-  chunk: TimescopeDataChunkDesc,
-  api: TimescopeDataChunkLoaderApi,
+export type TimescopeChunkLoader<T> = (
+  chunk: TimescopeChunk,
+  api: TimescopeChunkLoaderContext,
 ) => Promise<T | undefined>;
+
+export function createChunkIterator(range: TimescopeRange<Decimal | undefined>, resolution: Decimal) {
+  return function* () {
+    if (!range[0] || !range[1] || resolution.le(0)) return;
+    for (let t = range[0]; t.le(range[1]); t = t.add(resolution)) {
+      yield t;
+    }
+  };
+}
+
+export type TimescopeChunkInit<T = never> = Omit<TimescopeChunk<T>, typeof Symbol.iterator> & { data?: T };
+
+export function createChunk<T = never>(chunk: TimescopeChunkInit<T>): TimescopeChunk<T> {
+  return {
+    ...chunk,
+    [Symbol.iterator]: createChunkIterator(chunk.range, chunk.resolution),
+  };
+}
 
 export function createChunkList(
   range: TimescopeRange<Decimal | undefined>,
-  zoom: number,
+  resolution?: Decimal,
   chunkSize: number = config.defaultChunkSize,
-): TimescopeDataChunkDesc[] {
-  const resolution = resolutionFor(zoom);
-  const chunkDuration = resolution.mul(chunkSize);
-
-  if (!range[0] || !range[1] || !chunkDuration.isPositive()) {
+  chunkOffset?: Decimal,
+): TimescopeChunk[] {
+  const chunkDuration = resolution?.mul(chunkSize);
+  if (!range[0] || !range[1] || !resolution || !chunkDuration || chunkDuration.le(0)) {
     const seq = 0n;
-    const id = `z${zoom}`;
-    return [{ id, seq, expires: Infinity, range, resolution, zoom }];
+    const id = `static`;
+    return [
+      createChunk({
+        id,
+        seq,
+        expires: Infinity,
+        range: [undefined, undefined],
+        resolution: Decimal(0),
+        zoom: 0,
+      }),
+    ];
   }
 
-  const results: TimescopeDataChunkDesc[] = [];
+  const zoom = zoomFor(resolution);
+  const results: TimescopeChunk[] = [];
   const limit = range[1]!.add(chunkDuration);
-  for (let t = range[0]!; t.le(limit); t = t.add(chunkDuration)) {
-    const seq = t.div(chunkDuration).floor().integer();
-    const chunkRange = [chunkDuration.mul(seq), chunkDuration.mul(seq + 1n)] as TimescopeRange<Decimal | undefined>;
-    const id = `z${zoom}:seq${seq}`;
-    results.push({ id, seq, expires: Infinity, range: chunkRange, resolution, zoom });
+  let seq = range[0]!
+    .sub(chunkOffset ?? 0)
+    .div(chunkDuration)
+    .floor()
+    .add(chunkOffset ?? 0)
+    .integer();
+
+  const end = limit
+    .sub(chunkOffset ?? 0)
+    .div(chunkDuration)
+    .floor()
+    .add(chunkOffset ?? 0)
+    .integer();
+
+  let chunkT = chunkDuration.mul(seq);
+  for (; seq <= end; seq++) {
+    const nextT = chunkT.add(chunkDuration);
+    const chunkRange = [chunkT, nextT] as TimescopeRange<Decimal | undefined>;
+    chunkT = nextT;
+    const id = `r${resolution}:seq${seq}`;
+    results.push(
+      createChunk({
+        id,
+        seq,
+        expires: Infinity,
+        range: chunkRange,
+        resolution,
+        zoom,
+      }),
+    );
   }
 
   return results;

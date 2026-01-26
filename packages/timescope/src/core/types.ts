@@ -3,12 +3,15 @@ import { Decimal, type NumberLike } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
 import type { TextStyleOptions, TimescopeStyle } from '#src/core/style';
 import type { TimescopeStateOptions } from '#src/core/TimescopeState';
-import type { TimescopeDataChunkLoader } from './chunk';
+import type { TimescopeChunkLoader } from './chunk';
 import type { TimeLike, TimeUnit } from './time';
 
 type MaybeFn<R, T> = T extends unknown[] ? ((...args: T) => R) | R : R;
 
-type UsingElement<V extends [string, string]> = `${V[1]}@${V[0]}` | V[1] | `@${V[0]}`;
+type UsingElement<V extends [string, string]> =
+  | `${V[1] | '_zero' | '_top' | '_bottom'}@${V[0] | '_minTime' | '_maxTime'}`
+  | (V[1] | '_zero' | '_top' | '_bottom')
+  | `@${V[0] | '_minTime' | '_maxTime'}`;
 export type Using1<V extends [string, string]> = UsingElement<V> | [UsingElement<V>];
 export type Using2<V extends [string, string]> = [UsingElement<V>, UsingElement<V>];
 export type Using<V extends [string, string] = [string, string]> = Using1<V> | Using2<V>;
@@ -59,7 +62,7 @@ export type IconStyle<T = false> = {
 };
 
 export type BoxStyle<T = false> = {
-  padding?: MaybeFn<number | [number, number?, number?, number?], T>;
+  extrude?: MaybeFn<number | [number, number?, number?, number?], T>;
   radius?: MaybeFn<number, T>;
 };
 
@@ -103,12 +106,13 @@ export type TimescopeChartMark<T extends unknown[] | false, V extends [string, s
   | TimescopeChartStyleEntry<'line', true, StrokeStyle<T> & SizeStyle<T> & OffsetStyle<T>, T, V>
   | TimescopeChartStyleEntry<'section', true, StrokeStyle<T> & SizeStyle<T> & OffsetStyle<T>, T, V>
   | TimescopeChartStyleEntry<
-      'box',
+      'bar',
       true,
       StrokeStyle<T> & FillStyle<T> & SizeStyle<T> & BoxStyle<T> & OffsetStyle<T>,
       T,
       V
-    >;
+    >
+  | TimescopeChartStyleEntry<'region', true, StrokeStyle<T> & FillStyle<T> & BoxStyle<T> & OffsetStyle<T>, T, V>;
 
 export type TimescopeChartLink<T extends unknown[] | false, V extends [string, string] = [string, string]> =
   | TimescopeChartStyleEntry<'line' | 'curve' | 'step' | 'step-start' | 'step-end', false, StrokeStyle<T>, T, V>
@@ -144,8 +148,8 @@ export type TimescopeChartType =
   | 'stepspoints-end:filled'
   | 'impulses'
   | 'impulsespoints'
-  | 'boxes'
-  | 'boxes:filled';
+  | 'bars'
+  | 'bars:filled';
 
 export type CalendarLevel = 'subsecond' | 'second' | 'minute' | 'hour' | 'day' | 'month' | 'year' | 'relative';
 
@@ -158,70 +162,91 @@ export type TimeFormatFuncOptions = {
 };
 export type TimeFormatFunc = (opts: TimeFormatFuncOptions) => string | undefined;
 
-export interface TimescopeSourceCommonOptions {
-  /** Available zoom levels used to quantize resolution. */
-  zoomLevels?: number[];
+export type TimescopeSourceCommonOptions = {
   /** Number of samples per chunk for tiled loading. */
   chunkSize?: number;
-}
+  /** Time offset for chunk indexing. */
+  chunkOffset?: NumberLike;
+  /**
+   * Available resolutions can be used to load data.
+   * ie. chunkSize * resolutions = chunk interval
+   * */
+  resolutions?: NumberLike[];
+  zoomLevels?: number[];
+};
 
 export type TimescopeSourceOptions = TimescopeSourceCommonOptions &
-  ({ url: string } | { data: unknown } | { loader: TimescopeDataChunkLoader<unknown> });
+  ({ url: string } | { data: unknown } | { loader: TimescopeChunkLoader<unknown> });
 
-export type TimescopeSourceInput =
-  | string
-  | unknown[]
-  | object
-  | TimescopeDataChunkLoader<unknown>
-  | TimescopeSourceOptions;
+export type TimescopeSourceInput = string | unknown[] | object | TimescopeChunkLoader<unknown> | TimescopeSourceOptions;
 
-type InferTimeKey<T> = T extends string[] ? T[number] : T extends Record<string, unknown> ? keyof T : 'time';
-type InferValueKey<T> = T extends string[] ? T[number] : T extends Record<string, unknown> ? keyof T : 'value';
-type InferSourceType<S> = S extends unknown[]
-  ? S
-  : S extends TimescopeDataChunkLoader<infer X>
+type InferTimeValueKey<T, D extends string> = T extends string
+  ? T
+  : T extends string[]
+    ? T[number]
+    : T extends Record<string, unknown>
+      ? string & keyof T
+      : D;
+
+type InferTimeKey<T> = InferTimeValueKey<T, 'time'>;
+type InferValueKey<T> = InferTimeValueKey<T, 'value'>;
+
+type InferSourceType<S> =
+  S extends TimescopeChunkLoader<infer X>
     ? X
-    : S extends { url: string }
-      ? unknown
-      : S extends string
-        ? unknown
-        : S extends { data: infer X }
-          ? X
-          : S extends { loader: TimescopeDataChunkLoader<infer X> }
-            ? X
-            : S;
+    : S extends { loader: TimescopeChunkLoader<Response> } & TimescopeSourceOptions
+      ? any
+      : S extends { loader: TimescopeChunkLoader<infer X> } & TimescopeSourceOptions
+        ? X
+        : S extends { url: string } & TimescopeSourceOptions
+          ? any
+          : S extends string
+            ? any
+            : S extends { data: infer X } & TimescopeSourceOptions
+              ? X
+              : S;
 
 export type FieldDefLike<D> = string | string[] | Record<string, string | ((data: Record<string, any>) => D)>;
 
+export type TimescopeDomainOptions = {
+  scale?: 'linear' | 'log';
+  range?:
+    | NumberLike
+    | TimescopeRange<NumberLike | undefined>
+    | { expand?: boolean; shrink?: boolean; default?: NumberLike | TimescopeRange<NumberLike | undefined> };
+  expand?: boolean;
+  shrink?: boolean;
+  unit?: string;
+  digits?: number;
+};
+
+export type TimescopeOptionsDomains = {
+  [name: string]: TimescopeDomainOptions;
+};
+
 export type TimescopeSeriesInput<
-  Source extends Record<string, TimescopeSourceInput>,
-  SourceName extends keyof Source,
-  TimeDef extends FieldDefLike<TimeLike<never>>,
-  ValueDef extends FieldDefLike<NumberLike | null>,
-  Track extends string,
-> = {
+  Sources = Record<string, unknown>,
+  SourceName extends keyof Sources = keyof Sources,
+  Track extends string = string,
+  T = FieldDefLike<TimeLike<never>>,
+  V = FieldDefLike<NumberLike | null>,
+  U extends [string, string] = [string, string],
+> = TimescopeSeriesDataTimeValue<T, V> & {
   data: {
     source: SourceName;
 
-    parser?: (...args: [InferSourceType<Source[SourceName]>]) => Record<string, any>[];
-    time?: TimeDef;
-    value?: ValueDef;
+    parser?: (...args: [InferSourceType<Sources[SourceName]>]) => Record<string, any>[];
 
     name?: string;
-    unit?: string;
-    digits?: number;
 
     color?: string;
 
-    scale?: 'linear' | 'log';
-    range?:
-      | NumberLike
-      | TimescopeRange<NumberLike | undefined>
-      | { expand?: boolean; shrink?: boolean; default?: NumberLike | TimescopeRange<NumberLike | undefined> };
+    domain?: string | TimescopeDomainOptions;
 
     instantaneous?: {
-      using?: Using1<[InferTimeKey<TimeDef>, InferValueKey<ValueDef>]>;
+      using?: Using1<U>;
       zoom?: number;
+      resolution?: NumberLike;
     };
   };
 
@@ -234,25 +259,22 @@ export type TimescopeSeriesInput<
               {
                 resolution: Decimal;
                 data: Record<string, any>;
-                time: Record<InferTimeKey<TimeDef>, Decimal>;
-                value: Record<InferValueKey<ValueDef>, Decimal | null>;
+                time: Record<U[0], Decimal>;
+                value: Record<U[1], Decimal | null>;
               },
             ],
-            [InferTimeKey<TimeDef>, InferValueKey<ValueDef>]
+            U
           >[],
           [
             {
               resolution: Decimal;
               data: Record<string, any>;
-              time: Record<InferTimeKey<TimeDef>, Decimal>;
-              value: Record<InferValueKey<ValueDef>, Decimal | null>;
+              time: Record<U[0], Decimal>;
+              value: Record<U[1], Decimal | null>;
             },
           ]
         >;
-        links?: MaybeFn<
-          TimescopeChartLink<[opts: { resolution: Decimal }], [InferTimeKey<TimeDef>, InferValueKey<ValueDef>]>[],
-          [opts: { resolution: Decimal }]
-        >;
+        links?: MaybeFn<TimescopeChartLink<[opts: { resolution: Decimal }], U>[], [opts: { resolution: Decimal }]>;
       };
 
   tooltip?:
@@ -274,25 +296,32 @@ export type TimescopeSeriesInput<
   track?: Track;
 };
 
-export type TimescopeOptionsSources<Source extends Record<string, TimescopeSourceInput>> = {
-  [K in keyof Source]: Source[K];
+export type TimescopeOptionsSources<Sources extends Record<string, TimescopeSourceInput>> = {
+  [K in keyof Sources]: Sources[K];
 };
 
-export type TimescopeOptionsSeries<
-  Source extends Record<string, TimescopeSourceInput>,
-  SourceName extends Record<string, keyof Source>,
-  TimeDef extends Record<string, FieldDefLike<TimeLike<never>>>,
-  ValueDef extends Record<string, FieldDefLike<NumberLike | null>>,
-  Track extends string,
-> = {
-  [K in keyof SourceName & keyof TimeDef & keyof ValueDef]: TimescopeSeriesInput<
-    Source,
-    SourceName[K] & string,
-    TimeDef[K],
-    ValueDef[K],
-    Track
-  >;
+type TimescopeSeriesDataTimeValue<T = FieldDefLike<TimeLike<never>>, V = FieldDefLike<NumberLike | null>> = {
+  data: {
+    time?: T;
+    value?: V;
+  };
 };
+
+type TimescopeSeriesIdeal<Sources, Series, Track extends string> = {
+  [K in keyof Series]: Series[K] extends TimescopeSeriesDataTimeValue<infer T, infer V>
+    ? TimescopeSeriesInput<Sources, keyof Sources, Track, T, V, [InferTimeKey<T>, InferValueKey<V>]>
+    : TimescopeSeriesInput<
+        Sources,
+        keyof Sources,
+        Track,
+        unknown,
+        unknown,
+        [InferTimeKey<unknown>, InferValueKey<unknown>]
+      >;
+};
+
+export type TimescopeOptionsSeries<Sources, Series, Track extends string> =
+  TimescopeSeriesIdeal<Sources, Series, Track> extends Series ? Series : TimescopeSeriesIdeal<Sources, Series, Track>;
 
 export type TimeFormatLabelerOptions = {
   year: bigint;
@@ -329,7 +358,11 @@ export type TimescopeTimeAxisOptions = {
 };
 
 export type TimescopeOptionsTracks<Track extends string> = {
-  [K in Track]: { height?: number; symmetric?: boolean; timeAxis?: TimescopeTimeAxisOptions | boolean };
+  [K in Track]: {
+    height?: number;
+    symmetric?: boolean;
+    timeAxis?: TimescopeTimeAxisOptions | boolean;
+  };
 };
 
 export type TimescopeOptionsSelection =
@@ -343,32 +376,34 @@ export type TimescopeOptionsSelection =
     };
 
 export type TimescopeOptions<
-  Source extends Record<string, TimescopeSourceInput> = Record<string, TimescopeSourceInput>,
-  SourceName extends Record<string, keyof Source> = Record<string, keyof Source>,
-  TimeDef extends Record<string, FieldDefLike<TimeLike<never>>> = Record<string, FieldDefLike<TimeLike<never>>>,
-  ValueDef extends Record<string, FieldDefLike<NumberLike | null>> = Record<string, FieldDefLike<NumberLike | null>>,
+  Sources extends Record<string, TimescopeSourceInput> = Record<string, TimescopeSourceInput>,
+  Series extends Record<string, TimescopeSeriesInput> = Record<string, TimescopeSeriesInput>,
   Track extends string = string,
 > = {
   style?: TimescopeStyle;
   showFps?: boolean;
-  padding?: readonly number[];
+  padding?: number[];
   indicator?: boolean;
 
-  sources?: TimescopeOptionsSources<Source>;
-  series?: TimescopeOptionsSeries<Source, SourceName, TimeDef, ValueDef, Track>;
+  sources?: TimescopeOptionsSources<Sources>;
+  series?: TimescopeOptionsSeries<Sources, Series, Track>;
   tracks?: TimescopeOptionsTracks<Track>;
+  domains?: TimescopeOptionsDomains;
 
   selection?: TimescopeOptionsSelection;
+
+  regions?: {
+    timespan: TimescopeRange<Decimal | undefined>;
+    color?: string;
+  }[];
 };
 
 export interface TimescopeOptionsInitial<
-  Source extends Record<string, TimescopeSourceInput>,
-  SourceName extends Record<string, keyof Source>,
-  TimeDef extends Record<string, FieldDefLike<TimeLike<never>>>,
-  ValueDef extends Record<string, FieldDefLike<NumberLike | null>>,
+  Sources extends Record<string, TimescopeSourceInput>,
+  Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
 >
-  extends TimescopeOptions<Source, SourceName, TimeDef, ValueDef, Track>, TimescopeStateOptions {
+  extends TimescopeOptions<Sources, Series, Track>, TimescopeStateOptions {
   target?: HTMLElement | string;
   fonts?: (string | TimescopeFont)[];
 
@@ -377,39 +412,35 @@ export interface TimescopeOptionsInitial<
 
 export function createDefineTimescopeOptions(wrapper?: (opts: object) => object) {
   return function <
-    Source extends Record<string, TimescopeSourceInput>,
-    SourceName extends Record<string, keyof Source>,
-    TimeDef extends Record<string, FieldDefLike<TimeLike<never>>>,
-    ValueDef extends Record<string, FieldDefLike<NumberLike | null>>,
-    Track extends string,
-  >(opts: TimescopeOptions<Source, SourceName, TimeDef, ValueDef, Track>) {
+    const Sources extends Record<string, TimescopeSourceInput>,
+    const Series extends Record<string, TimescopeSeriesInput>,
+    const Track extends string,
+  >(opts: TimescopeOptions<Sources, Series, Track>) {
     return (wrapper ? wrapper(opts) : opts) as typeof opts;
   };
 }
 
 export function createDefineTimescopeSources(wrapper?: (opts: object) => object) {
-  return function <Source extends Record<string, TimescopeSourceInput>>(opts: TimescopeOptionsSources<Source>) {
+  return function <const Sources extends Record<string, TimescopeSourceInput>>(opts: TimescopeOptionsSources<Sources>) {
     return (wrapper ? wrapper(opts) : opts) as typeof opts;
   };
 }
 
 export function createDefineTimescopeTracks(wrapper?: (opts: object) => object) {
-  return function <Track extends string>(opts: TimescopeOptionsTracks<Track>) {
+  return function <const Track extends string>(opts: TimescopeOptionsTracks<Track>) {
     return (wrapper ? wrapper(opts) : opts) as typeof opts;
   };
 }
 
 export function createDefineTimescopeSeries(wrapper?: (opts: object) => object) {
   return function <
-    Source extends Record<string, TimescopeSourceInput>,
-    SourceName extends Record<string, keyof Source>,
-    TimeDef extends Record<string, FieldDefLike<TimeLike<never>>>,
-    ValueDef extends Record<string, FieldDefLike<NumberLike | null>>,
-    Track extends string = 'default',
+    const Sources extends Record<string, TimescopeSourceInput>,
+    const Series extends Record<string, TimescopeSeriesInput>,
+    const Track extends string = 'default',
   >(
-    opts: TimescopeOptionsSeries<Source, SourceName, TimeDef, ValueDef, Track>,
+    opts: TimescopeOptionsSeries<Sources, Series, Track>,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    sources?: TimescopeOptionsSources<Source>,
+    sources?: TimescopeOptionsSources<Sources>,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     tracks?: TimescopeOptionsTracks<Track>,
   ) {

@@ -1,4 +1,5 @@
-import type { TimescopeDataChunkDesc, TimescopeDataChunkLoader } from '#src/core/chunk';
+import type { TimescopeChunk, TimescopeChunkLoader } from '#src/core/chunk';
+import { createChunk } from '#src/core/chunk';
 import type { Decimal } from '#src/core/decimal';
 import { TimescopeObservable } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
@@ -10,17 +11,17 @@ type TimescopeDataChunkOptions<T> = {
   resolution: Decimal;
   zoom: number;
 
-  loader: TimescopeDataChunkLoader<T>;
+  loader: TimescopeChunkLoader<T>;
 };
 
-export class TimescopeDataChunk<T> extends TimescopeObservable implements TimescopeDataChunkDesc {
+export class TimescopeDataChunk<T> extends TimescopeObservable implements TimescopeChunk {
   #state: 'initial' | 'loading' | 'loaded' | 'error' = 'initial';
 
   #range: TimescopeRange<Decimal | undefined>;
   #resolution: Decimal;
   #zoom: number;
 
-  #loader: TimescopeDataChunkLoader<T>;
+  #loader: TimescopeChunkLoader<T>;
 
   #data: Promise<T | null> | undefined;
   #id;
@@ -45,6 +46,13 @@ export class TimescopeDataChunk<T> extends TimescopeObservable implements Timesc
 
   get zoom() {
     return this.#zoom;
+  }
+
+  *[Symbol.iterator](): Generator<Decimal> {
+    if (!this.#range[0] || !this.#range[1] || this.#resolution.le(0)) return;
+    for (let t = this.#range[0]; t.le(this.#range[1]); t = t.add(this.#resolution)) {
+      yield t;
+    }
   }
 
   get state() {
@@ -93,14 +101,14 @@ export class TimescopeDataChunk<T> extends TimescopeObservable implements Timesc
     this.#expires = Infinity;
 
     try {
-      const chunk: TimescopeDataChunkDesc = {
+      const chunk = createChunk({
         id: this.#id,
         seq: this.#seq,
         expires: Infinity,
         range: this.#range.map((r) => r?.clone()) as TimescopeRange<Decimal | undefined>,
         zoom: this.#zoom,
         resolution: this.#resolution.clone(),
-      };
+      });
       const api = {
         expiresAt: (t: number) => (chunk.expires = t),
         expiresIn: (t: number) => (chunk.expires = t + Date.now()),

@@ -1,28 +1,23 @@
-import type { TimescopeDataChunkWire, TimescopeSeriesProviderMeta } from '#src/bridge/protocol';
-import type { TimescopeDataChunkDesc } from '#src/core/chunk';
-import type { TimescopeDataSeries, TimescopeDataSeriesChunkResult } from '#src/main/TimescopeDataSeries';
+import type { TimescopeRange } from '#src/core/range';
+import type { TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
 import { TimescopeDataProvider } from '#src/main/providers/TimescopeDataProvider';
+import type { Decimal } from '@kikuchan/decimal';
 
 export type TimescopeSeriesProviderOptions = {
   series: TimescopeDataSeries;
-  zoomLevels: number[] | undefined;
 };
 
-export class TimescopeSeriesProvider<
-  T,
-  M extends TimescopeSeriesProviderMeta,
+export abstract class TimescopeSeriesProvider<
+  D,
   O extends TimescopeSeriesProviderOptions,
-> extends TimescopeDataProvider<T[], M, O> {
+> extends TimescopeDataProvider<D, O> {
   constructor(options: O) {
     super(options);
   }
 
-  async loadChunk(chunk: TimescopeDataChunkDesc): Promise<TimescopeDataChunkWire<T[]>> {
-    const raw = await this.options.series.loadChunk(chunk);
-    return await this.transform(raw);
+  async loadData(range: TimescopeRange<Decimal>, resolution: Decimal): Promise<D> {
+    return await this.transform(this.options.series, range, resolution);
   }
 
-  async transform(chunk: TimescopeDataSeriesChunkResult): Promise<TimescopeDataChunkWire<T[]>> {
-    return chunk as TimescopeDataChunkWire<T[]>;
-  }
+  abstract transform(series: TimescopeDataSeries, range: TimescopeRange<Decimal>, resolution: Decimal): Promise<D>;
 }

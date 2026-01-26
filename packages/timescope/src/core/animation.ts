@@ -1,3 +1,5 @@
+import { TimescopeObservable } from './event.ts';
+
 export type TimescopeAnimationType = 'in-out' | 'linear' | 'out';
 
 export type TimescopeAnimationInput =
@@ -79,5 +81,68 @@ export class TimescopeAnimation {
 
   get animating() {
     return this.#id !== null;
+  }
+}
+
+export class TimescopeAnimatedValue extends TimescopeObservable {
+  #anim = new TimescopeAnimation();
+
+  #origin: number | null | undefined = null;
+  #target: number | null | undefined = null;
+
+  #value: number | null | undefined;
+  #ratio: number = 1;
+
+  setValue(v: number, opts: Pick<TimescopeAnimationOptions, 'animation' | 'duration' | 'overshoot'> = {}) {
+    if (v === this.#target) return;
+
+    this.#origin = this.#value;
+    this.#target = v;
+
+    const done = () => {
+      this.#value = v;
+      this.#ratio = 1;
+      this.changed();
+    };
+
+    if (
+      this.#origin == null ||
+      this.#target == null ||
+      this.#origin === this.#target ||
+      !isFinite(this.#origin) ||
+      !isFinite(this.#target)
+    ) {
+      done();
+      return;
+    }
+
+    this.#value = this.#origin;
+    this.#ratio = 0;
+
+    this.#anim.start({
+      ...opts,
+      origin: () => this.#origin ?? 0,
+      target: () => this.#target ?? 0,
+
+      update: (value, ratio) => {
+        this.#value = value;
+        this.#ratio = ratio;
+        this.changed();
+      },
+
+      done,
+    });
+  }
+
+  get t() {
+    return this.#ratio;
+  }
+
+  get value() {
+    return this.#value;
+  }
+
+  get animating() {
+    return this.#ratio < 1;
   }
 }

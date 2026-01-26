@@ -1,23 +1,24 @@
 import config from '#src/core/config';
 import { Decimal, type NumberLike } from '#src/core/decimal';
+import { LRUCache } from './cache';
 
 export type ZoomLike = NumberLike;
 
-const cache = {
-  z: 0,
-  r: Decimal(1),
-};
+const cacheR2Z = new LRUCache<string, number>({
+  maxSize: 10,
+});
+const cacheZ2R = new LRUCache<number, Decimal>({
+  maxSize: 10,
+});
 
 export function zoomFor(resolution: Decimal): number {
-  if (cache.r.eq(resolution)) return cache.z!;
-  return -resolution.log(config.base).number();
+  const key = resolution.toString();
+  return cacheR2Z.set(key, cacheR2Z.get(key) ?? -resolution.log(config.base).number());
 }
 
 export function resolutionFor(zoom: number): Decimal {
-  if (cache.z === zoom) return cache.r;
-  cache.z = zoom;
-  cache.r = Decimal(config.base).pow(-zoom, BigInt(Math.floor(zoom))); // TODO: precision for base-2
-  return cache.r;
+  const key = zoom;
+  return cacheZ2R.set(key, cacheZ2R.get(key) ?? Decimal(config.base).pow(-zoom, BigInt(Math.floor(zoom))));
 }
 
 export function createZoomLevels(minZ: number, maxZ: number, step: number = 0.5) {
@@ -28,8 +29,12 @@ export function createZoomLevels(minZ: number, maxZ: number, step: number = 0.5)
   return result;
 }
 
-export function getConstraintedZoom(zoom: number, zoomLevels: readonly number[] | undefined) {
-  return zoomLevels
-    ? zoomLevels.reduce((prev, curr) => (Math.abs(curr - zoom) < Math.abs(prev - zoom) ? curr : prev), zoomLevels[0])
-    : Number(Decimal(zoom).floorBy(config.chunkStep).toFixed(2));
+export function getConstraintedResolution(resolution: Decimal, resolutions: readonly Decimal[] | undefined): Decimal {
+  if (!resolutions || resolutions?.length === 0) return resolutionFor(Math.round(zoomFor(resolution)));
+  const z = zoomFor(resolution);
+  return resolutions.reduce((prev, curr) => {
+    const zp = zoomFor(prev);
+    const zc = zoomFor(curr);
+    return Math.abs(z - zc) < Math.abs(z - zp) ? curr : prev;
+  });
 }

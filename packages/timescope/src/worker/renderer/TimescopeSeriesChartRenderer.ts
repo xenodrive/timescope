@@ -1,8 +1,5 @@
-import type {
-  TimescopeOptionsForWorker,
-  TimescopeSeriesChartProviderData,
-  TimescopeSeriesChartProviderMeta,
-} from '#src/bridge/protocol';
+import type { TimescopeOptionsForWorker, TimescopeSeriesChartProviderData } from '#src/bridge/protocol';
+import { TimescopeAnimatedValue, TimescopeAnimation } from '#src/core/animation';
 import { Decimal } from '#src/core/decimal';
 import type {
   AngleStyle,
@@ -19,16 +16,23 @@ import { parseUsing } from '#src/core/using';
 import { TimescopeRenderer } from '#src/worker/renderer/TimescopeRenderer';
 import type { TimescopeRenderingContext } from '#src/worker/types';
 import { clipToTrack } from '#src/worker/utils';
-import type { TimescopeDataCacheSeries } from '../TimescopeDataCacheSeries';
+import type { TimescopeDataCache } from '../TimescopeDataCache';
 
 type Point = { x: Record<string, number>; y: Record<string, number> };
 type StepPoint = { x: number; y: number };
 
-const renderingOrder = ['link:fill', 'link:stroke', 'marks'] as const;
-
 type OffsetStyle = { offset?: [number, number] };
 type DefaultColorStyle = { color: string };
 type FlagsStyle = { stroke?: boolean; fill?: boolean };
+type FillMesh = {
+  data: Float32Array;
+  count: number;
+  stride: number;
+  mode: 0 | 1;
+  buffer?: WebGLBuffer | null;
+  version?: number;
+  dirty?: boolean;
+};
 
 type MarkOp = {
   type: 'mark';
@@ -42,14 +46,17 @@ type MarkOp = {
     | 'cross'
     | 'minus'
     | 'line'
-    | 'box'
+    | 'bar'
     | 'section'
+    | 'region'
     | 'text'
     | 'icon'
     | 'path';
   time: Decimal;
 
-  path?: Path2D | { x: number; y: number }[];
+  strokePath?: Path2D;
+  fillPath?: Path2D;
+  path?: { x: number; y: number }[];
   style: StrokeStyle &
     FillStyle &
     SizeStyle &
@@ -78,24 +85,28 @@ type LinkOp = {
     | 'step-area-end';
   time: Decimal;
 
-  path?: Path2D | { x: number; y: number }[];
+  strokePath?: Path2D;
+  fillPath?: Path2D;
   style: StrokeStyle &
     FillStyle &
     DefaultColorStyle &
     FlagsStyle & { fillStyle?: string; strokeStyle?: string; floating?: number };
+  fillMesh?: FillMesh;
 };
 
 const MIN_ISOLATED_POINT_RADIUS = 0.75;
 const MIN_ISOLATED_STRIP_WIDTH = 1;
-
 function createStrokeStyle(style: StrokeStyle & DefaultColorStyle) {
   const strokeStyle = style.lineColor ?? style.color ?? 'black';
   return strokeStyle;
 }
 
-function createFillStyle(style: FillStyle & DefaultColorStyle, flatten: string = 'transparent') {
-  const fillStyle = opacity(style.fillColor ?? style.color ?? 'black', style.fillOpacity ?? 0.25, flatten);
-  return fillStyle;
+function createFillStyle(style: FillStyle & DefaultColorStyle) {
+  const color = style.fillColor ?? style.color ?? 'black';
+  const rgba = parseColorToRgba(color);
+  if (!rgba) return color;
+  const a = Math.max(0, Math.min(1, rgba.a * (style.fillOpacity ?? 0.25)));
+  return `rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${a})`;
 }
 
 function drawIsolatedPoint(path: Path2D, point: { x: number; y: number }, style: StrokeStyle) {
@@ -127,6 +138,7 @@ function createPathLines(
   const path = new Path2D();
 
   const parser = makeUsingParser(using ?? 'value@time');
+  const parsed = points.map(parser);
   let segmentStart: { x: number; y: number } | null = null;
   let segmentLength = 0;
 
@@ -138,8 +150,8 @@ function createPathLines(
     segmentLength = 0;
   };
 
-  for (const p of points) {
-    const { x1: x, y1: y } = parser(p);
+  for (const p of parsed) {
+    const { x1: x, y1: y } = p;
 
     if (isNaN(y)) {
       flush();
@@ -161,7 +173,7 @@ function createPathLines(
   const strokeStyle = createStrokeStyle(style);
   const fillStyle = createFillStyle(style);
 
-  return { path, strokeStyle, fillStyle };
+  return { strokePath: path, strokeStyle, fillStyle };
 }
 
 function appendMonotoneCurve(path: Path2D, segment: { x: number; y: number }[]) {
@@ -239,6 +251,7 @@ function createPathCurve(
 ) {
   const path = new Path2D();
   const parser = makeUsingParser(using ?? 'value@time');
+  const points = pointsSrc.map(parser);
   let segment: { x: number; y: number }[] = [];
 
   const flush = () => {
@@ -255,8 +268,8 @@ function createPathCurve(
     segment = [];
   };
 
-  for (const p of pointsSrc) {
-    const { x1: x, y1: y } = parser(p);
+  for (const p of points) {
+    const { x1: x, y1: y } = p;
 
     if (isNaN(y)) {
       flush();
@@ -271,7 +284,7 @@ function createPathCurve(
   const strokeStyle = createStrokeStyle(style);
   const fillStyle = createFillStyle(style);
 
-  return { path, strokeStyle, fillStyle };
+  return { strokePath: path, strokeStyle, fillStyle };
 }
 
 function createPathCurveArea(
@@ -280,8 +293,9 @@ function createPathCurveArea(
   style: FillStyle & StrokeStyle & DefaultColorStyle,
 ) {
   const path = new Path2D();
-  const parser = makeUsingParser(using ?? ['value@time', 'zero@time']);
+  const parser = makeUsingParser(using ?? ['value@time', '_zero@time']);
   const points = pointsSrc.map(parser);
+  const fillMesh = createCurveAreaMesh(points);
 
   let idx = 0;
   while (idx < points.length) {
@@ -318,7 +332,7 @@ function createPathCurveArea(
   const strokeStyle = createStrokeStyle(style);
   const fillStyle = createFillStyle(style);
 
-  return { path, strokeStyle, fillStyle };
+  return { fillPath: path, fillMesh, strokeStyle, fillStyle };
 }
 
 function createPathContours(
@@ -327,8 +341,9 @@ function createPathContours(
   style: FillStyle & StrokeStyle & DefaultColorStyle,
 ) {
   const path = new Path2D();
-  const parser = makeUsingParser(using ?? ['value@time', 'zero@time']);
+  const parser = makeUsingParser(using ?? ['value@time', '_zero@time']);
   const points = pointsSrc.map(parser);
+  const fillMesh = createLinearAreaMesh(points);
 
   let idx = 0;
   while (idx < points.length) {
@@ -367,7 +382,7 @@ function createPathContours(
   const strokeStyle = createStrokeStyle(style);
   const fillStyle = createFillStyle(style);
 
-  return { path, strokeStyle, fillStyle };
+  return { fillPath: path, fillMesh, strokeStyle, fillStyle };
 }
 
 function createPathMarks<
@@ -375,6 +390,7 @@ function createPathMarks<
 >(
   callback: (path: Path2D, arg: { dx: number; dy: number; l: number; style: S }) => void,
   defaultUsing: Using = 'value@time',
+  directed = true,
 ) {
   return function (pointsSrc: Point[], using: Using | undefined, style: S) {
     const path = new Path2D();
@@ -385,7 +401,7 @@ function createPathMarks<
       const dx = point.x2 - point.x1;
       const dy = point.y2 - point.y1;
       const l = Math.hypot(dx, dy);
-      const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+      const angle = directed ? (Math.atan2(dy, dx) * 180) / Math.PI : 0;
 
       const markPath = new Path2D();
       callback(markPath, { style, dx, dy, l });
@@ -400,9 +416,9 @@ function createPathMarks<
     }
 
     const strokeStyle = createStrokeStyle(style);
-    const fillStyle = createFillStyle(style, 'white');
+    const fillStyle = createFillStyle(style);
 
-    return { path, strokeStyle, fillStyle };
+    return { strokePath: path, fillPath: path, strokeStyle, fillStyle };
   };
 }
 
@@ -427,7 +443,7 @@ const stepPathModes: Record<'line' | 'area', StepPathMode> = {
     hasBottom: false,
   },
   area: {
-    defaultUsing: ['value@time', 'zero@time'],
+    defaultUsing: ['value@time', '_zero@time'],
     predicate: (point) => !isNaN(point.y1) && !isNaN(point.y2),
     hasBottom: true,
   },
@@ -491,6 +507,7 @@ function createPathSteps(pos: 'start' | 'mid' | 'end', type: 'line' | 'area') {
     const points = pointsSrc.map(parser);
     const isolatedPoints: StepPoint[] = [];
     const path = buildStepPath(points, pos, mode, style, isolatedPoints);
+    const fillMesh = type === 'area' ? createStepAreaMesh(points, pos, mode) : null;
 
     if (type === 'line') {
       for (const point of isolatedPoints) {
@@ -501,7 +518,9 @@ function createPathSteps(pos: 'start' | 'mid' | 'end', type: 'line' | 'area') {
     const strokeStyle = createStrokeStyle(style);
     const fillStyle = createFillStyle(style);
 
-    return { path, strokeStyle, fillStyle };
+    return type === 'area'
+      ? { fillPath: path, fillMesh: fillMesh ?? undefined, strokeStyle, fillStyle }
+      : { strokePath: path, strokeStyle, fillStyle };
   };
 }
 
@@ -619,6 +638,277 @@ function opacity(c: string, i: number, base: string = 'transparent') {
   return `color-mix(in srgb, ${c} ${i * 100}%, ${base})`;
 }
 
+function parseColorToRgba(color: string) {
+  const trimmed = color.trim().toLowerCase();
+  if (trimmed === 'transparent') return { r: 0, g: 0, b: 0, a: 0 };
+
+  if (trimmed.startsWith('#')) {
+    const hex = trimmed.slice(1);
+    if (hex.length === 3) {
+      const r = parseInt(hex[0] + hex[0], 16);
+      const g = parseInt(hex[1] + hex[1], 16);
+      const b = parseInt(hex[2] + hex[2], 16);
+      return { r, g, b, a: 1 };
+    }
+    if (hex.length === 6 || hex.length === 8) {
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      const a = hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1;
+      return { r, g, b, a };
+    }
+  }
+
+  const rgbMatch = trimmed.match(/^rgba?\((.+)\)$/);
+  if (!rgbMatch) return null;
+  const parts = rgbMatch[1].split(',').map((s) => s.trim());
+  if (parts.length < 3) return null;
+  const parseChannel = (value: string) => {
+    if (value.endsWith('%')) {
+      const v = parseFloat(value.slice(0, -1));
+      return Math.max(0, Math.min(255, (v / 100) * 255));
+    }
+    return Math.max(0, Math.min(255, parseFloat(value)));
+  };
+  const r = parseChannel(parts[0]);
+  const g = parseChannel(parts[1]);
+  const b = parseChannel(parts[2]);
+  const a = parts.length >= 4 ? Math.max(0, Math.min(1, parseFloat(parts[3]))) : 1;
+  return { r, g, b, a };
+}
+
+function createLinearAreaMesh(points: ParsedPoint[]) {
+  const data: number[] = [];
+  let segment: ParsedPoint[] = [];
+
+  const flush = () => {
+    if (segment.length === 0) {
+      segment = [];
+      return;
+    }
+    if (segment.length === 1) {
+      const point = segment[0];
+      const width = MIN_ISOLATED_STRIP_WIDTH;
+      const half = width / 2;
+      const x0 = point.x1 - half;
+      const x1 = point.x1 + half;
+      appendQuad(data, x0, x1, point.y1, point.y1, 0, 0, point.y2, point.y2);
+      segment = [];
+      return;
+    }
+    for (let i = 0; i < segment.length - 1; i++) {
+      const a = segment[i];
+      const b = segment[i + 1];
+      appendQuad(data, a.x1, b.x1, a.y1, b.y1, 0, 0, a.y2, b.y2);
+    }
+    segment = [];
+  };
+
+  for (const point of points) {
+    if (isNaN(point.y1) || isNaN(point.y2) || isNaN(point.x1)) {
+      flush();
+      continue;
+    }
+    segment.push(point);
+  }
+
+  flush();
+  return finalizeMesh(data, 0);
+}
+
+function createCurveAreaMesh(points: ParsedPoint[]) {
+  const data: number[] = [];
+  let segment: ParsedPoint[] = [];
+
+  const flush = () => {
+    if (segment.length === 0) {
+      segment = [];
+      return;
+    }
+    if (segment.length === 1) {
+      const point = segment[0];
+      const width = MIN_ISOLATED_STRIP_WIDTH;
+      const half = width / 2;
+      const x0 = point.x1 - half;
+      const x1 = point.x1 + half;
+      appendQuad(data, x0, x1, point.y1, point.y1, 0, 0, point.y2, point.y2);
+      segment = [];
+      return;
+    }
+
+    const top = segment.map((p) => ({ x: p.x1, y: p.y1 }));
+    const tangents = computeMonotoneTangents(top);
+    for (let i = 0; i < segment.length - 1; i++) {
+      const a = segment[i];
+      const b = segment[i + 1];
+      appendQuad(data, a.x1, b.x1, a.y1, b.y1, tangents[i], tangents[i + 1], a.y2, b.y2);
+    }
+    segment = [];
+  };
+
+  for (const point of points) {
+    if (isNaN(point.y1) || isNaN(point.y2) || isNaN(point.x1)) {
+      flush();
+      continue;
+    }
+    segment.push(point);
+  }
+
+  flush();
+  return finalizeMesh(data, 1);
+}
+
+function createStepAreaMesh(points: ParsedPoint[], pos: 'start' | 'mid' | 'end', mode: StepPathMode) {
+  const data: number[] = [];
+  let idx = 0;
+
+  while (idx < points.length) {
+    while (idx < points.length && !mode.predicate(points[idx])) idx++;
+    if (idx >= points.length) break;
+
+    const segmentStart = idx;
+    const segment: ParsedPoint[] = [];
+    while (idx < points.length && mode.predicate(points[idx])) {
+      segment.push(points[idx]);
+      idx++;
+    }
+    const segmentEnd = idx;
+    if (!segment.length) continue;
+
+    const extendedSegment = createBoundaryExtendedSegment(segment, pos, {
+      left: segmentStart > 0 ? points[segmentStart - 1] : null,
+      right: segmentEnd < points.length ? points[segmentEnd] : null,
+    });
+
+    const top = buildStepPolyline(extendedSegment, (p) => ({ x: p.x1, y: p.y1 }), pos);
+    const bottom = buildStepPolyline(extendedSegment, (p) => ({ x: p.x2, y: p.y2 }), pos);
+    if (top.length < 2 || bottom.length < 2) continue;
+
+    const xs = top.map((p) => p.x);
+    const bottomYs =
+      bottom.length === top.length && bottom.every((p, i) => p.x === xs[i])
+        ? bottom.map((p) => p.y)
+        : samplePolylineYs(bottom, xs);
+
+    for (let i = 0; i < xs.length - 1; i++) {
+      const x0 = xs[i];
+      const x1 = xs[i + 1];
+      if (x0 === x1) continue;
+      appendQuad(data, x0, x1, top[i].y, top[i + 1].y, 0, 0, bottomYs[i], bottomYs[i + 1]);
+    }
+  }
+
+  return finalizeMesh(data, 0);
+}
+
+const MESH_STRIDE = 10;
+function appendQuad(
+  data: number[],
+  x0: number,
+  x1: number,
+  y0t: number,
+  y1t: number,
+  m0: number,
+  m1: number,
+  y0b: number,
+  y1b: number,
+) {
+  if (!isFinite(x0) || !isFinite(x1)) return;
+  if (x0 === x1) return;
+  const minY = Math.min(y0t, y1t, y0b, y1b);
+  const maxY = Math.max(y0t, y1t, y0b, y1b);
+  const verts = [
+    x0, minY,
+    x1, minY,
+    x1, maxY,
+    x0, minY,
+    x1, maxY,
+    x0, maxY,
+  ];
+  for (let i = 0; i < verts.length; i += 2) {
+    data.push(
+      verts[i],
+      verts[i + 1],
+      x0,
+      x1,
+      y0t,
+      y1t,
+      m0,
+      m1,
+      y0b,
+      y1b,
+    );
+  }
+}
+
+function finalizeMesh(data: number[], mode: 0 | 1): FillMesh {
+  return {
+    data: new Float32Array(data),
+    count: data.length / MESH_STRIDE,
+    stride: MESH_STRIDE * 4,
+    mode,
+    dirty: true,
+  };
+}
+
+function computeMonotoneTangents(points: { x: number; y: number }[]) {
+  if (points.length < 2) return points.map(() => 0);
+  const n = points.length;
+  const h: number[] = new Array(n - 1);
+  const delta: number[] = new Array(n - 1);
+  for (let i = 0; i < n - 1; i++) {
+    h[i] = points[i + 1].x - points[i].x;
+    delta[i] = h[i] !== 0 ? (points[i + 1].y - points[i].y) / h[i] : 0;
+  }
+
+  const m: number[] = new Array(n);
+  m[0] = delta[0];
+  for (let i = 1; i < n - 1; i++) m[i] = (delta[i - 1] + delta[i]) / 2;
+  m[n - 1] = delta[n - 2];
+
+  for (let i = 0; i < n - 1; i++) {
+    if (delta[i] === 0 || !isFinite(delta[i])) {
+      m[i] = 0;
+      m[i + 1] = 0;
+      continue;
+    }
+    if (m[i] === 0 && m[i + 1] === 0) continue;
+    if (m[i] * delta[i] < 0 || m[i + 1] * delta[i] < 0) {
+      m[i] = 0;
+      m[i + 1] = 0;
+      continue;
+    }
+    const a = m[i] / delta[i];
+    const b = m[i + 1] / delta[i];
+    const sumSq = a * a + b * b;
+    if (sumSq > 9) {
+      const t = 3 / Math.sqrt(sumSq);
+      m[i] = t * a * delta[i];
+      m[i + 1] = t * b * delta[i];
+    }
+  }
+
+  return m;
+}
+
+function samplePolylineYs(points: { x: number; y: number }[], xs: number[]) {
+  if (!points.length) return xs.map(() => NaN);
+  const out: number[] = [];
+  let j = 0;
+  for (const x of xs) {
+    while (j < points.length - 2 && points[j + 1].x < x) j++;
+    const p0 = points[j];
+    const p1 = points[j + 1] ?? points[j];
+    if (p0.x === p1.x) {
+      out.push(p1.y);
+    } else {
+      const t = (x - p0.x) / (p1.x - p0.x);
+      out.push(p0.y + (p1.y - p0.y) * t);
+    }
+  }
+  return out;
+}
+
 function makeUsingParser(usingInput: Using) {
   const [[l1, r1], [l2, r2]] = parseUsing(usingInput);
 
@@ -627,7 +917,7 @@ function makeUsingParser(usingInput: Using) {
   };
 }
 
-function parsePadding(padding: number | [number, number?, number?, number?] | undefined) {
+function parsePaddingLike(padding: number | [number, number?, number?, number?] | undefined) {
   if (typeof padding === 'number' || padding == null) padding = [padding ?? 0];
   return {
     t: padding[0],
@@ -654,7 +944,10 @@ const pathCreators: Record<
         OffsetStyle &
         DefaultColorStyle,
     ) => {
-      path: Path2D | { x: number; y: number }[];
+      strokePath?: Path2D;
+      fillPath?: Path2D;
+      path?: { x: number; y: number }[];
+      fillMesh?: FillMesh;
       strokeStyle?: string;
       fillStyle?: string;
       postFillStyle?: string;
@@ -799,12 +1092,12 @@ const pathCreators: Record<
     { stroke: true },
   ],
 
-  'mark:box': [
+  'mark:bar': [
     createPathMarks(
-      (path, { l, style: { size, radius, padding } }) => {
+      (path, { l, style: { size, radius, extrude } }) => {
         size = size ?? 5;
 
-        const pad = parsePadding(padding);
+        const pad = parsePaddingLike(extrude);
         const x = -pad.l;
         const y = -(pad.t + size / 2);
         const w = pad.l + l + pad.r;
@@ -841,17 +1134,39 @@ const pathCreators: Record<
   ],
 
   // ----------
+  'mark:region': [
+    createPathMarks(
+      (path, { dx, dy, style: { radius, extrude } }) => {
+        const pad = parsePaddingLike(extrude);
+        const x = -pad.l;
+        const y = -pad.t;
+        const w = pad.l + dx + pad.r;
+        const h = pad.t + dy + pad.b;
+
+        if (radius && radius > 0) {
+          path.roundRect(x, y, w, h, radius);
+        } else {
+          path.rect(x, y, w, h);
+        }
+      },
+      ['_bottom@_minTime', '_top@_maxTime'],
+      false,
+    ),
+    { stroke: true, fill: true },
+  ],
+  // ----------
 
   'mark:icon': [createTextPoint, { fill: true }],
   'mark:text': [createTextPoint, { fill: true }],
 };
 
 export class TimescopeSeriesChartRenderer extends TimescopeRenderer {
+  #fillRenderer = new WebglFillRenderer();
+
   updateOptions(options: TimescopeOptionsForWorker): void {
     super.updateOptions(options);
   }
 
-  #resolution = Decimal(0);
   #plotData: Record<
     string,
     {
@@ -860,9 +1175,13 @@ export class TimescopeSeriesChartRenderer extends TimescopeRenderer {
       revision: number;
 
       time: Decimal;
+      resolution: Decimal;
+      renderResolution: Decimal;
 
       linkOps: LinkOp[];
       markOps: MarkOp[];
+
+      params: TimescopeAnimatedValue[];
     }
   > = {};
 
@@ -874,79 +1193,103 @@ export class TimescopeSeriesChartRenderer extends TimescopeRenderer {
   }
 
   #prepareRenderOps(timescope: TimescopeRenderingContext) {
-    const zoomChanged = this.#resolution.neq(timescope.timeAxis.current.resolution);
-    this.#resolution = timescope.timeAxis.current.resolution.clone();
-
     if (!timescope.options.series) return;
+
+    const renderResolution = timescope.timeAxis.current.resolution;
 
     for (const track of timescope.tracks) {
       const dataCacheFor = (k: string) =>
-        timescope.dataCaches[`series:${k}:chart`] as TimescopeDataCacheSeries<
-          TimescopeSeriesChartProviderData,
-          TimescopeSeriesChartProviderMeta
-        >;
+        timescope.dataCaches[`series:${k}:chart`] as TimescopeDataCache<TimescopeSeriesChartProviderData>;
+
+      const _zero = track.y(0);
+      const _top = track.top;
+      const _bottom = track.bottom;
 
       for (const k of track.seriesKeys) {
-        const { data, meta, revision, scaleY, floating } = dataCacheFor(k);
+        const cache = dataCacheFor(k);
+        if (!cache || !cache.data) continue;
+
+        const {
+          data: { data: records, meta },
+          revision,
+        } = cache;
 
         if (
           this.#plotData[k] &&
-          !zoomChanged &&
           this.#plotData[k].revision === revision &&
           this.#plotData[k].trackId === track.id &&
-          this.#plotData[k].trackRevision === track.revision
+          this.#plotData[k].trackRevision === track.revision &&
+          this.#plotData[k].renderResolution?.eq(renderResolution) &&
+          this.#plotData[k].params?.every((v) => !v.animating)
         ) {
           continue;
         }
 
-        if (!scaleY) continue;
-
-        //this.#plotData[k] = { time: timescope.timeAxis.current.range[0], trackId, revision, linkOps: [], markOps: [] };
         this.#plotData[k] = {
-          time: timescope.timeAxis.current.range[0],
+          time: meta.time,
+          resolution: meta.resolution,
+          renderResolution,
           trackId: track.id,
           trackRevision: track.revision,
           revision,
           linkOps: [],
           markOps: [],
+          params: this.#plotData[k]?.params,
         };
+
+        if (!this.#plotData[k].params) {
+          this.#plotData[k].params = [
+            new TimescopeAnimatedValue(),
+            new TimescopeAnimatedValue(),
+            new TimescopeAnimatedValue(),
+          ];
+          this.#plotData[k].params.forEach((p) => {
+            p.on('changed', () => this.changed());
+          });
+        }
 
         const color = meta.color;
         const points: Point[] = [];
+        const scaleX = meta.resolution.div(renderResolution, 3).number();
 
-        for (let i = 0; i < data.length; i++) {
-          const time = data[i].time;
-          const value = data[i].value;
+        this.#plotData[k].params[0].setValue(meta.scaleY, { animation: 'linear', duration: 200 });
+        this.#plotData[k].params[1].setValue(meta.baseY, { animation: 'linear', duration: 200 });
+        this.#plotData[k].params[2].setValue(meta.floating ?? 0, { animation: 'linear', duration: 200 });
 
+        const scaleY = this.#plotData[k].params[0];
+        const baseY = this.#plotData[k].params[1];
+        const floating = this.#plotData[k].params[2];
+
+        for (const data of records) {
           const point = {
             x: {} as Record<string, number>,
-            y: { zero: track.y(0) } as Record<string, number>,
+            y: { _zero, _top, _bottom } as Record<string, number>,
           };
-          for (const key in time) {
-            point.x[key] = time[key].sub(this.#plotData[k].time).div(this.#resolution, 3).number();
+
+          for (const key in data.point.x) {
+            point.x[key] = data.point.x[key] * scaleX;
           }
-          for (const key in value) {
-            point.y[key] = track.y(scaleY(value[key]), floating) ?? NaN;
+          for (const key in data.point.y) {
+            point.y[key] = track.y((data.point.y[key] - baseY.value!) * scaleY.value!, floating.value ?? 0) ?? NaN;
           }
           points.push(point);
 
-          for (const mark of data[i].marks) {
+          for (const mark of data.marks) {
             if (!mark) continue;
 
             const style = { color, ...(mark.style ?? {}) };
             const [creator, flags] = pathCreators[`mark:${mark.draw}`];
-            const { path, strokeStyle, fillStyle, postFillStyle } = creator?.([point], mark.using, style) ?? {};
-
-            if (!this.#plotData[k].markOps) {
-              this.#plotData[k].markOps = [];
-            }
+            const { strokePath, fillPath, path, strokeStyle, fillStyle, postFillStyle } =
+              creator?.([point], mark.using, style) ?? {};
 
             this.#plotData[k].markOps.push({
               type: 'mark',
               draw: mark.draw,
               time: this.#plotData[k].time,
+              strokePath,
+              fillPath,
               path,
-              style: { ...style, strokeStyle, fillStyle, postFillStyle, ...flags, floating },
+              style: { ...style, strokeStyle, fillStyle, postFillStyle, ...flags, floating: floating.value ?? 0 },
             });
           }
         }
@@ -956,18 +1299,16 @@ export class TimescopeSeriesChartRenderer extends TimescopeRenderer {
 
           const style = { color, ...(link.style ?? {}) };
           const [creator, flags] = pathCreators[`link:${link.draw}`];
-          const { path, strokeStyle, fillStyle } = creator?.(points, link.using, style) ?? {};
-
-          if (!this.#plotData[k].linkOps) {
-            this.#plotData[k].linkOps = [];
-          }
+          const { strokePath, fillPath, fillMesh, strokeStyle, fillStyle } = creator?.(points, link.using, style) ?? {};
 
           this.#plotData[k].linkOps.push({
             type: 'link',
             draw: link.draw,
             time: this.#plotData[k].time,
-            path,
-            style: { ...style, strokeStyle, fillStyle, ...flags, floating },
+            strokePath,
+            fillPath,
+            fillMesh,
+            style: { ...style, strokeStyle, fillStyle, ...flags, floating: floating.value ?? 0 },
           });
         }
       }
@@ -977,16 +1318,19 @@ export class TimescopeSeriesChartRenderer extends TimescopeRenderer {
   #renderCharts(timescope: TimescopeRenderingContext) {
     if (!timescope.options.series) return;
 
+    const resolution = timescope.timeAxis.current.resolution;
+
     const reordered: Record<string, Record<string, ((LinkOp | MarkOp) & { ox: number; oy: number })[]>> = {};
     for (const k in this.#plotData) {
       const plot = this.#plotData[k];
 
       if (!reordered[plot.trackId]) reordered[plot.trackId] = {};
+      if (!plot.time) continue;
 
       const ox =
         plot.time
           .sub(timescope.timeAxis.current.time ?? timescope.timeAxis.now)
-          .div(this.#resolution, 3)
+          .div(resolution, 3)
           .number() + timescope.timeAxis.axisLength[0];
 
       for (const link of plot.linkOps) {
@@ -1003,11 +1347,67 @@ export class TimescopeSeriesChartRenderer extends TimescopeRenderer {
       }
     }
 
+    const canvasSize = {
+      width: timescope.ctx.canvas.width / timescope.dpr,
+      height: timescope.ctx.canvas.height / timescope.dpr,
+    };
+    const glReady = this.#fillRenderer.ensure(canvasSize, timescope.dpr);
+    if (glReady) {
+      this.#fillRenderer.beginFrame();
+    }
+
+    for (const track of timescope.tracks) {
+      clipToTrack(timescope, track, () => {
+        const ctx = timescope.ctx;
+        const fillOps = reordered?.[track.id]?.['link:fill'];
+        if (!fillOps?.length) return;
+
+        if (glReady) {
+          this.#fillRenderer.setScissor(
+            {
+              x: 0,
+              y: track.oy,
+              width: canvasSize.width,
+              height: track.height,
+            },
+            canvasSize,
+            timescope.dpr,
+          );
+        }
+
+        for (const op of fillOps) {
+          const drew =
+            glReady && op.fillMesh && op.style.fillStyle
+              ? this.#fillRenderer.drawFillMesh(
+                  op.fillMesh,
+                  op.style.fillStyle,
+                  op.style.floating,
+                  op.ox,
+                  track.oy + op.oy,
+                  (timescope.renderingTrack?.y0 ?? 0) + track.oy,
+                  (timescope.renderingTrack?.y(0, 10 * (op.style.floating ?? 0)) ?? NaN) + track.oy,
+                )
+              : false;
+
+          if (!drew && op.fillPath) {
+            ctx.save();
+            ctx.translate(op.ox, op.oy);
+            renderPath(timescope, op.strokePath, op.fillPath, op.style);
+            ctx.restore();
+          }
+        }
+      });
+    }
+
+    if (glReady && this.#fillRenderer.hasDrawn) {
+      this.#fillRenderer.composite(timescope.ctx, canvasSize);
+    }
+
     for (const track of timescope.tracks) {
       clipToTrack(timescope, track, () => {
         const ctx = timescope.ctx;
 
-        for (const k of renderingOrder) {
+        for (const k of ['link:stroke', 'marks'] as const) {
           if (!reordered?.[track.id]?.[k]) continue;
 
           const ops = reordered[track.id][k];
@@ -1016,8 +1416,8 @@ export class TimescopeSeriesChartRenderer extends TimescopeRenderer {
             ctx.save();
             ctx.translate(op.ox, op.oy);
 
-            if (op.path instanceof Path2D) {
-              renderPath(timescope, op.path, op.style);
+            if (op.strokePath || op.fillPath) {
+              renderPath(timescope, op.strokePath, op.fillPath, op.style);
             } else if (op.path) {
               renderIcon(timescope, op.path, op.style);
               renderText(timescope, op.path, op.style);
@@ -1050,19 +1450,18 @@ function createFadeoutStyle(timescope: TimescopeRenderingContext, color: string,
 
 function renderPath(
   timescope: TimescopeRenderingContext,
-  path: Path2D | undefined,
+  strokePath: Path2D | undefined,
+  fillPath: Path2D | undefined,
   style: MarkOp['style'] & LinkOp['style'],
 ) {
-  if (!path || !(path instanceof Path2D)) return;
-
   const ctx = timescope.ctx;
 
-  if (style.fill && !style.fillPost && style.fillStyle) {
+  if (style.fill && !style.fillPost && style.fillStyle && fillPath) {
     ctx.fillStyle = createFadeoutStyle(timescope, style.fillStyle, style.floating);
-    ctx.fill(path);
+    ctx.fill(fillPath);
   }
 
-  if (style.stroke && style.strokeStyle && (style.lineWidth ?? 1) > 0) {
+  if (style.stroke && style.strokeStyle && (style.lineWidth ?? 1) > 0 && strokePath) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = createFadeoutStyle(timescope, style.strokeStyle, style.floating);
@@ -1071,12 +1470,295 @@ function renderPath(
       ctx.setLineDash(style.lineDashArray);
       ctx.lineDashOffset = style.lineDashOffset ?? 0;
     }
-    ctx.stroke(path);
+    ctx.stroke(strokePath);
   }
 
-  if (style.fill && style.fillPost && style.fillStyle) {
+  if (style.fill && style.fillPost && style.fillStyle && fillPath) {
     ctx.fillStyle = createFadeoutStyle(timescope, style.fillStyle, style.floating);
-    ctx.fill(path);
+    ctx.fill(fillPath);
+  }
+}
+
+class WebglFillRenderer {
+  #canvas: OffscreenCanvas | null = null;
+  #gl: WebGLRenderingContext | null = null;
+  #program: WebGLProgram | null = null;
+  #buffer: WebGLBuffer | null = null;
+  #attribPos = -1;
+  #attribSegX = -1;
+  #attribSegYTop = -1;
+  #attribSegM = -1;
+  #attribSegYBottom = -1;
+  #uniformResolution: WebGLUniformLocation | null = null;
+  #uniformTranslate: WebGLUniformLocation | null = null;
+  #uniformColor: WebGLUniformLocation | null = null;
+  #uniformMode: WebGLUniformLocation | null = null;
+  #uniformY0: WebGLUniformLocation | null = null;
+  #uniformY1: WebGLUniformLocation | null = null;
+  #uniformUseGradient: WebGLUniformLocation | null = null;
+  #uniformDpr: WebGLUniformLocation | null = null;
+  #width = 0;
+  #height = 0;
+  #dpr = 1;
+  #version = 0;
+  hasDrawn = false;
+
+  ensure(size: { width: number; height: number }, dpr: number) {
+    const width = Math.max(1, Math.floor(size.width * dpr));
+    const height = Math.max(1, Math.floor(size.height * dpr));
+
+    const sizeChanged = this.#width !== width || this.#height !== height;
+    const dprChanged = this.#dpr !== dpr;
+
+    if (!this.#canvas || sizeChanged || dprChanged) {
+      this.#canvas = new OffscreenCanvas(width, height);
+      this.#width = width;
+      this.#height = height;
+      this.#dpr = dpr;
+      this.#gl = null;
+      this.#program = null;
+      this.#buffer = null;
+      this.#attribPos = -1;
+      this.#attribSegX = -1;
+      this.#attribSegYTop = -1;
+      this.#attribSegM = -1;
+      this.#attribSegYBottom = -1;
+      this.#uniformResolution = null;
+      this.#uniformTranslate = null;
+      this.#uniformColor = null;
+      this.#uniformMode = null;
+      this.#uniformY0 = null;
+      this.#uniformY1 = null;
+      this.#uniformUseGradient = null;
+      this.#uniformDpr = null;
+    }
+
+    if (!this.#gl) {
+      this.#gl = this.#canvas.getContext('webgl', {
+        alpha: true,
+        antialias: false,
+        premultipliedAlpha: true,
+      }) as WebGLRenderingContext | null;
+      if (!this.#gl) return false;
+      this.#version += 1;
+    }
+
+    if (!this.#program || !this.#buffer) {
+      const gl = this.#gl;
+      const vert = gl.createShader(gl.VERTEX_SHADER)!;
+      gl.shaderSource(
+        vert,
+        `
+attribute vec2 a_pos;
+attribute vec2 a_seg_x;
+attribute vec2 a_seg_y_top;
+attribute vec2 a_seg_m;
+attribute vec2 a_seg_y_bottom;
+uniform vec2 u_resolution;
+uniform vec2 u_translate;
+uniform float u_dpr;
+varying vec2 v_seg_y_top;
+varying vec2 v_seg_y_bottom;
+varying vec2 v_seg_m;
+varying float v_t;
+varying float v_dx;
+varying float v_y_local;
+varying float v_y_world;
+void main() {
+  vec2 pos = (a_pos + u_translate) * u_dpr;
+  vec2 zeroToOne = pos / u_resolution;
+  vec2 clip = zeroToOne * 2.0 - 1.0;
+  gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
+  float dx = a_seg_x.y - a_seg_x.x;
+  v_t = dx != 0.0 ? (a_pos.x - a_seg_x.x) / dx : 0.0;
+  v_dx = dx;
+  v_seg_y_top = a_seg_y_top;
+  v_seg_y_bottom = a_seg_y_bottom;
+  v_seg_m = a_seg_m;
+  v_y_local = a_pos.y;
+  v_y_world = a_pos.y + u_translate.y;
+}
+`,
+      );
+      gl.compileShader(vert);
+
+      const frag = gl.createShader(gl.FRAGMENT_SHADER)!;
+      gl.shaderSource(
+        frag,
+        `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform vec4 u_color;
+uniform int u_mode;
+uniform float u_y0;
+uniform float u_y1;
+uniform float u_useGradient;
+varying vec2 v_seg_y_top;
+varying vec2 v_seg_y_bottom;
+varying vec2 v_seg_m;
+varying float v_t;
+varying float v_dx;
+varying float v_y_local;
+varying float v_y_world;
+void main() {
+  float t = clamp(v_t, 0.0, 1.0);
+  float y0t = v_seg_y_top.x;
+  float y1t = v_seg_y_top.y;
+  float y0b = v_seg_y_bottom.x;
+  float y1b = v_seg_y_bottom.y;
+  float yTop;
+  if (u_mode == 1) {
+    float m0 = v_seg_m.x;
+    float m1 = v_seg_m.y;
+    float t2 = t * t;
+    float t3 = t2 * t;
+    float h00 = 2.0 * t3 - 3.0 * t2 + 1.0;
+    float h10 = t3 - 2.0 * t2 + t;
+    float h01 = -2.0 * t3 + 3.0 * t2;
+    float h11 = t3 - t2;
+    yTop = h00 * y0t + h10 * v_dx * m0 + h01 * y1t + h11 * v_dx * m1;
+  } else {
+    yTop = mix(y0t, y1t, t);
+  }
+  float yBottom = mix(y0b, y1b, t);
+  float minY = min(yTop, yBottom);
+  float maxY = max(yTop, yBottom);
+  if (v_y_local < minY || v_y_local > maxY) discard;
+
+  float alpha = u_color.a;
+  if (u_useGradient > 0.5) {
+    float denom = (u_y0 - u_y1);
+    if (abs(denom) > 0.0001) {
+      float t = clamp((v_y_world - u_y1) / denom, 0.0, 1.0);
+      if (t > 0.8) {
+        alpha *= (1.0 - (t - 0.8) / 0.2);
+      }
+    }
+  }
+  vec3 rgb = u_color.rgb * alpha;
+  gl_FragColor = vec4(rgb, alpha);
+}
+`,
+      );
+      gl.compileShader(frag);
+
+      const program = gl.createProgram()!;
+      gl.attachShader(program, vert);
+      gl.attachShader(program, frag);
+      gl.linkProgram(program);
+
+      this.#program = program;
+      this.#attribPos = gl.getAttribLocation(program, 'a_pos');
+      this.#attribSegX = gl.getAttribLocation(program, 'a_seg_x');
+      this.#attribSegYTop = gl.getAttribLocation(program, 'a_seg_y_top');
+      this.#attribSegM = gl.getAttribLocation(program, 'a_seg_m');
+      this.#attribSegYBottom = gl.getAttribLocation(program, 'a_seg_y_bottom');
+      this.#uniformResolution = gl.getUniformLocation(program, 'u_resolution');
+      this.#uniformTranslate = gl.getUniformLocation(program, 'u_translate');
+      this.#uniformColor = gl.getUniformLocation(program, 'u_color');
+      this.#uniformMode = gl.getUniformLocation(program, 'u_mode');
+      this.#uniformY0 = gl.getUniformLocation(program, 'u_y0');
+      this.#uniformY1 = gl.getUniformLocation(program, 'u_y1');
+      this.#uniformUseGradient = gl.getUniformLocation(program, 'u_useGradient');
+      this.#uniformDpr = gl.getUniformLocation(program, 'u_dpr');
+      this.#buffer = gl.createBuffer();
+    }
+
+    return true;
+  }
+
+  beginFrame() {
+    if (!this.#gl || !this.#program || !this.#buffer) return;
+    const gl = this.#gl;
+    this.hasDrawn = false;
+    gl.viewport(0, 0, this.#width, this.#height);
+    gl.disable(gl.SCISSOR_TEST);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(this.#program);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.#buffer);
+    gl.enableVertexAttribArray(this.#attribPos);
+    gl.enableVertexAttribArray(this.#attribSegX);
+    gl.enableVertexAttribArray(this.#attribSegYTop);
+    gl.enableVertexAttribArray(this.#attribSegM);
+    gl.enableVertexAttribArray(this.#attribSegYBottom);
+    gl.uniform2f(this.#uniformResolution, this.#width, this.#height);
+    gl.uniform1f(this.#uniformDpr, this.#dpr);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(0, 0, this.#width, this.#height);
+  }
+
+  setScissor(
+    rect: { x: number; y: number; width: number; height: number },
+    size: { width: number; height: number },
+    dpr: number,
+  ) {
+    if (!this.#gl) return;
+    const gl = this.#gl;
+    const x = Math.max(0, rect.x);
+    const y = Math.max(0, size.height - (rect.y + rect.height));
+    const w = Math.max(0, rect.width);
+    const h = Math.max(0, rect.height);
+    gl.scissor(Math.floor(x * dpr), Math.floor(y * dpr), Math.floor(w * dpr), Math.floor(h * dpr));
+  }
+
+  drawFillMesh(
+    mesh: FillMesh,
+    fillStyle: string,
+    floating: number | undefined,
+    ox: number,
+    oy: number,
+    y0: number,
+    y1: number,
+  ) {
+    if (!this.#gl || !this.#program || !this.#buffer) return false;
+    if (!mesh.count) return false;
+    const rgba = parseColorToRgba(fillStyle);
+    if (!rgba) return false;
+
+    const gl = this.#gl;
+    const version = this.#version;
+    const needsUpload = mesh.dirty || mesh.version !== version || !mesh.buffer;
+    if (needsUpload) {
+      if (mesh.version !== version) mesh.buffer = null;
+      const buffer = mesh.buffer ?? gl.createBuffer();
+      if (!buffer) return false;
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, mesh.data, gl.STATIC_DRAW);
+      mesh.buffer = buffer;
+      mesh.version = version;
+      mesh.dirty = false;
+    } else {
+      gl.bindBuffer(gl.ARRAY_BUFFER, mesh.buffer!);
+    }
+
+    gl.vertexAttribPointer(this.#attribPos, 2, gl.FLOAT, false, mesh.stride, 0);
+    gl.vertexAttribPointer(this.#attribSegX, 2, gl.FLOAT, false, mesh.stride, 8);
+    gl.vertexAttribPointer(this.#attribSegYTop, 2, gl.FLOAT, false, mesh.stride, 16);
+    gl.vertexAttribPointer(this.#attribSegM, 2, gl.FLOAT, false, mesh.stride, 24);
+    gl.vertexAttribPointer(this.#attribSegYBottom, 2, gl.FLOAT, false, mesh.stride, 32);
+    gl.uniform2f(this.#uniformTranslate, ox, oy);
+    gl.uniform4f(this.#uniformColor, rgba.r / 255, rgba.g / 255, rgba.b / 255, rgba.a);
+    gl.uniform1i(this.#uniformMode, mesh.mode);
+
+    const useGradient = floating && isFinite(y1) && isFinite(y0) ? 1 : 0;
+    gl.uniform1f(this.#uniformUseGradient, useGradient);
+    gl.uniform1f(this.#uniformY0, isFinite(y0) ? y0 : 0);
+    gl.uniform1f(this.#uniformY1, isFinite(y1) ? y1 : 0);
+
+    gl.drawArrays(gl.TRIANGLES, 0, mesh.count);
+    this.hasDrawn = true;
+    return true;
+  }
+
+  composite(ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D, size: { width: number; height: number }) {
+    if (!this.#canvas || !this.hasDrawn) return;
+    ctx.drawImage(this.#canvas, 0, 0, size.width, size.height);
   }
 }
 

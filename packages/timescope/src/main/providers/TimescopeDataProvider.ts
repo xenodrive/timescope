@@ -1,22 +1,18 @@
-import type { TimescopeDataChunkWire, TimescopeLoadMetaOptions } from '#src/bridge/protocol';
-import type { TimescopeDataChunkDesc } from '#src/core/chunk';
+import type { TimescopeRange } from '#src/core/range';
+import type { Decimal } from '@kikuchan/decimal';
 
-export interface TimescopeDataProviderLike<T = any, O = any> {
+export interface TimescopeDataProviderLike<D = any, O = any> {
   new (options: O): this;
-  loadChunk(chunk: TimescopeDataChunkDesc): Promise<TimescopeDataChunkWire<T>>;
-  loadMeta(opts: TimescopeLoadMetaOptions): Promise<object> | undefined;
+
+  loadData(range: TimescopeRange<Decimal>, resolution: Decimal): Promise<D>;
 }
 
-export abstract class TimescopeDataProvider<T = any, M = any, O = any> {
+export abstract class TimescopeDataProvider<D = any, O = any> {
   options: O;
 
   constructor(options: O) {
     this.options = options;
   }
 
-  abstract loadChunk(chunk: TimescopeDataChunkDesc): Promise<TimescopeDataChunkWire<T>>;
-
-  loadMeta(_opts: TimescopeLoadMetaOptions): Promise<M> | undefined {
-    return undefined;
-  }
+  abstract loadData(range: TimescopeRange<Decimal>, resolution: Decimal): Promise<D> | undefined;
 }

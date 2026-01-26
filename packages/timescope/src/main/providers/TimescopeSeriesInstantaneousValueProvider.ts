@@ -1,19 +1,16 @@
-import type {
-  TimescopeDataChunkWire,
-  TimescopeLoadMetaOptions,
-  TimescopeSeriesInstantaneousValueProviderData,
-  TimescopeSeriesInstantaneousValueProviderMeta,
-} from '#src/bridge/protocol';
-import type { TimescopeDataChunkResult } from '#src/core/chunk';
+import type { TimescopeSeriesInstantaneousValueProviderData } from '#src/bridge/protocol';
+import type { TimescopeChunk } from '#src/core/chunk';
 import type { Decimal } from '#src/core/decimal';
+import type { TimescopeRange } from '#src/core/range';
 import type { TimescopeOptions } from '#src/core/types';
 import { parseUsing } from '#src/core/using';
 import { unwrapFn } from '#src/core/utils';
-import type { TimescopeDataSeriesChunkResult } from '#src/main/TimescopeDataSeries';
+import type { TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
 import {
   TimescopeSeriesProvider,
   type TimescopeSeriesProviderOptions,
 } from '#src/main/providers/TimescopeSeriesProvider';
+import { createScaleY } from './TimescopeSeriesChartProvider';
 
 type TimescopeDataSeriesInput = NonNullable<TimescopeOptions['series']>[string];
 
@@ -61,10 +58,8 @@ function parseTooltip(opts: TimescopeDataSeriesInput['tooltip']) {
 }
 
 export class TimescopeSeriesInstantaneousValueProvider<
-  T extends TimescopeSeriesInstantaneousValueProviderData,
-  M extends TimescopeSeriesInstantaneousValueProviderMeta,
   O extends TimescopeSeriesProviderOptions,
-> extends TimescopeSeriesProvider<T, M, O> {
+> extends TimescopeSeriesProvider<TimescopeSeriesInstantaneousValueProviderData, O> {
   #instantaneous;
   #tooltip;
 
@@ -75,22 +70,34 @@ export class TimescopeSeriesInstantaneousValueProvider<
     this.#tooltip = parseTooltip(options.series.options.tooltip);
   }
 
-  async transform(chunk: TimescopeDataSeriesChunkResult): Promise<TimescopeDataChunkWire<T[]>> {
-    const { name, unit, digits } = this.options.series;
+  async transform(
+    series: TimescopeDataSeries,
+    range: TimescopeRange<Decimal>,
+    resolution: Decimal,
+  ): Promise<TimescopeSeriesInstantaneousValueProviderData> {
+    const { data: src, name } = series;
+    const { unit, digits } = series.domain;
 
     const format = this.#tooltip.format;
-    const using = parseUsing(unwrapFn(this.#instantaneous.using, chunk as TimescopeDataChunkResult<any>))[0];
+    const using = parseUsing(
+      unwrapFn(this.#instantaneous.using, { range, resolution, data: src } as TimescopeChunk<any>),
+    )[0];
 
-    const data = chunk.data?.flatMap((data) => {
+    const domainRange = series.domain.dataRange;
+    const scaleY = domainRange ? createScaleY(domainRange, series.domain.scale) : () => NaN;
+
+    const data = src.flatMap((data) => {
       if (!this.#instantaneous) return [];
 
       const time = data.time[using[1]];
       const value = data.value[using[0]];
+      const y = scaleY(data.value[using[0]]);
 
       return [
         {
           time: { time },
           value: { value },
+          point: { y },
 
           text: format({ time, value, unit, digits, name }),
         },
@@ -98,19 +105,12 @@ export class TimescopeSeriesInstantaneousValueProvider<
     });
 
     return {
-      ...chunk,
-      data,
-    } as TimescopeDataChunkWire<T[]>;
-  }
-
-  async loadMeta(_opts: TimescopeLoadMetaOptions): Promise<M> {
-    const color = this.options.series.color;
-    const dataRange = this.options.series.dataRange;
-
-    return {
-      ...dataRange,
-      scale: this.options.series.options.data.scale,
-      color,
-    } as M;
+      data: data,
+      meta: {
+        time: range[0]!,
+        resolution,
+        color: this.options.series.color ?? '',
+      },
+    };
   }
 }

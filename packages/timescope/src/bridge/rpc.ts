@@ -91,7 +91,7 @@ export function listenCalls<C extends Commands>(target: WorkerMessagePort, recvC
   return recvCommands;
 }
 
-function cloneStructured(value: any, transfer: Transferable[] | undefined, seen: WeakSet<object>): any {
+function cloneStructured(value: any, transfer: Transferable[] | undefined, seen?: WeakSet<object>): any {
   if (value == null) return value;
 
   const valueType = typeof value;
@@ -111,17 +111,21 @@ function cloneStructured(value: any, transfer: Transferable[] | undefined, seen:
     return value;
   }
 
-  if (seen.has(value)) {
+  if (Decimal.isDecimal(value)) {
+    return { coeff: value.coeff, digits: value.digits };
+  }
+
+  if (seen?.has(value)) {
     throw new TypeError('Cannot serialize circular reference');
   }
 
-  seen.add(value);
+  seen?.add(value);
 
   if (typeof value.toJSON === 'function') {
     const jsonValue = value.toJSON();
     if (jsonValue !== value) {
       const result = cloneStructured(jsonValue, transfer, seen);
-      seen.delete(value);
+      seen?.delete(value);
       return result;
     }
   }
@@ -132,12 +136,12 @@ function cloneStructured(value: any, transfer: Transferable[] | undefined, seen:
       const entry = cloneStructured(value[index], transfer, seen);
       result[index] = entry;
     }
-    seen.delete(value);
+    seen?.delete(value);
     return result;
   }
 
   if (value instanceof Date || value instanceof RegExp || ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
-    seen.delete(value);
+    seen?.delete(value);
     return value;
   }
 
@@ -147,12 +151,12 @@ function cloneStructured(value: any, transfer: Transferable[] | undefined, seen:
     result[key] = entry;
   }
 
-  seen.delete(value);
+  seen?.delete(value);
   return result;
 }
 
 export function serialize(obj: any, transfer?: Transferable[]): any {
-  return cloneStructured(obj, transfer, new WeakSet());
+  return cloneStructured(obj, transfer); //, new WeakSet());
 }
 
 function isDecimalLike(value: unknown) {
@@ -161,8 +165,7 @@ function isDecimalLike(value: unknown) {
     value != null &&
     'coeff' in value &&
     'digits' in value &&
-    typeof value.coeff === 'bigint' &&
-    typeof value.digits === 'bigint'
+    typeof value.coeff === 'bigint'
   );
 }
 

@@ -1,6 +1,6 @@
 import type {
+  TimescopeSeriesChartProviderData,
   TimescopeSeriesInstantaneousValueProviderData,
-  TimescopeSeriesInstantaneousValueProviderMeta,
 } from '#src/bridge/protocol';
 import { Decimal } from '#src/core/decimal';
 import { Vector2f } from '#src/core/vector';
@@ -9,7 +9,7 @@ import { disperse } from '#src/worker/disperse';
 import { TimescopeRenderer } from '#src/worker/renderer/TimescopeRenderer';
 import type { TimescopeRenderingContext } from '#src/worker/types';
 import { forEachTrack } from '#src/worker/utils';
-import type { TimescopeDataCacheSeries } from '../TimescopeDataCacheSeries';
+import type { TimescopeDataCache } from '../TimescopeDataCache';
 
 export class TimescopeSeriesTooltipRenderer extends TimescopeRenderer {
   postRender(timescope: TimescopeRenderingContext): void {
@@ -18,7 +18,7 @@ export class TimescopeSeriesTooltipRenderer extends TimescopeRenderer {
     this.#renderTooltips(timescope);
   }
 
-  #readByTime(data: TimescopeSeriesInstantaneousValueProviderData[], t: Decimal) {
+  #readByTime(data: TimescopeSeriesInstantaneousValueProviderData['data'], t: Decimal) {
     if (!data) return;
     const idx = bisectRight(data, t, (o) => o.time.time);
     if (0 < idx && idx <= data.length) return data[idx - 1];
@@ -48,18 +48,15 @@ export class TimescopeSeriesTooltipRenderer extends TimescopeRenderer {
 
         if (series.tooltip === false) continue;
 
-        const {
-          data: tooltipData,
-          meta,
-          scaleY,
-          floating,
-        } = timescope.dataCaches[`series:${k}:instantaneous`] as TimescopeDataCacheSeries<
-          TimescopeSeriesInstantaneousValueProviderData,
-          TimescopeSeriesInstantaneousValueProviderMeta
-        >;
-        if (!meta) continue;
+        const cache = timescope.dataCaches[
+          `series:${k}:instantaneous`
+        ] as TimescopeDataCache<TimescopeSeriesInstantaneousValueProviderData>;
 
-        if (!scaleY) continue;
+        if (!cache || !cache.data) continue;
+
+        const {
+          data: { data: tooltipData, meta },
+        } = cache;
 
         const data = this.#readByTime(tooltipData, cursorDecimal);
 
@@ -74,7 +71,7 @@ export class TimescopeSeriesTooltipRenderer extends TimescopeRenderer {
         if (s.options.label?.side) sideX = s.options.label.side === 'right' ? 1 : -1;
         */
 
-        const value = data.value;
+        const point_y = data.point.y;
         const text = data.text;
 
         const metrics = ctx.measureText(text);
@@ -84,9 +81,13 @@ export class TimescopeSeriesTooltipRenderer extends TimescopeRenderer {
 
         const color = meta.color;
 
-        if (value == null) continue;
+        if (point_y == null) continue;
 
-        const y = track.y(scaleY(value.value), floating) ?? NaN;
+        const chartCache = timescope.dataCaches[`series:${k}:chart`] as
+          | TimescopeDataCache<TimescopeSeriesChartProviderData>
+          | undefined;
+        const floating = chartCache?.data?.meta?.floating ?? 0;
+        const y = track.y(point_y, floating) ?? NaN;
 
         labels.push({
           id: labels.length,

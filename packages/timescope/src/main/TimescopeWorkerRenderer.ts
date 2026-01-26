@@ -1,20 +1,22 @@
 import type {
   InteractionInfo,
-  ProviderLoadChunkMessage,
+  RendererCommands,
   TimescopeDataCacheOptionsWire,
   TimescopeEventMessage,
   TimescopeFont,
-  TimescopeLoadMetaMessage,
   TimescopeOptionsForWorker,
+  TimescopeProviderLoadDataMessage,
   TimescopeSyncMessage,
   TimescopeViewChangedMessage,
   WorkerCommands,
 } from '#src/bridge/protocol';
 import { defineCalls, listenCalls } from '#src/bridge/rpc';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
-import type { TimescopeOptions } from '#src/core/types';
+import type { TimescopeDomainOptions, TimescopeOptions } from '#src/core/types';
 import { mergeOptions } from '#src/core/utils';
+import { resolutionFor } from '#src/core/zoom';
 import { resolveDocumentFonts, resolveFonts } from '#src/main/font';
+import { TimescopeDomain } from '#src/main/TimescopeDomain';
 import type { TimescopeDataProviderLike } from '#src/main/providers/TimescopeDataProvider';
 import { TimescopeSeriesChartProvider } from '#src/main/providers/TimescopeSeriesChartProvider';
 import { TimescopeSeriesInstantaneousValueProvider } from '#src/main/providers/TimescopeSeriesInstantaneousValueProvider';
@@ -156,6 +158,8 @@ export class TimescopeWorkerRenderer extends TimescopeObservable<
   #sources: Record<string, TimescopeDataSource<unknown>> = {};
   #series: Record<string, TimescopeDataSeries> = {};
   #providers: Record<string, TimescopeDataProviderLike<unknown[]>> = {};
+  #domainsByName: Record<string, TimescopeDomain> = {};
+  #domainChangeHandlers = new WeakSet<TimescopeDomain>();
 
   #useDocumentFonts = false;
   #documentFontCleanup: (() => void)[] = [];
@@ -170,31 +174,31 @@ export class TimescopeWorkerRenderer extends TimescopeObservable<
     this.#worker = new TimescopeWorker();
     this.call = defineCalls<WorkerCommands>(this.#worker);
 
-    const mainCommands = {
+    const mainCommands: RendererCommands = {
       sync: (value: TimescopeSyncMessage) => {
         this.dispatchEvent(new TimescopeEvent('sync', value, this.uid));
       },
 
-      'renderer:event': async (msg: TimescopeEventMessage) => {
+      'renderer:event': (msg: TimescopeEventMessage) => {
         this.dispatchEvent(new TimescopeEvent('renderer:event', msg.value, msg.uid));
       },
 
-      'provider:loadChunk': async ({ key, chunk }: ProviderLoadChunkMessage) => {
-        return await this.#providers[key]?.loadChunk(chunk);
-      },
-
-      'provider:loadMeta': async ({ key, zoom, resolution }: TimescopeLoadMetaMessage) => {
-        return await this.#providers[key].loadMeta({ zoom, resolution });
-      },
-
       'view:changed': async (msg: TimescopeViewChangedMessage) => {
-        this.dispatchEvent(new TimescopeEvent('viewchanged', msg, this.uid));
-
         for (const k in this.#series) {
-          this.#series[k].updateDataRange(msg.range, msg.zoom);
+          this.#series[k].updateView(msg.range, msg.resolution, true);
         }
+        this.dispatchEvent(new TimescopeEvent('viewchanged', msg, this.uid));
+      },
 
-        return true;
+      'view:changing': async (msg: TimescopeViewChangedMessage) => {
+        for (const k in this.#series) {
+          this.#series[k].updateView(msg.range, msg.resolution, false);
+        }
+        // this.dispatchEvent(new TimescopeEvent('viewchanging', msg, this.uid));
+      },
+
+      'provider:loadData': async (msg: TimescopeProviderLoadDataMessage) => {
+        return await this.#providers[msg.key]?.loadData(msg.range, msg.resolution);
       },
     };
 
@@ -236,12 +240,37 @@ export class TimescopeWorkerRenderer extends TimescopeObservable<
 
   #options: TimescopeOptions = {};
 
+  #resolveDomain(ref: string | TimescopeDomainOptions | undefined): TimescopeDomain {
+    if (typeof ref === 'string') {
+      const named = this.#domainsByName[ref];
+      if (!named) throw new Error(`Unknown domain: ${ref}`);
+      return named;
+    }
+    if (ref && typeof ref === 'object') {
+      return new TimescopeDomain(ref);
+    }
+    return new TimescopeDomain({});
+  }
+
+  #ensureDomainChangeHandler(domain: TimescopeDomain) {
+    if (this.#domainChangeHandlers.has(domain)) return;
+    this.#domainChangeHandlers.add(domain);
+    domain.on('change', () => {
+      for (const key in this.#series) {
+        if (this.#series[key]?.domain !== domain) continue;
+        this.call('provider:changed', `series:${key}:chart`);
+        this.call('provider:changed', `series:${key}:instantaneous`);
+      }
+    });
+  }
+
   updateOptions(options: TimescopeOptions) {
     mergeOptions(this.#options, options);
 
     const optionsForWorker: TimescopeOptionsForWorker = { ...options };
 
     let changed = false;
+    let domainsChanged = false;
     if ('sources' in options) {
       materialize(this.#options.sources, this.#sources, (value) => {
         changed = true;
@@ -249,7 +278,26 @@ export class TimescopeWorkerRenderer extends TimescopeObservable<
       });
     }
 
-    if (changed || 'series' in options || 'tracks' in options) {
+    if ('domains' in options) {
+      const next = this.#options.domains ?? {};
+      const nextKeys = new Set(Object.keys(next));
+      for (const key of nextKeys) {
+        const opts = next[key]!;
+        const existing = this.#domainsByName[key];
+        if (existing) {
+          existing.updateOptions(opts);
+        } else {
+          this.#domainsByName[key] = new TimescopeDomain(opts);
+        }
+      }
+      for (const key of Object.keys(this.#domainsByName)) {
+        if (!nextKeys.has(key)) delete this.#domainsByName[key];
+      }
+      domainsChanged = true;
+    }
+
+    if (changed || 'series' in options || 'tracks' in options || domainsChanged) {
+      const prevSeries = { ...this.#series };
       materialize(this.#options.series, this.#series, (opts) => {
         if (!opts.data.color) {
           opts.data.color = colorPresets[this.#colorIdx++];
@@ -259,13 +307,18 @@ export class TimescopeWorkerRenderer extends TimescopeObservable<
         const ds = createDataSeries({
           sources: this.#sources,
           options: opts,
+          domain: this.#resolveDomain(opts.data.domain),
         });
         return ds;
       });
 
       if ('tracks' in options) changed = true;
 
-      if (changed) {
+      for (const [, series] of Object.entries(this.#series)) {
+        this.#ensureDomainChangeHandler(series.domain);
+      }
+
+      if (changed || domainsChanged || 'series' in options || 'tracks' in options) {
         const mappings = [
           ...Object.entries(this.#options.tracks ?? { default: {} })
             .filter(([, v]) => v.timeAxis !== false)
@@ -283,19 +336,24 @@ export class TimescopeWorkerRenderer extends TimescopeObservable<
           ...Object.entries(this.#series).flatMap(([k, series]) => {
             const opts = {
               series,
-              options: this.#options,
             };
-            const cacheOpts = {
-              zoomLevels: series.zoomLevels,
-              chunkSize: series.chunkSize,
-            };
+            const cacheOpts = {};
             return [
               [`series:${k}:chart`, TimescopeSeriesChartProvider, opts, cacheOpts],
               [
                 `series:${k}:instantaneous`,
                 TimescopeSeriesInstantaneousValueProvider,
                 opts,
-                { ...cacheOpts, instantValue: true, instantZoomLevel: series.options.data.instantaneous?.zoom },
+                {
+                  ...cacheOpts,
+                  instant: true,
+                  instantResolution:
+                    series.options.data.instantaneous?.resolution ??
+                    (series.options.data.instantaneous?.zoom
+                      ? resolutionFor(series.options.data.instantaneous.zoom!)
+                      : undefined),
+                  instantWidth: series.chunkSize,
+                },
               ],
             ];
           }),
@@ -312,6 +370,13 @@ export class TimescopeWorkerRenderer extends TimescopeObservable<
           if (cacheOpts) optionsForWorker.dataCacheOptions[key] = cacheOpts;
         }
         Object.keys(old).forEach((key) => delete this.#providers[key]);
+      }
+    }
+
+    if (domainsChanged) {
+      for (const key of Object.keys(this.#series)) {
+        this.call('provider:changed', `series:${key}:chart`);
+        this.call('provider:changed', `series:${key}:instantaneous`);
       }
     }
 

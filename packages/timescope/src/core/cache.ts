@@ -32,7 +32,7 @@ export class LRUCache<K, V> implements Iterable<[K, V]> {
     return value;
   }
 
-  set(key: K, value: V): this {
+  set(key: K, value: V): V {
     if (this.#store.has(key)) {
       this.#store.delete(key);
     }
@@ -46,7 +46,7 @@ export class LRUCache<K, V> implements Iterable<[K, V]> {
       }
     }
 
-    return this;
+    return value;
   }
 
   has(key: K): boolean {

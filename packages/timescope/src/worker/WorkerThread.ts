@@ -23,7 +23,6 @@ import { TimescopeTimeAxis } from '#src/worker/TimescopeTimeAxis';
 import { TimescopeTrack } from '#src/worker/TimescopeTrack';
 import type { Interaction, TimescopeRenderingContext } from '#src/worker/types';
 import { clipToTrack } from '#src/worker/utils';
-import { TimescopeDataCacheSeries } from './TimescopeDataCacheSeries';
 
 declare global {
   interface FontFaceSet {
@@ -44,8 +43,16 @@ export function createTimescopeWorkerThread(
   const timeAxis = new TimescopeTimeAxis();
   timeAxis.on('change', () => render());
   timeAxis.on('sync', (e) => call('sync', e.value));
-  timeAxis.on('viewchanging', () => viewChanged());
-  //timeAxis.on('viewchanged', () => viewChanged());
+  timeAxis.on('viewchanging', () => viewChanging());
+  timeAxis.on('viewchanged', () => viewChanged());
+
+  timeAxis.on('change', () => {
+    // XXX:
+    for (const track of renderingContext.tracks) {
+      const cache = renderingContext.dataCaches[`tracks:${track.id}:timeAxis`];
+      cache?.invalidate();
+    }
+  });
 
   const basicHandler = {
     onPointerEvent: (info: InteractionInfo) => {
@@ -116,10 +123,36 @@ export function createTimescopeWorkerThread(
     timeAxis,
   } as TimescopeRenderingContext;
 
-  async function viewChanged() {
-    const next = timeAxis.current;
+  let _viewChanged = false;
+  let _viewChanging = false;
 
-    const revision = timeAxis.revision;
+  function viewChanged() {
+    _viewChanged = true;
+  }
+  function viewChanging() {
+    _viewChanging = true;
+  }
+
+  async function handleViewChanged() {
+    if (_viewChanging) {
+      const next = timeAxis.candidate;
+      _viewChanging = false;
+      call('view:changing', {
+        time: next.time,
+        zoom: next.zoom.number(),
+        resolution: next.resolution,
+        range: next.range,
+      });
+    }
+
+    if (!_viewChanged) return;
+
+    if (timeAxis.animating || timeAxis.editing) {
+      return;
+    }
+    _viewChanged = false;
+
+    const next = timeAxis.value;
     await call(
       'view:changed',
       {
@@ -131,33 +164,15 @@ export function createTimescopeWorkerThread(
       { rpc: true },
     );
 
-    if (timeAxis.revision === revision) {
-      await Promise.all(Object.values(renderingContext.dataCaches).map((r) => loadMeta(r).then(() => render())));
-
-      renderingContext.tracks.forEach((track) => track.adjustScaleBySeriesChart(renderingContext));
-    }
-  }
-
-  async function loadMeta(r: TimescopeDataCache) {
-    const { revision } = r;
-    const { resolution, zoom } = timeAxis.value;
-    const meta = await call(
-      'provider:loadMeta',
-      {
-        key: r.name,
-        zoom: zoom.number(),
-        resolution,
-      },
-      { rpc: true },
-    );
-    if (r.revision === revision) r.updateMeta(meta);
+    renderingContext.tracks.forEach((track) => track.adjustScaleBySeriesChart(renderingContext));
   }
 
   function createDataCache(key: string, opts: Omit<TimescopeDataCacheOptions<unknown>, 'loader' | 'name'> = {}) {
-    const options: TimescopeDataCacheOptions<any[]> = {
+    const options: TimescopeDataCacheOptions<object> = {
       ...opts,
       name: key,
-      loader: async (chunk) => await call('provider:loadChunk', { key, chunk }, { rpc: true }),
+      loader: async ({ range, resolution, time, zoom }) =>
+        await call('provider:loadData', { time, zoom, key, range, resolution }, { rpc: true }),
     };
 
     if (renderingContext.dataCaches[key]) {
@@ -167,9 +182,11 @@ export function createTimescopeWorkerThread(
       return r;
     }
 
-    const r = key.startsWith('series:') ? new TimescopeDataCacheSeries(options) : new TimescopeDataCache(options);
+    const r = new TimescopeDataCache(options);
     r.on('change', () => render());
-    r.on('datachanged', async () => viewChanged());
+    r.on('datachanged', () => {
+      renderingContext.tracks.forEach((track) => track.adjustScaleBySeriesChart(renderingContext));
+    });
     return r;
   }
 
@@ -184,7 +201,7 @@ export function createTimescopeWorkerThread(
     Object.keys(old).forEach((key) => delete renderingContext.dataCaches[key]);
   }
 
-  function updateDataCaches(context: TimescopeRenderingContext) {
+  function checkDataCaches(context: TimescopeRenderingContext) {
     for (const cache of Object.values(context.dataCaches)) {
       cache.update(context);
     }
@@ -280,7 +297,7 @@ export function createTimescopeWorkerThread(
         r.updateOptions(options);
       }
 
-      render();
+      viewChanged();
     },
 
     resize: async ({ size, context }: RendererResizeOptions) => {
@@ -294,7 +311,7 @@ export function createTimescopeWorkerThread(
       renderingContext.dpr = dpr;
 
       resizeTracks();
-      render();
+      viewChanged();
     },
 
     pointer: async (info: InteractionInfo) => {
@@ -310,22 +327,28 @@ export function createTimescopeWorkerThread(
       const interactions = [...(renderers ?? []), basicHandler];
       return (capturedInteraction ?? interactions)
         .map((interaction) => interaction.pointerStyle(info, renderingContext))
-        .find((x) => x);
+        .find(Boolean);
     },
 
     sync: (sync: TimescopeSyncMessage) => {
       timeAxis.handleSyncEvent(sync);
+      viewChanged();
     },
 
     reload: () => {
       for (const cache of Object.values(renderingContext.dataCaches)) {
         cache.invalidate();
       }
-      render();
+      viewChanged();
     },
 
     redraw: () => {
       render();
+    },
+
+    'provider:changed'(key) {
+      const cache = renderingContext.dataCaches[key];
+      cache?.invalidate();
     },
   };
 
@@ -349,8 +372,11 @@ export function createTimescopeWorkerThread(
       fpsTime = t;
       frames = 0;
     }
-    ctx?.clearRect(0, 0, 60, 15);
-    ctx?.fillText(`FPS: ${fps}`, 5, 10);
+    if (ctx) {
+      ctx.fillStyle = '#888';
+      ctx?.clearRect(0, 0, 60, 15);
+      ctx?.fillText(`FPS: ${fps}`, 5, 10);
+    }
   }
 
   function forEachRenderer(callback: (renderer: TimescopeRenderer) => void) {
@@ -366,8 +392,6 @@ export function createTimescopeWorkerThread(
 
     renderingContext.ctx = ctx;
     dirty = false;
-
-    updateDataCaches(renderingContext);
 
     fpsTick();
 
@@ -418,6 +442,9 @@ export function createTimescopeWorkerThread(
   const update = () => {
     requestAnimationFrame(update);
 
+    checkDataCaches(renderingContext);
+
+    handleViewChanged();
     if (renderRequired()) renderSync(renderingContext);
     if (renderingContext.options.showFps) showFps();
   };
