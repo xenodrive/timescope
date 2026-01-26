@@ -12,13 +12,13 @@
   },
   "devDependencies": {
     "@braintree/sanitize-url": "^7.1.1",
-    "@types/node": "^25.0.3",
+    "@kikuchan/binary-reader": "0.1.0-alpha.6",
+    "@kikuchan/decimal": "0.1.0-alpha.7",
     "dayjs": "^1.11.19",
     "debug": "^4.4.3",
     "mermaid": "^11.12.2",
     "timescope": "workspace:*",
-    "typescript": "^5.9.3",
     "vitepress": "2.0.0-alpha.15",
-    "vitepress-plugin-mermaid": "^2.0.17"
+    "vitepress-mermaid-renderer": "^1.1.7"
   }
 }

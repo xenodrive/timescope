@@ -18,26 +18,21 @@
     }
   },
   "devDependencies": {
-    "@eslint/compat": "^2.0.0",
-    "@kikuchan/decimal": "0.1.0-alpha.5",
+    "@kikuchan/calendar": "^0.0.1-alpha.2",
+    "@kikuchan/decimal": "^0.1.0-alpha.7",
     "@vitejs/plugin-vue": "^6.0.3",
     "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.6.0",
-    "eslint-plugin-vue": "^10.6.2",
+    "eslint-plugin-vue": "^10.7.0",
     "jiti": "^2.6.1",
-    "prettier-plugin-organize-imports": "^4.3.0",
-    "rolldown-plugin-inline-worker": "0.0.1-alpha.1",
-    "tsdown": "^0.18.4",
-    "typescript": "^5.9.3",
     "unplugin-dts": "1.0.0-beta.6",
-    "unplugin-vue": "^7.1.0",
-    "vite": "^7.3.0",
-    "vite-plugin-externalize-deps": "^0.10.0",
-    "vue": "^3.5.26",
-    "vue-tsc": "^3.2.1"
+    "unplugin-vue": "^7.1.1",
+    "vue": "^3.5.27",
+    "vue-tsc": "^3.2.3"
   },
   "peerDependencies": {
-    "@kikuchan/decimal": "0.1.0-alpha.5",
+    "@kikuchan/calendar": "^0.0.1-alpha.2",
+    "@kikuchan/decimal": "^0.1.0-alpha.7",
     "vue": "^3.5.26"
   },
   "dependencies": {

@@ -2,34 +2,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import RolldownInlineWorkerPlugin from 'rolldown-plugin-inline-worker';
 import { defineConfig } from 'tsdown';
+import { getCommonConfig, writePackageJson } from '../../tsdown.config.common.ts';
 
-const root = import.meta.dirname;
-const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf-8'));
-const outDir = path.join(root, '..', '..', 'dist', path.basename(pkg.name));
-const rootpkgAll = JSON.parse(fs.readFileSync(path.join(root, '..', '..', 'package.json'), 'utf-8'));
-const rootpkg = Object.fromEntries(
-  ['type', 'version', 'author', 'license', 'homepage', 'repository'].map((k) => [k, rootpkgAll[k]]),
-);
-
-function replaceRecursive(obj: object, replacer: (s: string, k: string) => string) {
-  const results = {};
-  for (const key in obj) {
-    if (typeof obj[key] === 'string') {
-      results[key] = replacer(obj[key], key);
-    } else if (typeof obj[key] === 'object') {
-      results[key] = replaceRecursive(obj[key], replacer);
-    } else {
-      results[key] = obj[key];
-    }
-  }
-  return results;
-}
+const { root, outDir, ...config } = getCommonConfig(import.meta.dirname, {
+  plugins: [RolldownInlineWorkerPlugin()],
+});
 
 const configBase = defineConfig({
   entry: path.join(root, 'src/index.ts'),
   minify: true,
   cwd: root,
-
   plugins: [RolldownInlineWorkerPlugin()],
   sourcemap: false,
 });
@@ -39,53 +21,30 @@ export default defineConfig([
     ...configBase,
     format: ['esm'],
     fixedExtension: false,
-    dts: {
-      resolve: true,
-    },
+    dts: true,
     clean: false,
     outputOptions: {
       dir: outDir,
     },
     onSuccess() {
       fs.copyFileSync('./README.md', path.join(outDir, 'README.md'));
-      fs.writeFileSync(
-        path.join(outDir, 'package.json'),
-        JSON.stringify(
-          {
-            name: pkg.name,
-            ...rootpkg,
-            ...pkg,
-            keywords: [...rootpkgAll.keywords, ...(pkg.keywords ?? [])],
+      writePackageJson({
+        config: { root, outDir, ...config },
+        exports: {
+          '.': {
             types: './index.d.ts',
-            main: './index.js',
-            exports: {
-              '.': {
-                types: './index.d.ts',
-                import: './index.js',
-                require: './index.js',
-              },
-              './browser.js': './browser.js',
-            },
-            imports: undefined,
-            dependencies: replaceRecursive(pkg.dependencies, (s, k) => {
-              if (s !== 'workspace:*') return s;
-
-              if (rootpkg?.version) return `^${rootpkg.version}`;
-              return '*';
-            }),
-            devDependencies: undefined,
-            scripts: undefined,
-            private: undefined,
+            import: './index.js',
+            require: './index.js',
           },
-          null,
-          2,
-        ),
-      );
+          './browser.js': './browser.js',
+        },
+      });
     },
   },
   {
     ...configBase,
     entry: path.join(root, 'src/index.browser.ts'),
+    inlineOnly: ['@kikuchan/decimal', '@kikuchan/calendar'],
     format: ['iife'],
     clean: false,
     noExternal: () => true,

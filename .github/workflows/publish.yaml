@@ -34,7 +34,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build packages
-        run: pnpm --parallel --filter \!timescope-docs run build
+        run: pnpm run build:libs
 
       - name: Publish to npm
         run: |
