@@ -1,9 +1,7 @@
 import { Decimal } from '@kikuchan/decimal';
 import { Accessor, effect, onCleanup } from '@luna_ui/luna';
 import {
-  FieldDefLike,
   Timescope,
-  TimescopeNumberLike,
   TimescopeOptions,
   TimescopeOptionsInitial,
   TimescopeOptionsSelection,
@@ -11,17 +9,15 @@ import {
   TimescopeOptionsSources,
   TimescopeOptionsTracks,
   TimescopeRange,
+  TimescopeSeriesInput,
   TimescopeSourceInput,
-  TimescopeTimeLike,
 } from 'timescope';
 
 type MaybeAccessor<T> = (() => T) | T;
 
 type TimescopeProps<
-  Source extends Record<string, TimescopeSourceInput>,
-  SourceName extends Record<string, keyof Source>,
-  TimeDef extends Record<string, FieldDefLike<TimescopeTimeLike<never>>>,
-  ValueDef extends Record<string, FieldDefLike<TimescopeNumberLike | null>>,
+  Sources extends Record<string, TimescopeSourceInput>,
+  Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
 > = {
   width?: MaybeAccessor<string | undefined>;
@@ -36,8 +32,8 @@ type TimescopeProps<
   zoom?: MaybeAccessor<number | undefined>;
   zoomRange?: MaybeAccessor<[number | undefined, number | undefined] | undefined>;
 
-  sources?: MaybeAccessor<TimescopeOptionsSources<Source> | undefined>;
-  series?: MaybeAccessor<TimescopeOptionsSeries<Source, SourceName, TimeDef, ValueDef, Track> | undefined>;
+  sources?: MaybeAccessor<TimescopeOptionsSources<Sources> | undefined>;
+  series?: MaybeAccessor<TimescopeOptionsSeries<Sources, Series, Track> | undefined>;
   tracks?: MaybeAccessor<TimescopeOptionsTracks<Track> | undefined>;
 
   indicator?: MaybeAccessor<boolean | undefined>;
@@ -47,7 +43,7 @@ type TimescopeProps<
 
   showFps?: MaybeAccessor<boolean | undefined>;
 
-  fonts?: MaybeAccessor<TimescopeOptionsInitial<Source, SourceName, TimeDef, ValueDef, Track>['fonts'] | undefined>;
+  fonts?: MaybeAccessor<TimescopeOptionsInitial<Sources, Series, Track>['fonts'] | undefined>;
 
   onTimeAnimating?: (v: Decimal | null) => void;
   onTimeChanging?: (v: Decimal | null) => void;
@@ -73,12 +69,10 @@ function normalizeProps<T extends object>(props: T): NormalizedProps<T> {
 }
 
 function TimescopeComponent<
-  Source extends Record<string, TimescopeSourceInput>,
-  SourceName extends Record<string, keyof Source>,
-  TimeDef extends Record<string, FieldDefLike<TimescopeTimeLike<never>>>,
-  ValueDef extends Record<string, FieldDefLike<TimescopeNumberLike | null>>,
+  Sources extends Record<string, TimescopeSourceInput>,
+  Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
->(props_: TimescopeProps<Source, SourceName, TimeDef, ValueDef, Track>) {
+>(props_: TimescopeProps<Sources, Series, Track>) {
   const props = normalizeProps(props_);
   const timescope = new Timescope({
     time: props.time?.() ?? null,

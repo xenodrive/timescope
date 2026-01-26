@@ -6,15 +6,11 @@
   lang="ts"
   setup
   generic="
-    Source extends Record<string, TimescopeSourceInput>,
-    SourceName extends Record<string, keyof Source>,
-    TimeDef extends Record<string, FieldDefLike<TimescopeTimeLike<never>>>,
-    ValueDef extends Record<string, FieldDefLike<TimescopeNumberLike | null>>,
+    Sources extends Record<string, TimescopeSourceInput>,
+    Series extends Record<string, TimescopeSeriesInput>,
     Track extends string
   ">
 import type {
-  FieldDefLike,
-  TimescopeNumberLike,
   TimescopeOptions,
   TimescopeOptionsInitial,
   TimescopeOptionsSelection,
@@ -22,8 +18,8 @@ import type {
   TimescopeOptionsSources,
   TimescopeOptionsTracks,
   TimescopeRange,
+  TimescopeSeriesInput,
   TimescopeSourceInput,
-  TimescopeTimeLike,
 } from 'timescope';
 import { Timescope } from 'timescope';
 import type { Decimal } from '@kikuchan/decimal';
@@ -65,8 +61,8 @@ const props = withDefaults(
     zoom?: number;
     zoomRange?: [number | undefined, number | undefined];
 
-    sources?: TimescopeOptionsSources<Source>;
-    series?: TimescopeOptionsSeries<Source, SourceName, TimeDef, ValueDef, Track>;
+    sources?: TimescopeOptionsSources<Sources>;
+    series?: TimescopeOptionsSeries<Sources, Series, Track>;
     tracks?: TimescopeOptionsTracks<Track>;
 
     indicator?: boolean;
@@ -76,7 +72,7 @@ const props = withDefaults(
 
     showFps?: boolean;
 
-    fonts?: TimescopeOptionsInitial<any, any, any, any, any>['fonts'];
+    fonts?: TimescopeOptionsInitial<Sources, Series, Track>['fonts'];
   }>(),
   {
     width: '100%',

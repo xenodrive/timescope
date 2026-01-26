@@ -6,6 +6,8 @@
     TimescopeOptionsInitial,
     TimescopeOptionsSelection,
     TimescopeRange,
+    TimescopeSeriesInput,
+    TimescopeSourceInput,
   } from 'timescope';
   import { Timescope } from 'timescope';
 
@@ -33,7 +35,11 @@
 
     showFps?: boolean;
 
-    fonts?: TimescopeOptionsInitial<unknown, unknown, unknown, unknown, unknown>['fonts'];
+    fonts?: TimescopeOptionsInitial<
+      Record<string, TimescopeSourceInput>,
+      Record<string, TimescopeSeriesInput>,
+      string
+    >['fonts'];
   };
 
   type TimescopeEvents = {

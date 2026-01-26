@@ -2,24 +2,20 @@ import type { ForwardedRef } from 'react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
   Timescope,
-  type FieldDefLike,
-  type TimescopeNumberLike,
   type TimescopeOptions,
   type TimescopeOptionsInitial,
   type TimescopeOptionsSelection,
   type TimescopeOptionsSeries,
   type TimescopeOptionsSources,
   type TimescopeOptionsTracks,
+  type TimescopeSeriesInput,
   type TimescopeSourceInput,
-  type TimescopeTimeLike,
 } from 'timescope';
 import type { Decimal } from '@kikuchan/decimal';
 
 type TimescopeProps<
-  Source extends Record<string, TimescopeSourceInput>,
-  SourceName extends Record<string, keyof Source>,
-  TimeDef extends Record<string, FieldDefLike<TimescopeTimeLike<never>>>,
-  ValueDef extends Record<string, FieldDefLike<TimescopeNumberLike | null>>,
+  Sources extends Record<string, TimescopeSourceInput>,
+  Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
 > = {
   width?: string;
@@ -34,8 +30,8 @@ type TimescopeProps<
   zoom?: number;
   zoomRange?: [number | undefined, number | undefined];
 
-  sources?: TimescopeOptionsSources<Source>;
-  series?: TimescopeOptionsSeries<Source, SourceName, TimeDef, ValueDef, Track>;
+  sources?: TimescopeOptionsSources<Sources>;
+  series?: TimescopeOptionsSeries<Sources, Series, Track>;
   tracks?: TimescopeOptionsTracks<Track>;
 
   indicator?: boolean;
@@ -43,7 +39,7 @@ type TimescopeProps<
 
   showFps?: boolean;
 
-  fonts?: TimescopeOptionsInitial<Source, SourceName, TimeDef, ValueDef, Track>['fonts'];
+  fonts?: TimescopeOptionsInitial<Sources, Series, Track>['fonts'];
 
   onTimeChanged?: (value: Decimal | null) => void;
   onTimeChanging?: (value: Decimal | null) => void;
@@ -64,12 +60,10 @@ export type TimescopeAPI = {
 };
 
 const TimescopeComponent = forwardRef(function TimescopeComponent<
-  Source extends Record<string, TimescopeSourceInput>,
-  SourceName extends Record<string, keyof Source>,
-  TimeDef extends Record<string, FieldDefLike<TimescopeTimeLike<never>>>,
-  ValueDef extends Record<string, FieldDefLike<TimescopeNumberLike | null>>,
+  Sources extends Record<string, TimescopeSourceInput>,
+  Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
->(props: TimescopeProps<Source, SourceName, TimeDef, ValueDef, Track>, ref: ForwardedRef<TimescopeAPI>) {
+>(props: TimescopeProps<Sources, Series, Track>, ref: ForwardedRef<TimescopeAPI>) {
   const timescopeRef = useRef<Timescope | null>(null);
   const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
   const initialPropsRef = useRef({

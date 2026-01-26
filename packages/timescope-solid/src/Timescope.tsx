@@ -1,8 +1,6 @@
 import { createEffect, onCleanup, untrack } from 'solid-js';
 import {
-  FieldDefLike,
   Timescope,
-  TimescopeNumberLike,
   TimescopeOptions,
   TimescopeOptionsInitial,
   TimescopeOptionsSelection,
@@ -10,16 +8,14 @@ import {
   TimescopeOptionsSources,
   TimescopeOptionsTracks,
   TimescopeRange,
+  TimescopeSeriesInput,
   TimescopeSourceInput,
-  TimescopeTimeLike,
 } from 'timescope';
 import type { Decimal } from '@kikuchan/decimal';
 
 type TimescopeProps<
-  Source extends Record<string, TimescopeSourceInput>,
-  SourceName extends Record<string, keyof Source>,
-  TimeDef extends Record<string, FieldDefLike<TimescopeTimeLike<never>>>,
-  ValueDef extends Record<string, FieldDefLike<TimescopeNumberLike | null>>,
+  Sources extends Record<string, TimescopeSourceInput>,
+  Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
 > = {
   width?: string;
@@ -34,8 +30,8 @@ type TimescopeProps<
   zoom?: number;
   zoomRange?: [number | undefined, number | undefined];
 
-  sources?: TimescopeOptionsSources<Source>;
-  series?: TimescopeOptionsSeries<Source, SourceName, TimeDef, ValueDef, Track>;
+  sources?: TimescopeOptionsSources<Sources>;
+  series?: TimescopeOptionsSeries<Sources, Series, Track>;
   tracks?: TimescopeOptionsTracks<Track>;
 
   indicator?: boolean;
@@ -45,7 +41,7 @@ type TimescopeProps<
 
   showFps?: boolean;
 
-  fonts?: TimescopeOptionsInitial<Source, SourceName, TimeDef, ValueDef, Track>['fonts'];
+  fonts?: TimescopeOptionsInitial<Sources, Series, Track>['fonts'];
 
   onTimeAnimating?: (v: Decimal | null) => void;
   onTimeChanging?: (v: Decimal | null) => void;
@@ -62,12 +58,10 @@ type TimescopeProps<
 };
 
 function TimescopeComponent<
-  Source extends Record<string, TimescopeSourceInput>,
-  SourceName extends Record<string, keyof Source>,
-  TimeDef extends Record<string, FieldDefLike<TimescopeTimeLike<never>>>,
-  ValueDef extends Record<string, FieldDefLike<TimescopeNumberLike | null>>,
+  Sources extends Record<string, TimescopeSourceInput>,
+  Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
->(props: TimescopeProps<Source, SourceName, TimeDef, ValueDef, Track>) {
+>(props: TimescopeProps<Sources, Series, Track>) {
   const timescope = new Timescope({
     time: untrack(() => props.time ?? null),
     timeRange: untrack(() => props.timeRange),
