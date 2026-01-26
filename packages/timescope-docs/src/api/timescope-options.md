@@ -14,6 +14,7 @@ Constructor-only fields are listed in [Timescope](/api/timescope#options). The f
 | `indicator` | `boolean` | Show cursor indicator. (default: true) |
 | `showFps` | `boolean` | Show FPS overlay. |
 | `sources` | `{ [name: string]: ... }` | Data providers (see [Sources](#sources)). |
+| `domains` | `{ [name: string]: TimescopeDomainOptions }` | Shared value domains (see [Domains](#domains)). |
 | `series` | `{ [name: string]: ... }` | Series configuration (see [Series](#series)). |
 | `tracks` | `{ [name: string]: ... }` | Track layout (see [Track configuration](#track-configuration)). |
 | `selection` | `boolean \| SelectionOptions` | Selection overlay (see [Selection](#selection)). |
@@ -28,10 +29,10 @@ Constructor-only fields are listed in [Timescope](/api/timescope#options). The f
 
 Options:
 - `chunkSize` — Horizontal span in pixels (default: 256).
-- `zoomLevels` — Data zoom levels. When specified, data is requested only at these discrete zoom levels.
+- `resolutions` — Data resolutions. When specified, data is requested only at these discrete resolutions.
 
 >[!WARNING]
->When `zoomLevels` is configured, consider setting `zoomRange` to prevent excessive requests.
+>When `resolutions` is configured, consider setting `zoomRange` to prevent excessive requests.
 
 ### URL string
 
@@ -70,10 +71,8 @@ series: {
       time?: string | {...},
       value?: string | {...},
       name?: string,
-      unit?: string,
-      digits?: number,
       color?: string,
-      range?: number | [number, number] | { auto?: boolean; default?: [number, number] },
+      domain?: string | TimescopeDomainOptions,
       instantaneous?: { using?: string | string[]; zoom?: number },
     },
     chart?: 'lines' | 'linespoints:filled' | ... | {
@@ -94,13 +93,11 @@ series: {
 | `data.time` | `string \| { start: string; end?: string }` | Map rows to time fields. Defaults to `'time'`. |
 | `data.value` | `string \| { value: string; min?: string; max?: string }` | Map rows to numeric fields. Defaults to `'value'`. |
 | `data.name` | `string` | Series display name. |
-| `data.unit` | `string` | Unit label for tooltips. |
-| `data.digits` | `number` | Decimal places for tooltip values. |
 | `data.color` | `string` | Base color for marks/links. |
-| `data.range` | `number \| [number, number] \| { auto?: boolean; default?: [number, number] }` | Value range; number sets symmetric ±range. |
+| `data.domain` | `string \| TimescopeDomainOptions` | Value domain reference or inline domain config. |
 | `data.instantaneous` | `{ using?: string \| string[]; zoom?: number }` | Cursor sampling config. |
 | `chart` | `'lines' \| ... \| { marks?: any[]; links?: any[] }` | Preset string or custom chart object. |
-| `chart.marks` | `Mark[]` | Visual marks per sample (`circle`, `box`, `text`, etc.). |
+| `chart.marks` | `Mark[]` | Visual marks per sample (`circle`, `bar`, `text`, etc.). |
 | `chart.links` | `Link[]` | Connections between samples (`line`, `area`, etc.). |
 | `tooltip` | `boolean \| { label?: string; format?: () => string }` | Enable/disable tooltip and override label or formatter. |
 | `yAxis` | `'left' \| 'right' \| { side?: 'left' \| 'right'; label?: string }` | <s>Position or label the per-series Y-axis.</s> <span style="color: #f00">Not implemented yet.</span> |
@@ -157,7 +154,7 @@ series: {
 | `'minus'` | Single value | Horizontal line mark | Stroke + Angle + Offset |
 | `'line'` | Two values `[start, end]` | Line segment between points | Stroke + Size + Offset |
 | `'section'` | Two values `[start, end]` | Thick section between points | Stroke + Size + Offset |
-| `'box'` | Two values `[min, max]` | Box spanning value range | Stroke + Fill + Size + Box + Offset |
+| `'bar'` | Two values `[min, max]` | Bar spanning value range | Stroke + Fill + Size + Bar + Offset |
 | `'text'` | Single value | Text label | Text + Size + Angle + Offset |
 | `'icon'` | Single value | Icon label | Icon + Size + Angle + Offset |
 
@@ -197,7 +194,7 @@ series: {
 |-----|------|-------------|
 | `offset?` | `[number, number]` | Pixel offset `[x, y]`. |
 
-**Box** (for `'box'`)
+**Bar** (for `'bar'`)
 
 | Key | Type | Description |
 |-----|------|-------------|
@@ -274,6 +271,37 @@ selection: {
 ```
 
 The `setSelection([start, end])` and `clearSelection()` methods control selection at runtime. Selection changes emit `selectionchanging` and `selectionchanged` events.
+
+## Domains
+
+Domains control value scaling, ranges, and formatting. Use `options.domains` to share a domain across multiple series.
+
+```TypeScript
+domains: {
+  temperature: {
+    scale: 'linear',
+    unit: '°C',
+    digits: 1,
+    range: [0, 40],
+  },
+},
+series: {
+  outdoor: { data: { source: 'telemetry', domain: 'temperature' } },
+  indoor: { data: { source: 'telemetry', domain: 'temperature' } },
+  autoSeries: { data: { source: 'telemetry' } },
+  inlineSeries: { data: { source: 'telemetry', domain: { scale: 'log' } } },
+},
+```
+
+`TimescopeDomainOptions`:
+- `scale` — `'linear'` or `'log'`.
+- `range` — `NumberLike`, `[min, max]`, or `{ expand?, shrink?, default? }`.
+  - `NumberLike` becomes `[0, value]`.
+  - `default` mirrors `range` input types.
+- `expand` — Expand the computed range to include observed values (default: false).
+- `shrink` — Allow the computed range to contract (default: false).
+- `unit` — Unit label for tooltips.
+- `digits` — Decimal places for tooltip values.
 
 ## See Also
 

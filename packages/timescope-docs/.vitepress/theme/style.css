@@ -17,3 +17,7 @@
     user-select: none;
   }
 }
+
+.mermaid {
+  user-select: none;
+}

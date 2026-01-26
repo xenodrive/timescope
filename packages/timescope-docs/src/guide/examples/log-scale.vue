@@ -36,8 +36,7 @@ const timescope = new Timescope({
     growth: {
       data: {
         source: 'samples',
-        scale: 'log',
-        range: [undefined, undefined],
+        domain: { scale: 'log', range: [undefined, undefined] },
         color: '#f59e0b'
       },
       chart: 'curvespoints',
@@ -62,7 +61,7 @@ button?.addEventListener('click', () => {
     series: {
       growth: {
         data: {
-          scale: logscale ? 'log' : 'linear'
+          domain: { scale: logscale ? 'log' : 'linear', range: [undefined, undefined] }
         }
       }
     }

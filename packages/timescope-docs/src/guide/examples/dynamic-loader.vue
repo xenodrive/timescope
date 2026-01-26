@@ -57,7 +57,7 @@ new Timescope({
           min: 'value.min',
           max: 'value.max',
         },
-        range: [-1, 1],
+        domain: { range: [-1, 1] },
       },
       chart: {
         links: [

@@ -73,8 +73,8 @@ Loader configuration options are defined in the source entry:
 ```TypeScript
 sources: {
   metrics: {
-    chunkSize: 256,           // Pixels per fetch (default: 256)
-    zoomLevels: [-6, -2, 2],  // Optional: snap requests to specific zoom bands
+    chunkSize: 256,          // Pixels per fetch (default: 256)
+    resolutions: [64, 16, 4], // Optional: snap requests to specific resolutions
     loader: async (chunk, api) => {
       api.expiresIn(60_000);  // Cache for 60 seconds on the client
       /* ... */
@@ -83,7 +83,7 @@ sources: {
 },
 ```
 
-`chunkSize` and `zoomLevels` are configured in the source definition, while cache expiry is set in the loader function via `api.expiresIn()`.
+`chunkSize` and `resolutions` are configured in the source definition, while cache expiry is set in the loader function via `api.expiresIn()`.
 
 ## Next steps
 

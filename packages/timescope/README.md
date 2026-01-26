@@ -60,7 +60,7 @@ new Timescope({
       chart: {
         marks: [
           { draw: 'triangle', using: 'value', style: { size: 6 } },
-          { draw: 'box', using: ['min', 'max'] },
+          { draw: 'bar', using: ['min', 'max'] },
         ],
         links: [
           { draw: 'line', using: 'value' },

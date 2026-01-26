@@ -37,8 +37,8 @@ const chart = ref('linespoints');
   <option>stepspoints-end:filled</option>
   <option>impulses</option>
   <option>impulsespoints</option>
-  <option>boxes</option>
-  <option>boxes:filled</option>
+  <option>bars</option>
+  <option>bars:filled</option>
 </select>
 
 <Example v-model="chart" />
@@ -86,5 +86,5 @@ new Timescope({
 | `stepspoints-end:filled` | `circle` | `step-area-end`, `step-end` |
 | `impulses` | `line` (using `value`, `zero`) | – |
 | `impulsespoints` | `line` (using `value`, `zero`), `circle` | – |
-| `boxes` | `box` (using `value`, `zero`; fill `transparent`) | – |
-| `boxes:filled` | `box` (using `value`, `zero`) | – |
+| `bars` | `bar` (using `value`, `zero`; fill `transparent`) | – |
+| `bars:filled` | `bar` (using `value`, `zero`) | – |

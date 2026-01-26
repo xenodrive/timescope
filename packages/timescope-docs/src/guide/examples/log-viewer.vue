@@ -74,7 +74,7 @@ new Timescope({
   },
   series: {
     errors: {
-      data: { source: 'errors', range: [0, 5], color: '#ef4444' },
+      data: { source: 'errors', domain: { range: [0, 5] }, color: '#ef4444' },
       chart: {
         marks: [
           { draw: 'minus', using: 'value', style: { size: 20, angle: 90 } },
@@ -84,7 +84,7 @@ new Timescope({
       track: 'logs',
     },
     warnings: {
-      data: { source: 'warnings', range: [0, 5], color: '#f59e0b' },
+      data: { source: 'warnings', domain: { range: [0, 5] }, color: '#f59e0b' },
       chart: {
         marks: [
           { draw: 'minus', using: 'value', style: { size: 20, angle: 90 } },
@@ -94,7 +94,7 @@ new Timescope({
       track: 'logs',
     },
     info: {
-      data: { source: 'info', range: [0, 5], color: '#3b82f6' },
+      data: { source: 'info', domain: { range: [0, 5] }, color: '#3b82f6' },
       chart: {
         marks: [
           { draw: 'minus', using: 'value', style: { size: 20, angle: 90 } },
@@ -104,7 +104,7 @@ new Timescope({
       track: 'logs',
     },
     debug: {
-      data: { source: 'debug', range: [0, 5], color: '#6b7280' },
+      data: { source: 'debug', domain: { range: [0, 5] }, color: '#6b7280' },
       chart: {
         marks: [
           { draw: 'minus', using: 'value', style: { size: 20, angle: 90 } },

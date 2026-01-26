@@ -42,7 +42,7 @@ new Timescope({
     temperature: {
       data: {
         source: 'samples',
-        unit: '°C',
+        domain: { unit: '°C' },
         value: {
           value: 'value.value',
           min: 'value.min',

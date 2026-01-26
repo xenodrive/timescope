@@ -16,12 +16,46 @@ import { onBeforeUnmount, onMounted } from 'vue';
 
 // #region code
 import { Decimal, Timescope } from 'timescope';
+import { IntervalTree } from './tree.ts';
+import { loadWaveFile } from './format.ts';
 
 onMounted(() => { // ignore:
 
-let waveform = new Uint8Array();
-const sampleRate = 22050;
-const channels = 1;
+const player = document.getElementById('example-audio-player') as HTMLAudioElement;
+
+let tree: IntervalTree<{ time: Decimal, data: number[] }> | null = null;
+
+async function loadData() {
+  const data = await fetch(player.src).then((r) => r.bytes());
+
+  const { samples } = loadWaveFile(data) || {};
+  if (!samples) return;
+
+  tree = new IntervalTree();
+  tree.bulkInsert(samples, (item) => [item.time, item.time, '[]']);
+
+  timescope.reload();
+}
+
+async function query(range: [Decimal | undefined, Decimal | undefined], resolution: Decimal, channel: number) {
+  if (!range[0] || !range[1] || !tree) return [];
+
+  const result: { time: Decimal; value: number; min: number; max: number }[] = [];
+
+  for (let t = range[0]; t.lt(range[1]); t = t.add(resolution)) {
+    const values = tree.query(t, t.add(resolution)).map((item) => item.data[channel]);
+
+    if (values.length) {
+      const value = values.reduce((a, b) => a + b, 0) / values.length;
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+
+      result.push({ time: t, value, min, max });
+    }
+  }
+
+  return result;
+}
 
 const timescope = new Timescope({
   target: '#example-audio-waveform',
@@ -30,61 +64,23 @@ const timescope = new Timescope({
   timeRange: [0, 0],
   zoom: 8,
   sources: {
-    waveform: {
+    waveformL: {
       loader: async ({ range, resolution }) => {
-        const hdrSize = 0x2c;
-        const sidx = range[0].mul(sampleRate).floor().number() + hdrSize;
-        const eidx = range[1].mul(sampleRate).ceil().number() + hdrSize;
-        const step = resolution.mul(sampleRate).ceil().number();
-
-        const result: any[] = [];
-        for (let idx = sidx; idx < eidx; idx += step) {
-          let minL = Infinity;
-          let maxL = -Infinity;
-          let minR = Infinity;
-          let maxR = -Infinity;
-          let avgL = 0;
-          let avgR = 0;
-
-          if (idx > waveform.length / channels) break;
-          if (idx < hdrSize) continue;
-
-          for (let i = 0; i < Math.max(step, 1); i++) {
-            const vL = (waveform[(idx + i) * channels + (0 % channels)] - 128) / 128;
-            const vR = (waveform[(idx + i) * channels + (1 % channels)] - 128) / 128;
-            if (isNaN(vL) || isNaN(vR)) continue;
-
-            if (vL < minL) minL = vL;
-            if (vL > maxL) maxL = vL;
-            if (vR < minR) minR = vR;
-            if (vR > maxR) maxR = vR;
-          }
-          const t = Decimal(idx - hdrSize).div(sampleRate);
-
-          avgL = (minL + maxL) / 2;
-          avgR = (minR + maxR) / 2;
-
-          result.push({
-            time: t,
-            minL,
-            avgL,
-            maxL,
-            minR,
-            avgR,
-            maxR,
-          });
-        }
-
-        return result;
+        return query(range, resolution, 0);
+      },
+    },
+    waveformR: {
+      loader: async ({ range, resolution }) => {
+        return query(range, resolution, 1);
       },
     },
   },
   series: {
     waveformL: {
       data: {
-        source: 'waveform',
-        value: { min: 'minL', value: 'avgL', max: 'maxL' },
-        range: [-1, 1],
+        source: 'waveformL',
+        value: ['min', 'max', 'value'],
+        domain: { range: [-1, 1] },
       },
       chart: {
         links: (chunk) => chunk.resolution.lt(0.00001) ? [] : [
@@ -101,9 +97,9 @@ const timescope = new Timescope({
     },
     waveformR: {
       data: {
-        source: 'waveform',
-        value: { min: 'minR', value: 'avgR', max: 'maxR' },
-        range: [-1, 1],
+        source: 'waveformR',
+        value: ['min', 'max', 'value'],
+        domain: { range: [-1, 1] },
       },
       chart: {
         links: (chunk) => chunk.resolution.lt(0.00001) ? [] : [
@@ -134,8 +130,6 @@ const timescope = new Timescope({
     },
   },
 });
-
-const player = document.getElementById('example-audio-player') as HTMLAudioElement;
 
 let playing = false;
 
@@ -172,12 +166,7 @@ player.addEventListener('durationchange', () => {
   timescope.setTimeRange([0, player.duration]);
 });
 
-async function loadWaveform() {
-  waveform = await fetch(player.src).then((r) => r.bytes());
-  timescope.reload();
-}
-
-loadWaveform();
+loadData();
 // #endregion code
 
 onBeforeUnmount(() => timescope?.dispose());

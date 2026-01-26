@@ -59,7 +59,7 @@ new Timescope({
       data: { source: 'cpu', name: 'CPU', color: '#ef4444' },
       chart: {
         links: [
-          { draw: 'area', using: ['value', 'zero'], style: { fillOpacity: 0.2 } },
+          { draw: 'area', using: ['value', '_zero'], style: { fillOpacity: 0.2 } },
           { draw: 'line', using: 'value', style: { lineWidth: 2 } },
         ],
         marks: [
@@ -72,7 +72,7 @@ new Timescope({
       data: { source: 'memory', name: 'Memory', color: '#3b82f6' },
       chart: {
         links: [
-          { draw: 'area', using: ['value', 'zero'], style: { fillOpacity: 0.2 } },
+          { draw: 'area', using: ['value', '_zero'], style: { fillOpacity: 0.2 } },
           { draw: 'line', using: 'value', style: { lineWidth: 2 } },
         ],
         marks: [
@@ -85,7 +85,7 @@ new Timescope({
       data: { source: 'network', name: 'Network', color: '#10b981' },
       chart: {
         links: [
-          { draw: 'area', using: ['value', 'zero'], style: { fillOpacity: 0.2 } },
+          { draw: 'area', using: ['value', '_zero'], style: { fillOpacity: 0.2 } },
           { draw: 'line', using: 'value', style: { lineWidth: 2 } },
         ],
         marks: [
@@ -98,7 +98,7 @@ new Timescope({
       data: { source: 'disk', name: 'Disk', color: '#f59e0b' },
       chart: {
         links: [
-          { draw: 'area', using: ['value', 'zero'], style: { fillOpacity: 0.2 } },
+          { draw: 'area', using: ['value', '_zero'], style: { fillOpacity: 0.2 } },
           { draw: 'line', using: 'value', style: { lineWidth: 2 } },
         ],
         marks: [

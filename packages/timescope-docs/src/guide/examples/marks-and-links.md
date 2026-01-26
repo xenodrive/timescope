@@ -30,7 +30,7 @@ const markStyles = {
   star: { ...MARK_POINT_STYLE },
   diamond: { ...MARK_POINT_STYLE },
   line: { ...MARK_POINT_STYLE },
-  box: { ...MARK_POINT_STYLE },
+  bar: { ...MARK_POINT_STYLE },
   section: { ...MARK_POINT_STYLE },
   icon: { ...MARK_ICON_STYLE },
   text: { ...MARK_TEXT_STYLE },
@@ -77,7 +77,7 @@ const marksSelection = ref([
     name: 'Range',
     children: [
       { draw: 'line' },
-      { draw: 'box' },
+      { draw: 'bar' },
       { draw: 'section' },
     ],
   }

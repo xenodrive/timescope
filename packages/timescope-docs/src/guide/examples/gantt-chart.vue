@@ -56,12 +56,12 @@ new Timescope({
         parser: (data) => (data.map((d) => ({ ...d, lane: Math.floor(Math.random() * 5) + 1 }))),
         time: { start: 'start', end: 'end' },
         value: { lane: 'lane' },
-        range: [0, 6],
+        domain: { range: [0, 6] },
       },
       chart: {
         marks: [
           {
-            draw: 'box',
+            draw: 'bar',
             using: ['lane@start', 'lane@end'],
             style: {
               size: 20,

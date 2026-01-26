@@ -1,11 +1,11 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { withMermaid } from 'vitepress-plugin-mermaid';
+import { defineConfig } from 'vitepress';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = resolve(__dirname, '..');
 
-export default withMermaid({
+export default defineConfig({
   head: [
     ['link', { rel: 'icon', href: '/timescope/logo.svg' }],
     ["meta", { property: "og:image", content: "https://xenodrive.github.io/timescope/ogp.png" }],
@@ -19,17 +19,11 @@ export default withMermaid({
   cleanUrls: true,
   lastUpdated: false,
   markdown: {
-    lineNumbers: true,
+    //lineNumbers: true,
     theme: {
       light: 'github-light',
       dark: 'github-dark',
     },
-  },
-  mermaid: {
-    // Mermaid configuration for light/dark theme support
-  },
-  mermaidPlugin: {
-    class: 'mermaid',
   },
   themeConfig: {
     logo: '/logo.svg',

@@ -74,10 +74,12 @@ new Timescope({
       data: {
         source: 'price',
         value: ['open', 'close', 'high', 'low', 'ma'],
-        range: {
-          shrink: true,
-          expand: true,
-          default: [undefined, undefined],
+        domain: {
+          range: {
+            shrink: true,
+            expand: true,
+            default: [undefined, undefined],
+          },
         },
       },
       chart: {
@@ -91,7 +93,7 @@ new Timescope({
             },
           },
           {
-            draw: 'box',
+            draw: 'bar',
             using: ['open', 'close'],
             style: ({ data }) => (data.open < data.close ? {
               lineColor: '#10b981',
@@ -115,19 +117,23 @@ new Timescope({
       tooltip: false,
       track: 'price',
     },
+    /*
     volume: {
       data: { source: 'volume', color: '#8b5cf6' },
-      chart: 'boxes:filled',
+      chart: 'bars:filled',
       tooltip: false,
       track: 'volume',
     },
+    */
   },
   tracks: {
     price: {
-      timeAxis: false,
+      timeAxis: true,
+      height: 300,
     },
     volume: {
       timeAxis: true,
+      height: 100,
     },
   },
 });

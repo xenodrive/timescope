@@ -62,22 +62,22 @@ new Timescope({
   },
   series: {
     temperature: {
-      data: { source: 'temperature', name: 'Temperature', unit: '℃', color: '#fb923c' },
+      data: { source: 'temperature', name: 'Temperature', domain: { unit: '℃' }, color: '#fb923c' },
       chart: 'linespoints:filled',
       track: 'conditions',
     },
     wind: {
-      data: { source: 'windSpeed', name: 'Wind', unit: 'm/s', color: '#0ea5e9' },
+      data: { source: 'windSpeed', name: 'Wind', domain: { unit: 'm/s' }, color: '#0ea5e9' },
       chart: 'lines',
       track: 'conditions',
     },
     rainfall: {
-      data: { source: 'rainfall', name: 'Rain', unit: 'mm', color: '#22c55e' },
-      chart: 'boxes:filled',
+      data: { source: 'rainfall', name: 'Rain', domain: { unit: 'mm' }, color: '#22c55e' },
+      chart: 'bars:filled',
       track: 'precip',
     },
     stormRisk: {
-      data: { source: 'stormRisk', name: 'Storm chance', digits: 0, unit: '%', color: '#a855f7' },
+      data: { source: 'stormRisk', name: 'Storm chance', domain: { digits: 0, unit: '%' }, color: '#a855f7' },
       chart: 'linespoints',
       track: 'precip',
     },
