@@ -16,7 +16,7 @@ export class TimescopeEventEmitter<E extends TimescopeEvent<string, unknown> | s
     if (!handlers) return;
 
     for (const handler of handlers) {
-      handler(event as unknown as ExtractEventValue<E, string>);
+      queueMicrotask(() => handler(event as unknown as ExtractEventValue<E, string>));
     }
   }
 
@@ -61,7 +61,7 @@ export class TimescopeEvent<T extends string, V = any> {
 }
 
 export class TimescopeObservable<
-  E extends TimescopeEvent<string, unknown> | string = TimescopeEvent<string, unknown> | string,
+  E extends TimescopeEvent<string, unknown> | string = never,
 > extends TimescopeEventEmitter<E | 'change'> {
   #revision = 0;
 

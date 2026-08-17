@@ -7,8 +7,8 @@ function App() {
   const [zoom, setZoom] = createSignal<number>(-22);
   const [timeAnimating, setTimeAnimating] = createSignal<Decimal | null>(null);
   const [timeChanging, setTimeChanging] = createSignal<Decimal | null>(null);
-  const [selectedRange, setSelectedRange] = createSignal<TimescopeRange<Decimal> | null>(null);
-  const [selectedRangeChanging, setSelectedRangeChanging] = createSignal<TimescopeRange<Decimal> | null>(null);
+  const [selectionRange, setSelectionRange] = createSignal<TimescopeRange<Decimal> | null>(null);
+  const [selectionRangeChanging, setSelectionRangeChanging] = createSignal<TimescopeRange<Decimal> | null>(null);
 
   const [v, setV] = createSignal(false);
 
@@ -20,12 +20,12 @@ function App() {
           <Timescope
             time={time}
             zoom={zoom}
-            selectedRange={selectedRange}
+            selectionRange={selectionRange}
             onTimeAnimating={setTimeAnimating}
             onTimeChanging={setTimeChanging}
             onTimeChanged={setTime}
-            onSelectedRangeChanged={setSelectedRange}
-            onSelectedRangeChanging={setSelectedRangeChanging}
+            onSelectionRangeChanged={setSelectionRange}
+            onSelectionRangeChanging={setSelectionRangeChanging}
           />
         )}
       </Show>
@@ -34,8 +34,8 @@ function App() {
           time: ${time()}
           timeChanging: ${timeChanging()}
           timeAnimating: ${timeAnimating()}
-          selectedRangeChanged: ${selectedRange()}
-          selectedRangeChanging: ${selectedRangeChanging()}
+          selectionRange: ${selectionRange()}
+          selectionRangeChanging: ${selectionRangeChanging()}
         `}
       </pre>
     </div>

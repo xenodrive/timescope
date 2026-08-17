@@ -16,7 +16,7 @@ export type TimescopeChunk<T = never> = {
 
   /** Time range covered by this chunk. */
   range: TimescopeRange<Decimal | undefined>;
-  /** Resolution in milliseconds per sample. */
+  /** Selected source interval in the same time units as `range`. */
   resolution: Decimal;
   /** Zoom level. */
   zoom: number;
@@ -29,10 +29,7 @@ export type TimescopeChunkLoaderContext = { expiresAt: (t: number) => void; expi
 /**
  * Loader function that receives a chunk descriptor and returns its payload.
  */
-export type TimescopeChunkLoader<T> = (
-  chunk: TimescopeChunk,
-  api: TimescopeChunkLoaderContext,
-) => Promise<T | undefined>;
+export type TimescopeChunkLoader<T> = (chunk: TimescopeChunk, api: TimescopeChunkLoaderContext) => Promise<T>;
 
 export function createChunkIterator(range: TimescopeRange<Decimal | undefined>, resolution: Decimal) {
   return function* () {
@@ -54,44 +51,24 @@ export function createChunk<T = never>(chunk: TimescopeChunkInit<T>): TimescopeC
 
 export function createChunkList(
   range: TimescopeRange<Decimal | undefined>,
-  resolution?: Decimal,
+  resolution: Decimal,
   chunkSize: number = config.defaultChunkSize,
   chunkOffset?: Decimal,
 ): TimescopeChunk[] {
-  const chunkDuration = resolution?.mul(chunkSize);
-  if (!range[0] || !range[1] || !resolution || !chunkDuration || chunkDuration.le(0)) {
-    const seq = 0n;
-    const id = `static`;
-    return [
-      createChunk({
-        id,
-        seq,
-        expires: Infinity,
-        range: [undefined, undefined],
-        resolution: Decimal(0),
-        zoom: 0,
-      }),
-    ];
-  }
+  if (!range[0] || !range[1]) throw new RangeError('Chunk range must be finite');
+  if (resolution.le(0)) throw new RangeError('Chunk resolution must be positive');
+  if (!Number.isSafeInteger(chunkSize) || chunkSize <= 0) throw new RangeError('Chunk size must be a positive integer');
+  const chunkDuration = resolution.mul(chunkSize);
 
   const zoom = zoomFor(resolution);
   const results: TimescopeChunk[] = [];
+  const offset = chunkOffset ?? Decimal(0);
   const limit = range[1]!.add(chunkDuration);
-  let seq = range[0]!
-    .sub(chunkOffset ?? 0)
-    .div(chunkDuration)
-    .floor()
-    .add(chunkOffset ?? 0)
-    .integer();
+  let seq = range[0]!.sub(offset).div(chunkDuration).floor().integer();
 
-  const end = limit
-    .sub(chunkOffset ?? 0)
-    .div(chunkDuration)
-    .floor()
-    .add(chunkOffset ?? 0)
-    .integer();
+  const end = limit.sub(offset).div(chunkDuration).floor().integer();
 
-  let chunkT = chunkDuration.mul(seq);
+  let chunkT = offset.add(chunkDuration.mul(seq));
   for (; seq <= end; seq++) {
     const nextT = chunkT.add(chunkDuration);
     const chunkRange = [chunkT, nextT] as TimescopeRange<Decimal | undefined>;

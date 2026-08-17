@@ -6,7 +6,7 @@ function App() {
   const [time, setTime] = useState<Decimal | null>(null);
   const [timeChanging, setTimeChanging] = useState<Decimal | null>(null);
   const [timeAnimating, setTimeAnimating] = useState<Decimal | null>(null);
-  const [selectedRangeChanging, setSelectedRangeChanging] = useState<TimescopeRange<Decimal> | null>(null);
+  const [selectionRangeChanging, setSelectionRangeChanging] = useState<TimescopeRange<Decimal> | null>(null);
 
   return (
     <>
@@ -15,12 +15,12 @@ function App() {
         onTimeChanged={setTime}
         onTimeChanging={setTimeChanging}
         onTimeAnimating={setTimeAnimating}
-        onSelectedRangeChanging={setSelectedRangeChanging}
+        onSelectionRangeChanging={setSelectionRangeChanging}
       />
       <pre>time: {time?.toString()}</pre>
       <pre>timeChanging: {timeChanging?.toString()}</pre>
       <pre>timeAnimating: {timeAnimating?.toString()}</pre>
-      <pre>selectedRangeChanging: {selectedRangeChanging?.toString()}</pre>
+      <pre>selectionRangeChanging: {selectionRangeChanging?.toString()}</pre>
     </>
   );
 }

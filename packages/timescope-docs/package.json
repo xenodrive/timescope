@@ -11,14 +11,12 @@
     "preview": "vitepress preview ."
   },
   "devDependencies": {
-    "@braintree/sanitize-url": "^7.1.1",
-    "@kikuchan/binary-reader": "0.1.0-alpha.6",
-    "@kikuchan/decimal": "0.1.0-alpha.7",
-    "dayjs": "^1.11.19",
+    "@braintree/sanitize-url": "^7.1.2",
+    "@kikuchan/binary-reader": "0.1.0-alpha.8",
+    "@kikuchan/decimal": "0.1.0-alpha.10",
+    "dayjs": "^1.11.23",
     "debug": "^4.4.3",
-    "mermaid": "^11.12.2",
     "timescope": "workspace:*",
-    "vitepress": "2.0.0-alpha.15",
-    "vitepress-mermaid-renderer": "^1.1.7"
+    "vitepress": "2.0.0-alpha.19"
   }
 }

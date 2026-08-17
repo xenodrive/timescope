@@ -5,7 +5,7 @@ This section documents the Timescope constructor, configuration options, methods
 ## Contents
 
 - [Timescope](/api/timescope) — Constructor, methods, and events.
-- [Timescope Options](/api/timescope-options) — Constructor options and selectors.
+- [Timescope Options](/api/timescope-options) — Runtime configuration and selectors.
 - [Decimal](/api/decimal) — Deterministic arithmetic helper re-exported from the library.
 
 ## Quick Reference

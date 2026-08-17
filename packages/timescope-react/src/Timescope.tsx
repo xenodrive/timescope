@@ -47,8 +47,8 @@ type TimescopeProps<
   onZoomChanged?: (value: number) => void;
   onZoomChanging?: (value: number) => void;
   onZoomAnimating?: (value: number) => void;
-  onSelectedRangeChanging?: (value: [Decimal, Decimal] | null) => void;
-  onSelectedRangeChanged?: (value: [Decimal, Decimal] | null) => void;
+  onSelectionRangeChanging?: (value: [Decimal, Decimal] | null) => void;
+  onSelectionRangeChanged?: (value: [Decimal, Decimal] | null) => void;
   onAnimating?: (value: boolean) => void;
   onEditing?: (value: boolean) => void;
 };
@@ -81,8 +81,8 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
     onZoomChanged: props.onZoomChanged,
     onZoomChanging: props.onZoomChanging,
     onZoomAnimating: props.onZoomAnimating,
-    onSelectedRangeChanging: props.onSelectedRangeChanging,
-    onSelectedRangeChanged: props.onSelectedRangeChanged,
+    onSelectionRangeChanging: props.onSelectionRangeChanging,
+    onSelectionRangeChanged: props.onSelectionRangeChanged,
     onAnimating: props.onAnimating,
     onEditing: props.onEditing,
   });
@@ -95,8 +95,8 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
       onZoomChanged: props.onZoomChanged,
       onZoomChanging: props.onZoomChanging,
       onZoomAnimating: props.onZoomAnimating,
-      onSelectedRangeChanging: props.onSelectedRangeChanging,
-      onSelectedRangeChanged: props.onSelectedRangeChanged,
+      onSelectionRangeChanging: props.onSelectionRangeChanging,
+      onSelectionRangeChanged: props.onSelectionRangeChanged,
       onAnimating: props.onAnimating,
       onEditing: props.onEditing,
     };
@@ -107,8 +107,8 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
     props.onZoomChanged,
     props.onZoomChanging,
     props.onZoomAnimating,
-    props.onSelectedRangeChanging,
-    props.onSelectedRangeChanged,
+    props.onSelectionRangeChanging,
+    props.onSelectionRangeChanged,
     props.onAnimating,
     props.onEditing,
   ]);
@@ -154,8 +154,8 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
       callbacksRef.current.onZoomAnimating?.(e.value);
     });
 
-    instance.on('selectedrangechanging', (e) => callbacksRef.current.onSelectedRangeChanging?.(e.value));
-    instance.on('selectedrangechanged', (e) => callbacksRef.current.onSelectedRangeChanged?.(e.value));
+    instance.on('selectionrangechanging', (e) => callbacksRef.current.onSelectionRangeChanging?.(e.value));
+    instance.on('selectionrangechanged', (e) => callbacksRef.current.onSelectionRangeChanged?.(e.value));
 
     let animating = instance.animating;
     let editing = instance.editing;

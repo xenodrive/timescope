@@ -29,7 +29,7 @@ const LOOP_LIMIT = 100;
 
 /** @internal */
 export function disperse(labels_: Label[], minY: number, maxY: number) {
-  let energy = 0;
+  let energy: number;
   let loop = 0;
   const work = new Vector2f(0, 0);
   do {

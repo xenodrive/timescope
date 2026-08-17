@@ -1,9 +1,38 @@
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { UserConfig, PluginOption } from 'tsdown';
 
 export function pkgPath(pkgName: string) {
   return pkgName.replace('/', '--');
+}
+
+export function emitDeclarations(entry: string, rootDir: string, outDir: string, cwd: string) {
+  return new Promise<void>((resolve, reject) => {
+    const process = spawn(
+      'tsc',
+      [
+        '--ignoreConfig',
+        entry,
+        '--declaration',
+        '--emitDeclarationOnly',
+        '--noCheck',
+        '--module',
+        'ESNext',
+        '--moduleResolution',
+        'Bundler',
+        '--target',
+        'ESNext',
+        '--rootDir',
+        rootDir,
+        '--outDir',
+        outDir,
+      ],
+      { cwd, stdio: 'inherit' },
+    );
+    process.on('error', reject);
+    process.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`tsc exited with ${code}`))));
+  });
 }
 
 export function replaceRecursive(obj: Record<string, unknown>, replacer: (s: string, k: string) => string) {
@@ -86,7 +115,6 @@ export function writePackageJson({ config, exports }: WritePackageJsonOptions) {
       require: './index.js',
     },
   };
-
   const pkgJson = {
     name: pkg.name,
     ...rootpkg,

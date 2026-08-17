@@ -14,6 +14,7 @@ type TimescopeCommittableCommitOptions<N extends null> = {
   animation?: TimescopeAnimationType | false;
   duration?: number;
   lazy?: boolean;
+  tangent?: number;
 };
 
 type TimescopeCommittableMessageBegin<N extends null> = {
@@ -28,11 +29,11 @@ type TimescopeCommittableMessageUpdate<N extends null> = {
 type TimescopeCommittableMessageCommit<N extends null> = {
   type: 'commit';
   targetValue: Decimal | N;
-  divergentValue?: Decimal | N;
   animation: TimescopeAnimationType | false;
   duration: number;
   cursorMode: 'current' | 'target';
   lazy: boolean;
+  tangent?: number;
 };
 type TimescopeCommittableMessageSetNullValue = {
   type: 'set:nullvalue';
@@ -133,9 +134,8 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
     const value = this.parseValue(v);
     if (Decimal_equals(this.#state.value, value)) return;
     if (animation == null) animation = false;
-    const opts = typeof animation === 'object' ? animation : { animation };
     this.begin(value);
-    this.commit(opts);
+    this.commit(typeof animation === 'object' ? animation : { animation });
   }
 
   get committed() {
@@ -232,10 +232,10 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
     this.changed();
   }
 
-  update(candidate: Decimal | N) {
+  update(candidate: Decimal | N, current?: Decimal) {
     const nullValue = this.nullValue;
     const clamped = clampToRange(candidate, this.#state.domain, nullValue);
-    const current = (candidate ?? nullValue)
+    current ??= (candidate ?? nullValue)
       .sub(this.#state.current ?? nullValue)
       .mul(clamped === candidate ? 1 : 0.5)
       .add(this.#state.current ?? nullValue)
@@ -259,34 +259,26 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
 
   commit(opts: TimescopeCommittableCommitOptions<N> = {}) {
     const value = opts.value !== undefined ? opts.value : this.#state.candidate;
-    const divergentValue = value;
     const targetValue = clampToRange(value, this.#state.domain, this.nullValue);
     const cursorMode =
       opts.animation === undefined ? (this.#state.updated ? 'current' : 'target') : this.#state.cursorMode;
     const animation = opts.animation === undefined ? (this.#state.editing ? 'out' : 'in-out') : opts.animation;
     const duration = opts.duration ?? 500;
 
-    const message: TimescopeCommittableMessageCommit<N> = {
+    const message = {
       type: 'commit',
       targetValue,
       animation,
       duration,
       cursorMode,
-      divergentValue,
       lazy: opts.lazy ?? this.#lazy,
-    };
+      tangent: opts.tangent,
+    } satisfies TimescopeCommittableMessageCommit<N>;
     this.dispatchEvent(new TimescopeEvent('sync', message));
     this.#commit(message);
   }
 
-  #commit({
-    targetValue,
-    divergentValue,
-    animation,
-    duration,
-    cursorMode,
-    lazy,
-  }: TimescopeCommittableMessageCommit<N>) {
+  #commit({ targetValue, animation, duration, cursorMode, lazy, tangent }: TimescopeCommittableMessageCommit<N>) {
     const changeValue = () => {
       this.#state.value = targetValue;
       this.#state.editing = false;
@@ -298,13 +290,6 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
     const nullValue = this.nullValue;
     const originValue = this.#state.current ?? nullValue;
     const a = targetValue ?? nullValue;
-    const b = divergentValue ?? nullValue;
-
-    let overshoot = 0;
-    if (a.neq(b) && b.neq(originValue)) {
-      const alpha = b.sub(originValue).div(a.sub(originValue));
-      overshoot = (3 * (alpha.number() - 1)) / 2;
-    }
 
     this.#state.cursorMode = cursorMode;
     this.#state.candidate = targetValue;
@@ -339,7 +324,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
 
       animation,
       duration,
-      overshoot,
+      tangent,
     });
   }
 
@@ -359,6 +344,10 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
 
   get nullValue(): Decimal {
     return this.#state.nullValue ?? this.parseValue(this.#onNull?.()) ?? Decimal(0);
+  }
+
+  get configuredNullValue() {
+    return this.#state.nullValue;
   }
 
   toString() {

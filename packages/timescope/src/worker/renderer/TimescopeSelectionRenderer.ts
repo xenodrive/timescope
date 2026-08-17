@@ -1,4 +1,4 @@
-import type { InteractionInfo, TimescopeOptionsForWorker } from '#src/bridge/protocol';
+import type { InteractionInfoWire, TimescopeOptionsForWorker } from '#src/bridge/protocol';
 import config from '#src/core/config';
 import { Decimal } from '#src/core/decimal';
 import { TimescopeEvent } from '#src/core/event';
@@ -13,7 +13,7 @@ function nearby(p: number | undefined, x: number, tolerance: number = config.cli
 }
 
 export class TimescopeSelectionRenderer extends TimescopeRenderer<TimescopeEvent<'renderer:event'>> {
-  #range: TimescopeRange<Decimal | undefined> | null = null;
+  #range: TimescopeRange<Decimal> | null = null;
   #color: string = 'rgba(0, 0, 255, 0.2)';
   #invert: boolean = false;
 
@@ -52,7 +52,7 @@ export class TimescopeSelectionRenderer extends TimescopeRenderer<TimescopeEvent
     this.changed();
   }
 
-  #selectionDragStart({ shiftKey, buttons }: InteractionInfo, timescope: TimescopeRenderingContext) {
+  #selectionDragStart({ shiftKey, buttons }: InteractionInfoWire, timescope: TimescopeRenderingContext) {
     if (!this.#resizable) return false;
 
     const p = buttons[0].latest.x;
@@ -72,13 +72,11 @@ export class TimescopeSelectionRenderer extends TimescopeRenderer<TimescopeEvent
 
     if (nearby(selectionP[0], p, this.#selectionTolerance)) {
       const counterpart = this.#range[1];
-      if (counterpart === undefined) return false;
       this.#resizing = true;
       this.#counterpart = counterpart;
       return true;
     } else if (nearby(selectionP[1], p, this.#selectionTolerance)) {
       const counterpart = this.#range[0];
-      if (counterpart === undefined) return false;
       this.#resizing = true;
       this.#counterpart = counterpart;
       return true;
@@ -86,20 +84,20 @@ export class TimescopeSelectionRenderer extends TimescopeRenderer<TimescopeEvent
     return false;
   }
 
-  #selectionDragUpdate({ buttons }: InteractionInfo, timescope: TimescopeRenderingContext) {
+  #selectionDragUpdate({ buttons }: InteractionInfoWire, timescope: TimescopeRenderingContext) {
     if (!this.#resizable) return false;
     if (!this.#resizing) return false;
 
     const a = timescope.timeAxis.t(buttons[0].latest.x);
     const b = this.#counterpart;
     const range = a.lt(b) ? [a, b] : [b, a];
-    this.#range = range as TimescopeRange<Decimal | undefined>;
+    this.#range = range as TimescopeRange<Decimal>;
     this.changed();
 
     return true;
   }
 
-  #selectionDragEnd(_: InteractionInfo, timescope: TimescopeRenderingContext) {
+  #selectionDragEnd(_: InteractionInfoWire, timescope: TimescopeRenderingContext) {
     if (!this.#resizable) return false;
     if (!this.#resizing || !this.#range) return false;
     this.#resizing = false;
@@ -113,7 +111,7 @@ export class TimescopeSelectionRenderer extends TimescopeRenderer<TimescopeEvent
     return true;
   }
 
-  onPointerEvent(info: InteractionInfo, timescope: TimescopeRenderingContext) {
+  onPointerEvent(info: InteractionInfoWire, timescope: TimescopeRenderingContext) {
     if (!this.#resizable) return;
 
     switch (info.type) {
@@ -128,7 +126,7 @@ export class TimescopeSelectionRenderer extends TimescopeRenderer<TimescopeEvent
     }
   }
 
-  pointerStyle(info: InteractionInfo, timescope: TimescopeRenderingContext) {
+  pointerStyle(info: InteractionInfoWire, timescope: TimescopeRenderingContext) {
     if (!this.#range || !this.#resizable) return;
 
     const rangeX = timescope.timeAxis.p(this.#range);

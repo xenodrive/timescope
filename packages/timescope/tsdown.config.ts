@@ -7,13 +7,14 @@ import { getCommonConfig, writePackageJson } from '../../tsdown.config.common.ts
 const { root, outDir, ...config } = getCommonConfig(import.meta.dirname, {
   plugins: [RolldownInlineWorkerPlugin()],
 });
+const profileBuild = process.env.BENCHMARK_PROFILE_BUILD === '1';
 
 const configBase = defineConfig({
   entry: path.join(root, 'src/index.ts'),
-  minify: true,
+  minify: !profileBuild,
   cwd: root,
   plugins: [RolldownInlineWorkerPlugin()],
-  sourcemap: false,
+  sourcemap: profileBuild,
 });
 
 export default defineConfig([

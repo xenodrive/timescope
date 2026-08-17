@@ -7,7 +7,12 @@ type IntervalItem<T> = {
   data: T;
 };
 
-type IntervalQuery = Omit<IntervalItem<unknown>, 'data'>;
+type IntervalQuery = Omit<IntervalItem<unknown>, 'data' | 'start' | 'end'> & {
+  start?: Decimal;
+  end?: Decimal;
+};
+
+type NodeColor = boolean;
 
 export type IntervalBound = '[]' | '[)' | '(]' | '()';
 export type IntervalEntry<T> = IntervalItem<T>;
@@ -18,6 +23,8 @@ class IntervalNode<T> {
   maxEndItem: IntervalItem<T>;
   left: IntervalNode<T> | null = null;
   right: IntervalNode<T> | null = null;
+  parent: IntervalNode<T> | null = null;
+  color: NodeColor = false;
 
   constructor(item: IntervalItem<T>) {
     this.item = item;
@@ -40,17 +47,41 @@ export class IntervalTree<T> {
   private root: IntervalNode<T> | null = null;
 
   insert(data: T, start: Decimal, end: Decimal, bound: IntervalBound = '[)'): this {
-    this.root = this.insertNode(this.root, { start, end, bound, data });
+    const node = new IntervalNode<T>({ start, end, bound, data });
+    node.color = true;
+
+    let parent: IntervalNode<T> | null = null;
+    let cur = this.root;
+    while (cur) {
+      parent = cur;
+      if (start.lt(cur.item.start)) {
+        cur = cur.left;
+      } else {
+        cur = cur.right;
+      }
+    }
+
+    node.parent = parent;
+    if (!parent) {
+      this.root = node;
+    } else if (start.lt(parent.item.start)) {
+      parent.left = node;
+    } else {
+      parent.right = node;
+    }
+
+    this.refreshUp(node.parent);
+    this.fixInsert(node);
     return this;
   }
 
-  bulkInsert(items: T[], accessor: (item: T) => [Decimal, Decimal, IntervalBound?]): this {
+  bulkInsert(items: T[], accessor: (item: T, idx: number, items: T[]) => [Decimal, Decimal, IntervalBound?]): this {
     if (items.length === 0) {
       this.root = null;
       return this;
     }
-    const intervals = items.map((item) => {
-      const [start, end, bound = '[)'] = accessor(item);
+    const intervals = items.map((item, idx, items) => {
+      const [start, end, bound = '[)'] = accessor(item, idx, items);
       return { start, end, bound, data: item };
     });
     intervals.sort((a, b) => {
@@ -58,41 +89,25 @@ export class IntervalTree<T> {
       if (startCmp !== 0) return startCmp;
       return a.end.cmp(b.end);
     });
-    this.root = this.buildBalanced(intervals, 0, intervals.length - 1);
+
+    const [root, maxDepth] = this.buildBalanced(intervals, 0, intervals.length - 1, 0, null);
+    this.root = root;
+    if (this.root) {
+      this.paintDeepestRed(this.root, 0, maxDepth);
+      this.root.color = false;
+    }
     return this;
   }
 
-  private insertNode(node: IntervalNode<T> | null, item: IntervalItem<T>): IntervalNode<T> {
-    if (!node) return new IntervalNode<T>(item);
-
-    if (item.start.lt(node.item.start)) {
-      node.left = this.insertNode(node.left, item);
-    } else {
-      node.right = this.insertNode(node.right, item);
-    }
-
-    node.recalc();
-    return node;
-  }
-
-  private buildBalanced(items: IntervalItem<T>[], lo: number, hi: number): IntervalNode<T> | null {
-    if (lo > hi) return null;
-    const mid = (lo + hi) >> 1;
-    const node = new IntervalNode<T>(items[mid]);
-    node.left = this.buildBalanced(items, lo, mid - 1);
-    node.right = this.buildBalanced(items, mid + 1, hi);
-    node.recalc();
-    return node;
-  }
-
-  query(start: Decimal, end: Decimal, bound: IntervalBound = '[)'): SetIterator<T> {
+  query(start: Decimal | undefined, end: Decimal | undefined, bound: IntervalBound = '[)') {
     const result: Set<T> = new Set();
     this.collectOverlaps(this.root, { start, end, bound }, result);
-    return result.values();
+    return result;
   }
 
-  queryInto(out: Set<T>, start: Decimal, end: Decimal, bound: IntervalBound = '[)') {
+  queryInto(out: Set<T>, start: Decimal | undefined, end: Decimal | undefined, bound: IntervalBound = '[)') {
     this.collectOverlaps(this.root, { start, end, bound }, out);
+    return out;
   }
 
   findMaxEndBefore(t: Decimal): IntervalEntry<T> | null {
@@ -141,6 +156,136 @@ export class IntervalTree<T> {
       this.collectOverlaps(node.right, query, out);
     }
   }
+
+  private buildBalanced(
+    items: IntervalItem<T>[],
+    lo: number,
+    hi: number,
+    depth: number,
+    parent: IntervalNode<T> | null,
+  ): [IntervalNode<T> | null, number] {
+    if (lo > hi) return [null, depth - 1];
+    const mid = (lo + hi) >> 1;
+    const node = new IntervalNode<T>(items[mid]);
+    node.parent = parent;
+
+    const [left, leftDepth] = this.buildBalanced(items, lo, mid - 1, depth + 1, node);
+    const [right, rightDepth] = this.buildBalanced(items, mid + 1, hi, depth + 1, node);
+    node.left = left;
+    node.right = right;
+    node.recalc();
+
+    return [node, Math.max(depth, leftDepth, rightDepth)];
+  }
+
+  private paintDeepestRed(node: IntervalNode<T>, depth: number, maxDepth: number): void {
+    if (depth === maxDepth && depth > 0) {
+      node.color = true;
+    } else {
+      node.color = false;
+    }
+    if (node.left) this.paintDeepestRed(node.left, depth + 1, maxDepth);
+    if (node.right) this.paintDeepestRed(node.right, depth + 1, maxDepth);
+  }
+
+  private refreshUp(node: IntervalNode<T> | null): void {
+    let cur = node;
+    while (cur) {
+      cur.recalc();
+      cur = cur.parent;
+    }
+  }
+
+  private leftRotate(x: IntervalNode<T>): void {
+    const y = x.right;
+    if (!y) return;
+
+    x.right = y.left;
+    if (y.left) y.left.parent = x;
+
+    y.parent = x.parent;
+    if (!x.parent) {
+      this.root = y;
+    } else if (x === x.parent.left) {
+      x.parent.left = y;
+    } else {
+      x.parent.right = y;
+    }
+
+    y.left = x;
+    x.parent = y;
+
+    x.recalc();
+    y.recalc();
+    this.refreshUp(y.parent);
+  }
+
+  private rightRotate(y: IntervalNode<T>): void {
+    const x = y.left;
+    if (!x) return;
+
+    y.left = x.right;
+    if (x.right) x.right.parent = y;
+
+    x.parent = y.parent;
+    if (!y.parent) {
+      this.root = x;
+    } else if (y === y.parent.left) {
+      y.parent.left = x;
+    } else {
+      y.parent.right = x;
+    }
+
+    x.right = y;
+    y.parent = x;
+
+    y.recalc();
+    x.recalc();
+    this.refreshUp(x.parent);
+  }
+
+  private fixInsert(node: IntervalNode<T>): void {
+    let z = node;
+    while (z.parent && z.parent.color) {
+      const gp = z.parent.parent;
+      if (!gp) break;
+
+      if (z.parent === gp.left) {
+        const y = gp.right;
+        if (y && y.color) {
+          z.parent.color = false;
+          y.color = false;
+          gp.color = true;
+          z = gp;
+        } else {
+          if (z === z.parent.right) {
+            z = z.parent;
+            this.leftRotate(z);
+          }
+          if (z.parent) z.parent.color = false;
+          gp.color = true;
+          this.rightRotate(gp);
+        }
+      } else {
+        const y = gp.left;
+        if (y && y.color) {
+          z.parent.color = false;
+          y.color = false;
+          gp.color = true;
+          z = gp;
+        } else {
+          if (z === z.parent.left) {
+            z = z.parent;
+            this.rightRotate(z);
+          }
+          if (z.parent) z.parent.color = false;
+          gp.color = true;
+          this.leftRotate(gp);
+        }
+      }
+    }
+    if (this.root) this.root.color = false;
+  }
 }
 
 function overlaps(a: IntervalQuery, b: IntervalQuery): boolean {
@@ -148,18 +293,21 @@ function overlaps(a: IntervalQuery, b: IntervalQuery): boolean {
 }
 
 function isBefore(a: IntervalQuery, b: IntervalQuery): boolean {
+  if (!a.end || !b.start) return false;
   const cmp = a.end.cmp(b.start);
   if (cmp < 0) return true;
   if (cmp > 0) return false;
   return !(a.bound[1] === ']' && b.bound[0] === '[');
 }
 
-function canOverlapRightOf(maxEnd: Decimal, queryStart: Decimal, queryLeft: string): boolean {
+function canOverlapRightOf(maxEnd: Decimal, queryStart: Decimal | undefined, queryLeft: string): boolean {
+  if (!queryStart) return true;
   const cmp = maxEnd.cmp(queryStart);
   return cmp > 0 || (cmp === 0 && queryLeft === '[');
 }
 
-function canOverlapLeftOf(nodeStart: Decimal, queryEnd: Decimal, queryRight: string): boolean {
+function canOverlapLeftOf(nodeStart: Decimal, queryEnd: Decimal | undefined, queryRight: string): boolean {
+  if (!queryEnd) return true;
   const cmp = nodeStart.cmp(queryEnd);
   return cmp < 0 || (cmp === 0 && queryRight === ']');
 }

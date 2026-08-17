@@ -1,5 +1,5 @@
-import type { InteractionInfo, TimescopeOptionsForWorker } from '#src/bridge/protocol';
-import { TimescopeTimeAxis } from '#src/worker/TimescopeTimeAxis';
+import type { InteractionInfoWire, TimescopeOptionsForWorker } from '#src/bridge/protocol';
+import { TimescopeViewport } from '#src/worker/TimescopeViewport';
 import { TimescopeTrack } from '#src/worker/TimescopeTrack';
 import type { TimescopeDataCache } from './TimescopeDataCache';
 
@@ -14,16 +14,15 @@ export type TimescopeRenderingContext = {
   chart: { ox: number; oy: number; width: number; height: number };
   size: { width: number; height: number };
   symmetric: boolean;
-  timeAxis: TimescopeTimeAxis;
+  timeAxis: TimescopeViewport;
   dpr: number;
 };
 
 export interface Interaction {
-  onPointerEvent(info: InteractionInfo, timescope: TimescopeRenderingContext): boolean | void;
-  pointerStyle(info: InteractionInfo, timescope: TimescopeRenderingContext): string | void;
+  onPointerEvent(info: InteractionInfoWire, timescope: TimescopeRenderingContext): boolean | void;
+  pointerStyle(info: InteractionInfoWire, timescope: TimescopeRenderingContext): string | void;
 }
 
 export type TimescopeRendererOptions = {
-  /** Rendering order. Larger value draws on top. */
   zindex?: number;
 };

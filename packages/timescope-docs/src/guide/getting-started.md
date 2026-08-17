@@ -24,38 +24,25 @@ const timescope = new Timescope({
 });
 ```
 
-This creates a basic Timescope instance:
-
 <ExampleSimple />
 
 ## Time control
 
-The `timescope.time` property returns a `Decimal` value representing the current cursor position. `Decimal` provides arbitrary-precision arithmetic.
-
-Polling:
 ```TypeScript
-// Poll the current value
-const time = timescope.time; // Decimal | null
-console.log('Current time (s):', time?.number()); // Convert to a native number
+timescope.time; // Decimal | null
 ```
 
-Event-based:
-
 ```TypeScript
-// Subscribe to changes
 timescope.on('timechanged', (event) => {
-  const time = event.value;
-  console.log('Current time (s):', time?.number());
+  const time = event.value; // Decimal | null
 });
 ```
 
-Set time through the API:
-
 ```TypeScript
-timescope.setTime(10);                     // number
-timescope.setTime('2024-01-15T10:00:00Z'); // ISO string with timezone
-timescope.setTime(new Date());             // Date instance
-timescope.setTime(null);                   // Follow the live clock
+timescope.setTime(10);                      // number (seconds by default)
+timescope.setTime('2024-01-15T10:00:00Z');  // ISO string
+timescope.setTime(new Date());              // Date
+timescope.setTime(null);                    // follow the live clock
 ```
 
 ## Next steps

@@ -39,7 +39,7 @@ type TimescopeProps<
   indicator?: MaybeAccessor<boolean | undefined>;
   selection?: MaybeAccessor<TimescopeOptionsSelection | undefined>;
 
-  selectedRange?: MaybeAccessor<TimescopeRange<Decimal> | null | undefined>;
+  selectionRange?: MaybeAccessor<TimescopeRange<Decimal> | null | undefined>;
 
   showFps?: MaybeAccessor<boolean | undefined>;
 
@@ -51,8 +51,8 @@ type TimescopeProps<
   onZoomAnimating?: (v: number) => void;
   onZoomChanging?: (v: number) => void;
   onZoomChanged?: (v: number) => void;
-  onSelectedRangeChanging?: (v: TimescopeRange<Decimal> | null) => void;
-  onSelectedRangeChanged?: (v: TimescopeRange<Decimal> | null) => void;
+  onSelectionRangeChanging?: (v: TimescopeRange<Decimal> | null) => void;
+  onSelectionRangeChanged?: (v: TimescopeRange<Decimal> | null) => void;
   onEditing?: (v: boolean) => void;
   onAnimating?: (v: boolean) => void;
 };
@@ -88,8 +88,8 @@ function TimescopeComponent<
   timescope.on('zoomanimating', (e) => props.onZoomAnimating?.(e.value));
   timescope.on('zoomchanging', (e) => props.onZoomChanging?.(e.value));
   timescope.on('zoomchanged', (e) => props.onZoomChanged?.(e.value));
-  timescope.on('selectedrangechanging', (e) => props.onSelectedRangeChanging?.(e.value));
-  timescope.on('selectedrangechanged', (e) => props.onSelectedRangeChanged?.(e.value));
+  timescope.on('selectionrangechanging', (e) => props.onSelectionRangeChanging?.(e.value));
+  timescope.on('selectionrangechanged', (e) => props.onSelectionRangeChanged?.(e.value));
 
   let animating = false;
   let editing = false;
@@ -115,7 +115,7 @@ function TimescopeComponent<
     timescope.setZoomRange(props.zoomRange?.());
   });
   effect(() => {
-    if (props.selectedRange) timescope.setSelectedRange(props.selectedRange() ?? null);
+    if (props.selectionRange) timescope.setSelectionRange(props.selectionRange() ?? null);
   });
   effect(() => {
     timescope.updateOptions({

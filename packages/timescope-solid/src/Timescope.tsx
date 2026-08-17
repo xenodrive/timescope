@@ -37,7 +37,7 @@ type TimescopeProps<
   indicator?: boolean;
   selection?: TimescopeOptionsSelection;
 
-  selectedRange?: TimescopeRange<Decimal> | null;
+  selectionRange?: TimescopeRange<Decimal> | null;
 
   showFps?: boolean;
 
@@ -49,8 +49,8 @@ type TimescopeProps<
   onZoomAnimating?: (v: number) => void;
   onZoomChanging?: (v: number) => void;
   onZoomChanged?: (v: number) => void;
-  onSelectedRangeChanging?: (v: TimescopeRange<Decimal> | null) => void;
-  onSelectedRangeChanged?: (v: TimescopeRange<Decimal> | null) => void;
+  onSelectionRangeChanging?: (v: TimescopeRange<Decimal> | null) => void;
+  onSelectionRangeChanged?: (v: TimescopeRange<Decimal> | null) => void;
   onAnimating?: (v: boolean) => void;
   onEditing?: (v: boolean) => void;
   style?: any;
@@ -77,8 +77,8 @@ function TimescopeComponent<
     const onZoomAnimating = props.onZoomAnimating;
     const onZoomChanging = props.onZoomChanging;
     const onZoomChanged = props.onZoomChanged;
-    const onSelectedRangeChanging = props.onSelectedRangeChanging;
-    const onSelectedRangeChanged = props.onSelectedRangeChanged;
+    const onSelectionRangeChanging = props.onSelectionRangeChanging;
+    const onSelectionRangeChanged = props.onSelectionRangeChanged;
     const onAnimating = props.onAnimating;
     const onEditing = props.onEditing;
 
@@ -89,8 +89,8 @@ function TimescopeComponent<
       timescope.on('zoomanimating', (e) => onZoomAnimating?.(e.value)),
       timescope.on('zoomchanging', (e) => onZoomChanging?.(e.value)),
       timescope.on('zoomchanged', (e) => onZoomChanged?.(e.value)),
-      timescope.on('selectedrangechanging', (e) => onSelectedRangeChanging?.(e.value)),
-      timescope.on('selectedrangechanged', (e) => onSelectedRangeChanged?.(e.value)),
+      timescope.on('selectionrangechanging', (e) => onSelectionRangeChanging?.(e.value)),
+      timescope.on('selectionrangechanged', (e) => onSelectionRangeChanged?.(e.value)),
     ];
 
     let animating = timescope.animating;
@@ -126,7 +126,7 @@ function TimescopeComponent<
     timescope.setZoomRange(props.zoomRange);
   });
   createEffect(() => {
-    if (props.selectedRange !== undefined) timescope.setSelectedRange(props.selectedRange);
+    if (props.selectionRange !== undefined) timescope.setSelectionRange(props.selectionRange);
   });
   createEffect(() => {
     timescope.updateOptions({

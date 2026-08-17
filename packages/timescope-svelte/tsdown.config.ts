@@ -1,30 +1,24 @@
-import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 import { defineConfig } from 'tsdown';
-import { getCommonConfig, writePackageJson } from '../../tsdown.config.common.ts';
+import { emitDeclarations, getCommonConfig, writePackageJson } from '../../tsdown.config.common.ts';
 
-const { outDir, ...config } = getCommonConfig(import.meta.dirname);
-
-function sveltePackage(...args: string[]) {
-  const cmd = 'svelte-package';
-  return new Promise<void>((resolve, reject) => {
-    const p = spawn(cmd, args, { stdio: 'inherit', shell: true });
-    p.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`${cmd} exited with ${code}`))));
-  });
-}
+const root = import.meta.dirname;
+const { configBase, outDir, ...config } = getCommonConfig(root);
 
 export default defineConfig({
-  outDir: '.tmp',
-  format: ['esm'],
+  ...configBase,
+  entry: ['./src/lib/index.ts'],
   dts: false,
-  minify: false,
-  hooks: {
-    async 'build:prepare'() {
-      await sveltePackage('-o', outDir);
-    },
+  inputOptions: {
+    ...configBase.inputOptions,
+    external: [/\.svelte$/],
   },
-  onSuccess() {
+  async onSuccess() {
+    await emitDeclarations('src/lib/index.ts', 'src/lib', outDir, root);
+    fs.copyFileSync(path.join(root, 'src/lib/Timescope.svelte'), path.join(outDir, 'Timescope.svelte'));
     writePackageJson({
-      config: { outDir, ...config },
+      config: { root, outDir, ...config },
       exports: {
         '.': {
           types: './index.d.ts',

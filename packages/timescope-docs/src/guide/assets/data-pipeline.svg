@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 440" role="img" font-family="ui-sans-serif, system-ui, 'Segoe UI', sans-serif">
+  <title>Data pipeline: acquisition, transform, canonical rows, reducer</title>
+
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <!-- stage labels -->
+  <g font-size="15" fill="#94a3b8">
+    <text x="20" y="80">acquire</text>
+    <text x="20" y="190">transform</text>
+    <text x="20" y="300">rows</text>
+    <text x="20" y="400">reduce</text>
+  </g>
+
+  <!-- acquisition -->
+  <g fill="none" stroke="#3b82f6" stroke-width="1.5">
+    <rect x="130" y="50" width="180" height="50" rx="8"/>
+    <rect x="330" y="50" width="160" height="50" rx="8"/>
+    <rect x="510" y="50" width="180" height="50" rx="8"/>
+  </g>
+  <g font-size="16" fill="#3b82f6" text-anchor="middle">
+    <text x="220" y="81">data — inline</text>
+    <text x="410" y="81">url — fetch</text>
+    <text x="600" y="81">loader — callback</text>
+  </g>
+
+  <!-- acquire -> transform bus -->
+  <g stroke="#64748b" fill="none">
+    <line x1="220" y1="100" x2="220" y2="130"/>
+    <line x1="410" y1="100" x2="410" y2="130"/>
+    <line x1="600" y1="100" x2="600" y2="130"/>
+    <line x1="220" y1="130" x2="600" y2="130"/>
+    <line x1="250" y1="130" x2="250" y2="156" marker-end="url(#arr)"/>
+    <line x1="480" y1="130" x2="480" y2="156" marker-end="url(#arr)"/>
+  </g>
+
+  <!-- transform -->
+  <g fill="none" stroke="#3b82f6" stroke-width="1.5">
+    <rect x="140" y="160" width="220" height="50" rx="8"/>
+    <rect x="380" y="160" width="220" height="50" rx="8"/>
+  </g>
+  <g font-size="16" fill="#3b82f6" text-anchor="middle">
+    <text x="250" y="191">decoder(payload)</text>
+    <text x="490" y="191">mappings — paths</text>
+  </g>
+  <text x="620" y="191" font-size="15" fill="#94a3b8">optional</text>
+
+  <!-- transform -> rows bus -->
+  <g stroke="#64748b" fill="none">
+    <line x1="250" y1="210" x2="250" y2="240"/>
+    <line x1="490" y1="210" x2="490" y2="240"/>
+    <line x1="250" y1="240" x2="490" y2="240"/>
+    <line x1="370" y1="240" x2="370" y2="266" marker-end="url(#arr)"/>
+  </g>
+
+  <!-- canonical rows -->
+  <rect x="140" y="270" width="460" height="50" rx="8" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="370" y="301" font-size="16" fill="#3b82f6" text-anchor="middle">canonical rows — { time | times } &amp; { value | values }</text>
+
+  <!-- rows -> reducer -->
+  <line x1="370" y1="320" x2="370" y2="366" stroke="#64748b" marker-end="url(#arr)"/>
+
+  <!-- reducer -->
+  <rect x="140" y="370" width="460" height="50" rx="8" fill="none" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="370" y="401" font-size="16" fill="#f59e0b" text-anchor="middle">reducer — snapshot only (min-max-avg · percentiles)</text>
+</svg>

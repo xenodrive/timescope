@@ -10,6 +10,7 @@
     Series extends Record<string, TimescopeSeriesInput>,
     Track extends string
   ">
+import type { Decimal } from '@kikuchan/decimal';
 import type {
   TimescopeOptions,
   TimescopeOptionsInitial,
@@ -22,8 +23,7 @@ import type {
   TimescopeSourceInput,
 } from 'timescope';
 import { Timescope } from 'timescope';
-import type { Decimal } from '@kikuchan/decimal';
-import { customRef, markRaw, onBeforeUnmount, useTemplateRef, watch } from 'vue';
+import { customRef, markRaw, onBeforeUnmount, toRaw, useTemplateRef, watch } from 'vue';
 
 const emit = defineEmits<{
   timechanged: [Decimal | null];
@@ -32,8 +32,8 @@ const emit = defineEmits<{
   zoomchanged: [number];
   zoomchanging: [number];
   zoomanimating: [number];
-  selectedrangechanging: [[Decimal, Decimal] | null];
-  selectedrangechanged: [[Decimal, Decimal] | null];
+  selectionrangechanging: [[Decimal, Decimal] | null];
+  selectionrangechanged: [[Decimal, Decimal] | null];
   animating: [boolean];
   editing: [boolean];
 
@@ -43,8 +43,8 @@ const emit = defineEmits<{
   'update:zoomchanging': [number];
   'update:timeanimating': [Decimal | null];
   'update:zoomanimating': [number];
-  'update:selectedrange': [[Decimal, Decimal] | null];
-  'update:selectedrangechanging': [[Decimal, Decimal] | null];
+  'update:selectionRange': [[Decimal, Decimal] | null];
+  'update:selectionRangeChanging': [[Decimal, Decimal] | null];
 }>();
 
 const props = withDefaults(
@@ -68,7 +68,7 @@ const props = withDefaults(
     indicator?: boolean;
     selection?: TimescopeOptionsSelection;
 
-    selectedRange?: TimescopeRange<Decimal> | null;
+    selectionRange?: TimescopeRange<Decimal> | null;
 
     showFps?: boolean;
 
@@ -91,20 +91,19 @@ type Combination =
   | ['zoomanimating', 'zoomAnimating']
   | ['change', 'animating']
   | ['change', 'editing']
-  | ['selectedrangechanging', 'selectedRangeChanging']
-  | ['selectedrangechanged', 'selectedRange'];
+  | ['selectionrangechanging', 'selectionRangeChanging']
+  | ['selectionrangechanged', 'selectionRange'];
 
 function createTimescopeRef<T extends Combination>(...args: T) {
-  return customRef<typeof timescope[T[1]]>((track, trigger) => {
+  return customRef<(typeof timescope)[T[1]]>((track, trigger) => {
     timescope.on(args[0], () => trigger());
     return {
       get() {
         track();
-        return timescope[args[1]] as typeof timescope[T[1]];
+        return timescope[args[1]] as (typeof timescope)[T[1]];
       },
-      set() {
-      },
-    }
+      set() {},
+    };
   });
 }
 
@@ -126,8 +125,8 @@ defineExpose({
   zoom: createTimescopeRef('zoomchanged', 'zoom'),
   zoomChanging: createTimescopeRef('zoomchanging', 'zoomChanging'),
   zoomAnimating: createTimescopeRef('zoomanimating', 'zoomAnimating'),
-  selectedRange: createTimescopeRef('selectedrangechanged', 'selectedRange'),
-  selectedRangeChanging: createTimescopeRef('selectedrangechanging', 'selectedRangeChanging'),
+  selectionRange: createTimescopeRef('selectionrangechanged', 'selectionRange'),
+  selectionRangeChanging: createTimescopeRef('selectionrangechanging', 'selectionRangeChanging'),
 
   animating: createTimescopeRef('change', 'animating'),
   editing: createTimescopeRef('change', 'editing'),
@@ -143,8 +142,8 @@ timescope.on('timeanimating', (e) => emit('timeanimating', e.value));
 timescope.on('zoomchanging', (e) => emit('zoomchanging', e.value));
 timescope.on('zoomchanged', (e) => emit('zoomchanged', e.value));
 timescope.on('zoomanimating', (e) => emit('zoomanimating', e.value));
-timescope.on('selectedrangechanging', (e) => emit('selectedrangechanging', e.value));
-timescope.on('selectedrangechanged', (e) => emit('selectedrangechanged', e.value));
+timescope.on('selectionrangechanging', (e) => emit('selectionrangechanging', e.value));
+timescope.on('selectionrangechanged', (e) => emit('selectionrangechanged', e.value));
 
 let animating = timescope.animating;
 let editing = timescope.editing;
@@ -165,8 +164,8 @@ timescope.on('timechanging', (e) => emit('update:timechanging', e.value));
 timescope.on('zoomchanging', (e) => emit('update:zoomchanging', e.value));
 timescope.on('timeanimating', (e) => emit('update:timeanimating', e.value));
 timescope.on('zoomanimating', (e) => emit('update:zoomanimating', e.value));
-timescope.on('selectedrangechanging', (e) => emit('update:selectedrangechanging', e.value));
-timescope.on('selectedrangechanged', (e) => emit('update:selectedrange', e.value));
+timescope.on('selectionrangechanging', (e) => emit('update:selectionRangeChanging', e.value));
+timescope.on('selectionrangechanged', (e) => emit('update:selectionRange', e.value));
 
 if (props.time === undefined) {
   emit('update:time', timescope.time);
@@ -177,6 +176,10 @@ if (props.zoom === undefined) {
   emit('update:zoom', timescope.zoom);
   emit('update:zoomchanging', timescope.zoom);
   emit('update:zoomanimating', timescope.zoom);
+}
+if (props.selectionRange === undefined) {
+  emit('update:selectionRange', timescope.selectionRange);
+  emit('update:selectionRangeChanging', timescope.selectionRangeChanging);
 }
 
 watch(
@@ -204,7 +207,11 @@ watch(
 
 watch(
   () => props.sources,
-  () => timescope.updateOptions({ sources: props.sources } as TimescopeOptions),
+  () => {
+    const sources =
+      props.sources && Object.fromEntries(Object.entries(props.sources).map(([key, source]) => [key, toRaw(source)]));
+    timescope.updateOptions({ sources } as TimescopeOptions);
+  },
   { immediate: true, deep: true },
 );
 
@@ -231,6 +238,13 @@ watch(
   () => timescope.updateOptions({ selection: props.selection } as TimescopeOptions),
   { immediate: true, deep: true },
 );
+watch(
+  () => props.selectionRange,
+  () => {
+    if (props.selectionRange !== undefined) timescope.setSelectionRange(props.selectionRange);
+  },
+  { immediate: true, deep: true },
+);
 
 watch(
   () => props.showFps,
@@ -248,5 +262,4 @@ watch(el, () => {
 onBeforeUnmount(() => {
   timescope?.dispose();
 });
-
 </script>

@@ -7,16 +7,17 @@ title: Chart Presets
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, useTemplateRef, watch } from 'vue';
-import { Timescope } from 'timescope';
+import { onBeforeUnmount, onMounted, useTemplateRef, watch } from "vue";
+import { Timescope, type TimescopeChartType } from "timescope";
 
-const $el = useTemplateRef('timescope-ref');
-const chart = defineModel<string>({ default: 'linespoints' });
+const $el = useTemplateRef("timescope-ref");
+const chart = defineModel<TimescopeChartType>({ default: "linespoints" });
 
 onMounted(() => {
+  if (!$el.value) return;
   const timescope = new Timescope({
     target: $el.value,
-    style: { height: '240px' },
+    style: { height: "240px" },
     time: 1.5,
     zoom: 6,
     sources: {
@@ -30,7 +31,7 @@ onMounted(() => {
     series: {
       temperature: {
         data: {
-          source: 'samples',
+          source: "samples",
         },
         chart: chart.value,
       },
@@ -41,15 +42,14 @@ onMounted(() => {
     timescope.updateOptions({
       series: {
         temperature: {
-          data: {},
-          chart: chart.value
-        }
-      }
+          data: { source: "samples" },
+          chart: chart.value,
+        },
+      },
+      tracks: { default: { timeAxis: { relative: true } } },
     });
   });
 
   onBeforeUnmount(() => timescope?.dispose());
-
 });
-
 </script>

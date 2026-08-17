@@ -13,6 +13,17 @@ export interface TimescopeStateOptions {
   zoomRange?: TimescopeRange<ZoomLike | undefined>;
 }
 
+export class TimescopeViewState extends TimescopeObservable {
+  range: TimescopeRange<Decimal> | null = null;
+  resolution: Decimal | null = null;
+
+  set(range: TimescopeRange<Decimal>, resolution: Decimal) {
+    this.range = range;
+    this.resolution = resolution;
+    this.changed();
+  }
+}
+
 export class TimescopeState extends TimescopeObservable<
   | TimescopeEvent<'timechanging', Decimal | null>
   | TimescopeEvent<'timechanged', Decimal | null>
@@ -55,17 +66,23 @@ export class TimescopeState extends TimescopeObservable<
   }
 
   setTime(v: TimeLike | null, animation?: TimescopeAnimationInput) {
-    if (typeof v === 'number' && !isFinite(v)) return false;
-    if (typeof v === 'number' && isNaN(v)) return false;
+    const target = this.resolveTimeTarget(v, animation);
+    if (!target) return false;
+    this.time.setValue(target.value, target.animation);
+    return true;
+  }
+
+  resolveTimeTarget(v: TimeLike | null, animation?: TimescopeAnimationInput) {
+    if (typeof v === 'number' && !isFinite(v)) return undefined;
+    if (typeof v === 'number' && isNaN(v)) return undefined;
 
     if (animation == null) animation = 'out';
 
     try {
-      this.time.setValue(parseTimeLike(v), animation);
+      return { value: parseTimeLike(v), animation };
     } catch {
-      return false;
+      return undefined;
     }
-    return true;
   }
 
   setTimeRange(domain?: TimescopeRange<TimeLike | null | undefined>) {
@@ -77,8 +94,15 @@ export class TimescopeState extends TimescopeObservable<
   }
 
   setZoom(v: ZoomLike, animation?: TimescopeAnimationInput) {
-    if (typeof v === 'number' && !isFinite(v)) return false;
-    if (typeof v === 'number' && isNaN(v)) return false;
+    const target = this.resolveZoomTarget(v, animation);
+    if (!target) return false;
+    this.zoom.setValue(target.value, target.animation);
+    return true;
+  }
+
+  resolveZoomTarget(v: ZoomLike, animation?: TimescopeAnimationInput) {
+    if (typeof v === 'number' && !isFinite(v)) return undefined;
+    if (typeof v === 'number' && isNaN(v)) return undefined;
 
     if (animation == null) {
       animation = {
@@ -89,11 +113,10 @@ export class TimescopeState extends TimescopeObservable<
     }
 
     try {
-      this.zoom.setValue(Decimal(v), animation);
+      return { value: Decimal(v), animation };
     } catch {
-      return false;
+      return undefined;
     }
-    return true;
   }
 
   setZoomRange(domain?: TimescopeRange<ZoomLike | undefined>) {

@@ -1,4 +1,5 @@
-import type { TimescopeTimeAxisProviderData } from '#src/bridge/protocol';
+import type { TimescopeTimeAxisData } from '#src/bridge/protocol';
+import { TimescopeAnimatedValue } from '#src/core/animation';
 import { TimescopeRenderer } from '#src/worker/renderer/TimescopeRenderer';
 import { parseTextStyle } from '#src/worker/style';
 import type { TimescopeRenderingContext } from '#src/worker/types';
@@ -27,10 +28,10 @@ export class TimescopeTimeAxisRenderer extends TimescopeRenderer {
     const axisY = timescope.renderingTrack!.y0;
 
     const id = timescope.renderingTrack!.id;
-    const opts = normalizeOptions(timescope.options.tracks?.[id].timeAxis, {});
+    const opts = normalizeOptions(timescope.options.tracks?.[id]?.timeAxis, {});
     if (!opts) return;
 
-    const cache: TimescopeTimeAxisProviderData = timescope.dataCaches[`tracks:${id}:timeAxis`]?.data;
+    const cache: TimescopeTimeAxisData = timescope.dataCaches[`tracks:${id}:timeAxis`]?.data;
     if (!cache) return;
     const data = cache?.data ?? [];
 
@@ -38,8 +39,8 @@ export class TimescopeTimeAxisRenderer extends TimescopeRenderer {
 
     if (opts.axis !== false) {
       ctx.strokeStyle = (typeof opts.axis === 'object' ? opts.axis.color : undefined) || '#3333';
-      ctx.moveTo(0, axisY + 0.5);
-      ctx.lineTo(width, axisY + 0.5);
+      ctx.moveTo(0, axisY);
+      ctx.lineTo(width, axisY);
     }
 
     ctx.strokeStyle =
@@ -57,8 +58,7 @@ export class TimescopeTimeAxisRenderer extends TimescopeRenderer {
     ctx.stroke();
   }
 
-  #lastLabelY = 0;
-  #lastLabelY_t = 0;
+  #labelY = new TimescopeAnimatedValue();
 
   #renderLabels(timescope: TimescopeRenderingContext): void {
     const ctx = timescope.ctx;
@@ -66,19 +66,18 @@ export class TimescopeTimeAxisRenderer extends TimescopeRenderer {
     const track = timescope.renderingTrack!;
 
     const axisY = track.y0;
-    const labelY = track.top + track.chartHeight / 2 <= axisY ? axisY + 2 : axisY - 16;
 
-    if (this.#lastLabelY !== labelY) {
-      this.#lastLabelY = labelY;
-      this.#lastLabelY_t = Date.now();
-      this.changed();
-    }
-    const t = Math.min(1, (0.2 * (Date.now() - this.#lastLabelY_t)) / 1000);
+    this.#labelY.setValue(track.top + track.chartHeight / 2 - 5 <= axisY ? 2 : -16, {
+      animation: 'linear',
+      duration: 200,
+    });
+    const labelY = axisY + this.#labelY.value!;
+    if (this.#labelY.animating) this.changed();
 
     const id = timescope.renderingTrack!.id;
-    const opts = normalizeOptions(timescope.options.tracks?.[id].timeAxis, {});
+    const opts = normalizeOptions(timescope.options.tracks?.[id]?.timeAxis, {});
     if (!opts) return;
-    const cache: TimescopeTimeAxisProviderData = timescope.dataCaches[`tracks:${id}:timeAxis`]?.data;
+    const cache: TimescopeTimeAxisData = timescope.dataCaches[`tracks:${id}:timeAxis`]?.data;
     if (!cache) return;
     const data = cache?.data ?? [];
 
@@ -89,7 +88,7 @@ export class TimescopeTimeAxisRenderer extends TimescopeRenderer {
     ctx.font = textStyle?.font;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.strokeStyle = 'white';
+    ctx.strokeStyle = timescope.options.background ?? 'white';
     ctx.lineWidth = 3;
 
     data.forEach((tick) => {

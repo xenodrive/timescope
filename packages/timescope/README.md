@@ -32,29 +32,28 @@ new Timescope({
   zoom: 4,
 
   sources: {
-    telemetry: [
-      { time: 0, temperature: 22, envelope: { min: 20, max: 28 } },
-      { time: 30, temperature: 25, envelope: { min: 21, max: 30 } },
-      { time: 60, temperature: 24, envelope: { min: 22, max: 27 } },
+    temperature: [
+      { time: 0, value: 22 },
+      { time: 30, value: 25 },
+      { time: 60, value: 24 },
+    ],
+    envelope: [
+      { time: 0, values: { min: 20, max: 28, value: 24 } },
+      { time: 30, values: { min: 21, max: 30, value: 25.5 } },
+      { time: 60, values: { min: 22, max: 27, value: 24.5 } },
     ],
   },
 
   series: {
     temperature: {
       data: {
-        source: 'telemetry',
-        value: 'temperature',
+        source: 'temperature',
       },
       chart: 'linespoints',
     },
     envelope: {
       data: {
-        source: 'telemetry',
-        value: {
-          min: 'envelope.min',
-          max: 'envelope.max',
-          value: (row) => (row.envelope.min + row.envelope.max) / 2,
-        },
+        source: 'envelope',
         color: '#8888ff',
       },
       chart: {
@@ -71,6 +70,6 @@ new Timescope({
 });
 ```
 
-## Documents
+## Documentation
 
-See the [documents](https://xenodrive.github.io/timescope/) for more details.
+See the [documentation](https://xenodrive.github.io/timescope/) for more details.

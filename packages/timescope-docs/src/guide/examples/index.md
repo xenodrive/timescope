@@ -2,13 +2,16 @@
 title: Overview
 titleTemplate: Timescope Examples
 ---
+
 <script setup>
 import SimpleTimeline from '@/guide/examples/simple-timeline.vue';
 import BasicChart from '@/guide/examples/basic-chart.vue';
+import Decimation from '@/guide/examples/decimation.vue';
 import LogScale from '@/guide/examples/log-scale.vue';
 import MarksAndLinks from '@/guide/examples/marks-and-links.vue';
 import MultipleTracks from '@/guide/examples/multiple-tracks.vue';
 import DynamicLoader from '@/guide/examples/dynamic-loader.vue';
+import RealtimeData from '@/guide/examples/realtime-data.vue';
 import Events from '@/guide/examples/events.vue';
 import SystemMetrics from '@/guide/examples/system-metrics.vue';
 import LogViewer from '@/guide/examples/log-viewer.vue';
@@ -33,6 +36,10 @@ import GanttChart from '@/guide/examples/gantt-chart.vue';
 
 <BasicChart class="border" />
 
+## [Decimation](/guide/examples/decimation)
+
+<Decimation class="border" />
+
 ## [Log Scale](/guide/examples/log-scale)
 
 <LogScale class="border" />
@@ -56,6 +63,10 @@ import GanttChart from '@/guide/examples/gantt-chart.vue';
 ## [Dynamic Loader](/guide/examples/dynamic-loader)
 
 <DynamicLoader class="border" />
+
+## [Realtime Data](/guide/examples/realtime-data)
+
+<RealtimeData class="border" />
 
 ## [System Metrics Monitoring](/guide/examples/system-metrics)
 

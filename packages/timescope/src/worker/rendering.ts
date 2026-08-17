@@ -4,7 +4,7 @@ import type { TimescopeRenderingContext } from '#src/worker/types';
 
 export function renderTimeRange(
   timescope: TimescopeRenderingContext,
-  range: TimescopeRange<Decimal | null | undefined> | null,
+  range: TimescopeRange<Decimal> | null,
   color: string,
 ) {
   if (!range) return;

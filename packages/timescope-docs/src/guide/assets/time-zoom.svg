@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 440" role="img" font-family="ui-sans-serif, system-ui, 'Segoe UI', sans-serif">
+  <title>time, timeRange, zoom, zoomRange relationships</title>
+
+  <defs>
+    <pattern id="t10" x="40" y="115" width="10" height="10" patternUnits="userSpaceOnUse">
+      <line x1="0.5" y1="0" x2="0.5" y2="10" stroke="#64748b" stroke-width="1"/>
+    </pattern>
+    <pattern id="t20" x="40" y="165" width="20" height="10" patternUnits="userSpaceOnUse">
+      <line x1="0.5" y1="0" x2="0.5" y2="10" stroke="#64748b" stroke-width="1"/>
+    </pattern>
+    <pattern id="t40" x="40" y="215" width="40" height="10" patternUnits="userSpaceOnUse">
+      <line x1="0.5" y1="0" x2="0.5" y2="10" stroke="#64748b" stroke-width="1"/>
+    </pattern>
+    <pattern id="t80" x="40" y="265" width="80" height="10" patternUnits="userSpaceOnUse">
+      <line x1="0.5" y1="0" x2="0.5" y2="10" stroke="#64748b" stroke-width="1"/>
+    </pattern>
+    <pattern id="t150" x="40" y="315" width="150" height="10" patternUnits="userSpaceOnUse">
+      <line x1="0.5" y1="0" x2="0.5" y2="10" stroke="#64748b" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <!-- row baselines: navigable part solid, outside timeRange faded -->
+  <g stroke="#94a3b8">
+    <line x1="40" y1="70" x2="760" y2="70" stroke-dasharray="4 3" opacity="0.3"/>
+    <line x1="40" y1="120" x2="100" y2="120" stroke-dasharray="4 3" opacity="0.3"/>
+    <line x1="100" y1="120" x2="700" y2="120" opacity="0.5"/>
+    <line x1="700" y1="120" x2="760" y2="120" stroke-dasharray="4 3" opacity="0.3"/>
+    <line x1="40" y1="170" x2="100" y2="170" stroke-dasharray="4 3" opacity="0.3"/>
+    <line x1="100" y1="170" x2="700" y2="170" opacity="0.5"/>
+    <line x1="700" y1="170" x2="760" y2="170" stroke-dasharray="4 3" opacity="0.3"/>
+    <line x1="40" y1="220" x2="100" y2="220" stroke-dasharray="4 3" opacity="0.3"/>
+    <line x1="100" y1="220" x2="700" y2="220" opacity="0.5"/>
+    <line x1="700" y1="220" x2="760" y2="220" stroke-dasharray="4 3" opacity="0.3"/>
+    <line x1="40" y1="270" x2="100" y2="270" stroke-dasharray="4 3" opacity="0.3"/>
+    <line x1="100" y1="270" x2="700" y2="270" opacity="0.5"/>
+    <line x1="700" y1="270" x2="760" y2="270" stroke-dasharray="4 3" opacity="0.3"/>
+    <line x1="40" y1="320" x2="100" y2="320" stroke-dasharray="4 3" opacity="0.3"/>
+    <line x1="100" y1="320" x2="700" y2="320" opacity="0.5"/>
+    <line x1="700" y1="320" x2="760" y2="320" stroke-dasharray="4 3" opacity="0.3"/>
+    <line x1="40" y1="370" x2="760" y2="370" stroke-dasharray="4 3" opacity="0.3"/>
+  </g>
+
+  <!-- chunk boundaries, tiled per zoom level across the whole timeline -->
+  <g>
+    <rect x="40" y="115" width="60" height="10" fill="url(#t10)" opacity="0.3"/>
+    <rect x="100" y="115" width="601" height="10" fill="url(#t10)"/>
+    <rect x="700" y="115" width="61" height="10" fill="url(#t10)" opacity="0.3"/>
+    <rect x="40" y="165" width="60" height="10" fill="url(#t20)" opacity="0.3"/>
+    <rect x="100" y="165" width="601" height="10" fill="url(#t20)"/>
+    <rect x="700" y="165" width="61" height="10" fill="url(#t20)" opacity="0.3"/>
+    <rect x="40" y="215" width="60" height="10" fill="url(#t40)" opacity="0.3"/>
+    <rect x="100" y="215" width="601" height="10" fill="url(#t40)"/>
+    <rect x="700" y="215" width="61" height="10" fill="url(#t40)" opacity="0.3"/>
+    <rect x="40" y="265" width="60" height="10" fill="url(#t80)" opacity="0.3"/>
+    <rect x="100" y="265" width="601" height="10" fill="url(#t80)"/>
+    <rect x="700" y="265" width="61" height="10" fill="url(#t80)" opacity="0.3"/>
+    <rect x="40" y="315" width="60" height="10" fill="url(#t150)" opacity="0.3"/>
+    <rect x="100" y="315" width="601" height="10" fill="url(#t150)"/>
+    <rect x="700" y="315" width="61" height="10" fill="url(#t150)" opacity="0.3"/>
+  </g>
+
+  <!-- visible segments -->
+  <line x1="391" y1="70" x2="409" y2="70" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4 3" opacity="0.45"/>
+  <line x1="380" y1="120" x2="420" y2="120" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="360" y1="170" x2="440" y2="170" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="320" y1="220" x2="480" y2="220" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="240" y1="270" x2="560" y2="270" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="100" y1="320" x2="700" y2="320" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="40" y1="370" x2="760" y2="370" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4 3" opacity="0.45"/>
+
+  <!-- visible-range envelope -->
+  <polyline points="391,70 380,120 360,170 320,220 240,270 100,320" fill="none" stroke="#3b82f6" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <polyline points="409,70 420,120 440,170 480,220 560,270 700,320" fill="none" stroke="#3b82f6" stroke-width="1.2" stroke-dasharray="4 3"/>
+  <text x="424" y="99" font-size="17" fill="#3b82f6">visible range</text>
+
+  <!-- time cursor -->
+  <line x1="400" y1="55" x2="400" y2="385" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="400" y="408" text-anchor="middle" font-size="17" fill="#3b82f6">time</text>
+
+  <!-- timeRange -->
+  <line x1="100" y1="55" x2="100" y2="385" stroke="#f59e0b" stroke-dasharray="4 3"/>
+  <line x1="700" y1="55" x2="700" y2="385" stroke="#f59e0b" stroke-dasharray="4 3"/>
+  <text x="100" y="408" text-anchor="middle" font-size="17" fill="#f59e0b">timeRange[0]</text>
+  <text x="700" y="408" text-anchor="middle" font-size="17" fill="#f59e0b">timeRange[1]</text>
+
+  <!-- zoom axis -->
+  <line x1="16" y1="320" x2="16" y2="120" stroke="#64748b" stroke-width="1.5"/>
+  <path d="M16 110 l-5 10 h10 z" fill="#64748b"/>
+  <text x="4" y="96" font-size="18" fill="#64748b">zoom</text>
+
+  <!-- zoom level labels -->
+  <text x="36" y="64" text-anchor="end" font-size="16" fill="#64748b" opacity="0.4">+3</text>
+  <text x="36" y="114" text-anchor="end" font-size="16" fill="#64748b">+2</text>
+  <text x="36" y="164" text-anchor="end" font-size="16" fill="#64748b">+1</text>
+  <text x="36" y="214" text-anchor="end" font-size="16" fill="#64748b">0</text>
+  <text x="36" y="264" text-anchor="end" font-size="16" fill="#64748b">−1</text>
+  <text x="36" y="314" text-anchor="end" font-size="16" fill="#64748b">−2</text>
+  <text x="36" y="364" text-anchor="end" font-size="16" fill="#64748b" opacity="0.4">−3</text>
+
+  <!-- zoomRange -->
+  <line x1="790" y1="120" x2="790" y2="320" stroke="#f59e0b" stroke-width="1.5"/>
+  <line x1="790" y1="120" x2="782" y2="120" stroke="#f59e0b" stroke-width="1.5"/>
+  <line x1="790" y1="320" x2="782" y2="320" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="808" y="220" text-anchor="middle" font-size="17" fill="#f59e0b" transform="rotate(90 808 220)">zoomRange [min, max]</text>
+
+  <!-- annotations -->
+  <text x="66" y="212" text-anchor="middle" font-size="16" fill="#64748b">chunk</text>
+</svg>

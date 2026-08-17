@@ -1,6 +1,7 @@
 ---
 titleTemplate: Timescope API
 ---
+
 # Timescope
 
 The `Timescope` class manages rendering, user interaction, and data processing. Instances are created via the constructor and can be reconfigured using `setOptions` or `updateOptions`.
@@ -8,7 +9,7 @@ The `Timescope` class manages rendering, user interaction, and data processing. 
 ## Constructor
 
 ```TypeScript
-new Timescope(options?: TimescopeOptions)
+new Timescope(options?: TimescopeOptionsInitial<Sources, Series, Track>)
 ```
 
 Creates a new Timescope instance with the provided options.
@@ -17,113 +18,102 @@ Creates a new Timescope instance with the provided options.
 
 All other option fields are defined in [Timescope Options](/api/timescope-options).
 
-| Key | Type | Description |
-|-----|------|-------------|
-| `time` | `TimeLike \| null` | Initial cursor time (use `setTime()` later). |
-| `timeRange` | `[TimeLike?, TimeLike?]` | Initial timeline bounds (use `setTimeRange()` later). |
-| `zoom` | `ZoomLike` | Initial zoom (use `setZoom()` later). |
-| `zoomRange` | `[ZoomLike?, ZoomLike?]` | Initial zoom limits (use `setZoomRange()` later). |
-| `target` | `HTMLElement \| string` | Mount target. |
-| `fonts` | `(string \| FontOptions)[]` | Fonts to load. |
-
+| Key                | Type                                           | Description                                           |
+| ------------------ | ---------------------------------------------- | ----------------------------------------------------- |
+| `time`             | `TimescopeTimeLike`                            | Initial cursor time (use `setTime()` later).          |
+| `timeRange`        | `[TimescopeTimeLike?, TimescopeTimeLike?]`     | Initial timeline bounds (use `setTimeRange()` later). |
+| `zoom`             | `TimescopeNumberLike`                          | Initial zoom (use `setZoom()` later).                 |
+| `zoomRange`        | `[TimescopeNumberLike?, TimescopeNumberLike?]` | Initial zoom limits (use `setZoomRange()` later).     |
+| `target`           | `HTMLElement \| string`                        | Mount target.                                         |
+| `fonts`            | `(string \| { family, source, desc? })[]`      | CSS stylesheets or font definitions to load.          |
+| `wheelSensitivity` | `number`                                       | Wheel delta per zoom level (default: `200`).          |
 
 #### Fonts
 
-Load custom fonts for rendering.
-
->[!NOTE]
-> Fonts must be loaded separately because Timescope uses Web Worker for rendering.
-
-1. URL strings:
-```TypeScript
-fonts: ['https://example.com/font.woff2']
-```
-
-2. Font objects:
-```TypeScript
-fonts: [{
-  family: 'CustomFont',
-  source: 'https://example.com/font.woff2',  // URL or ArrayBuffer
-  desc: { weight: '400', style: 'normal' },
-}]
-```
+When omitted, Timescope loads fonts declared by accessible `@font-face` rules in the document. An empty array disables document font loading. String entries are CSS stylesheet URLs; object entries contain a font family, a CSS font source or `BufferSource`, and optional `FontFaceDescriptors`.
 
 ## Properties
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `time` | `Decimal \| null` | Current cursor time |
-| `timeRange` | `[Decimal?, Decimal?]` | Time bounds |
-| `zoom` | `Decimal` | Current zoom value |
-| `zoomRange` | `[Decimal?, Decimal?]` | Zoom limits |
-| `size` | `{ x, y, width, height }` | Canvas dimensions |
-| `disabled` | `boolean` | Interaction enabled/disabled |
-| `animating` | `boolean` | Animation in progress |
-| `editing` | `boolean` | User is dragging |
-| `options` | `TimescopeOptions` | Current options |
+| Property                 | Type                                                           | Description                             |
+| ------------------------ | -------------------------------------------------------------- | --------------------------------------- |
+| `time`                   | `Decimal \| null`                                              | Current cursor time                     |
+| `timeChanging`           | `Decimal \| null`                                              | Cursor time during an active change     |
+| `timeAnimating`          | `Decimal \| null`                                              | Cursor time during animation            |
+| `timeRange`              | `[Decimal \| null \| undefined, Decimal \| null \| undefined]` | Time bounds                             |
+| `zoom`                   | `number`                                                       | Current zoom value                      |
+| `zoomChanging`           | `number`                                                       | Zoom during an active change            |
+| `zoomAnimating`          | `number`                                                       | Zoom during animation                   |
+| `zoomRange`              | `[number \| undefined, number \| undefined]`                   | Zoom limits                             |
+| `selectionRange`         | `[Decimal, Decimal] \| null`                                   | Current selection range                 |
+| `selectionRangeChanging` | `[Decimal, Decimal] \| null`                                   | Selection range during an active change |
+| `size`                   | `{ x, y, width, height, dpr }`                                 | Canvas position, dimensions, and DPR    |
+| `disabled`               | `boolean`                                                      | Interaction enabled/disabled            |
+| `animating`              | `boolean`                                                      | Cursor-time animation in progress       |
+| `editing`                | `boolean`                                                      | Cursor time is being edited             |
+| `options`                | `TimescopeOptions`                                             | Current reconfigurable options          |
 
 ## Methods
 
-| Method | Purpose |
-|--------|---------|
-| `setTime(value, animation?)` | Update the cursor time. Pass `null` to follow "now". See [Animation](#animation). |
-| `setTimeRange(range?)` | Constrain the time domain. Pass `undefined` to restore defaults. |
-| `setZoom(value, animation?)` | Set zoom programmatically. See [Animation](#animation). |
-| `setZoomRange(range?)` | Clamp zoom to `[min, max]`. |
-| `fitTo(range, options?)` | Center and zoom to show `[start, end]` fully. |
-| `setSelection(range?)` | Highlight `[start, end]` on the canvas; emits range events while the selection overlay updates. |
-| `clearSelection()` | Remove the selection overlay. |
-| `setOptions(next)` | Replace style, sources, or series at runtime. |
-| `updateOptions(next)` | Merge partial option changes (e.g., swap a single chart) without recreating the whole Timescope instance. |
-| `mount(target)` | Append the canvas to a selector or element. Returns `this`. |
-| `unmount()` | Remove the canvas without destroying the renderer. |
-| `dispose()` | Dispose the Timescope instance and clean up all resources. |
-| `on(event, handler)` | Subscribe to events. Returns an unsubscribe function. |
+| Method                       | Purpose                                                                                                              |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `setTime(value, animation?)` | Update the cursor time. Pass `null` to follow "now". See [Animation](#animation).                                    |
+| `setTimeRange(range?)`       | Constrain the time domain. Pass `undefined` to restore defaults.                                                     |
+| `setZoom(value, animation?)` | Set zoom programmatically. See [Animation](#animation).                                                              |
+| `setZoomRange(range?)`       | Clamp zoom to `[min, max]`.                                                                                          |
+| `fitTo(range, options?)`     | Center and zoom to show `[start, end]` fully.                                                                        |
+| `setPlaybackTime(value)`     | Set the live-clock value used while `time` is `null`.                                                                |
+| `latchFrame()`               | Apply time, zoom, and playback changes together. See [Frame synchronization](/guide/concepts#frame-synchronization). |
+| `setSelectionRange(range)`   | Highlight `[start, end]` on the canvas. Pass `null` to clear it.                                                     |
+| `clearSelectionRange()`      | Remove the selection overlay.                                                                                        |
+| `setOptions(next)`           | Replace style, sources, or series at runtime.                                                                        |
+| `updateOptions(next)`        | Merge partial option changes (e.g., swap a single chart) without recreating the whole Timescope instance.            |
+| `reload(sources?)`           | Invalidate all cached chunks for selected sources. Mutable sources normally invalidate themselves.                   |
+| `redraw()`                   | Request a renderer redraw.                                                                                           |
+| `mount(target)`              | Append the canvas to a selector or element. Returns `this`.                                                          |
+| `unmount()`                  | Remove the canvas from its mount target.                                                                             |
+| `dispose()`                  | Release resources when Timescope is no longer needed.                                                                |
+| `on(event, handler)`         | Subscribe to events. Returns an unsubscribe function.                                                                |
 
-`setOptions` replaces the entire configuration. `updateOptions` merges partial changes, which is more efficient for incremental updates like toggling chart presets.
+`setOptions()` replaces the current configurable options. `updateOptions()` applies partial changes while retaining omitted options.
 
 ### Animation
 
-The `animation` parameter in `setTime()` and `setZoom()` controls transition behavior:
+| Value                            | Behavior                                 |
+| -------------------------------- | ---------------------------------------- |
+| `false`                          | Change immediately.                      |
+| `'in-out'`                       | Animate with a smooth start and end.     |
+| `'linear'`                       | Animate at a constant rate.              |
+| `'out'`                          | Animate with a slowing finish.           |
+| `{ animation, duration, lazy? }` | Set easing and duration in milliseconds. |
 
-```TypeScript
-// No animation (instant change)
-timescope.setTime(100, false);
-
-// Animated with default easing ('in-out') and duration (500ms)
-timescope.setTime(100, 'in-out');
-
-// Other easing types
-timescope.setTime(100, 'linear');
-timescope.setTime(100, 'out');
-
-// Custom duration
-timescope.setTime(100, { animation: 'in-out', duration: 1000 });
-```
-
-Available easing types:
-- `'in-out'` — Smooth start and end (default)
-- `'linear'` — Constant speed
-- `'out'` — Fast start, slow end
-- `false` — No animation
+When omitted, `setTime()` uses `'out'` for 500 ms and `setZoom()` uses `'linear'` for 200 ms. Explicit easing strings use 500 ms.
 
 ## Events
 
-| Event | Payload | Timing |
-|-------|---------|--------|
-| `timechanging` | `Decimal \| null` | Fired continuously while time changes. |
-| `timechanged` | `Decimal \| null` | Fired once when time settles. |
-| `zoomchanging` | `number` | Fired continuously while zoom changes. |
-| `zoomchanged` | `number` | Fired once when zoom settles. |
-| `selectionchanging` | `[Decimal, Decimal]` | Fired while a selection range is being resized. |
-| `selectionchanged` | `[Decimal, Decimal] \| null` | Fired after selection settles or clears. |
+| Event                    | `event.value`                | Timing                                             |
+| ------------------------ | ---------------------------- | -------------------------------------------------- |
+| `timechanging`           | `Decimal \| null`            | Fired while the cursor time is changing.           |
+| `timechanged`            | `Decimal \| null`            | Fired when the cursor time changes.                |
+| `timeanimating`          | `Decimal \| null`            | Fired for cursor-time values during animation.     |
+| `timeanimated`           | `Decimal \| null`            | Fired when cursor-time animation finishes.         |
+| `zoomchanging`           | `number`                     | Fired while zoom is changing.                      |
+| `zoomchanged`            | `number`                     | Fired when zoom changes.                           |
+| `zoomanimating`          | `number`                     | Fired for zoom values during animation.            |
+| `zoomanimated`           | `number`                     | Fired when zoom animation finishes.                |
+| `selectionrangechanging` | `[Decimal, Decimal] \| null` | Fired while the selection range is changing.       |
+| `selectionrangechanged`  | `[Decimal, Decimal] \| null` | Fired when the selection range changes or clears.  |
+| `load`                   | `'load'`                     | The mounted canvas first acquired a non-zero size. |
+| `mount`                  | `'mount'`                    | A canvas was mounted.                              |
+| `unmount`                | `'unmount'`                  | A mounted canvas was removed.                      |
+| `resize`                 | `'resize'`                   | Canvas size or device pixel ratio changed.         |
+| `change`                 | `'change'`                   | Observable state changed.                          |
 
-Range events are emitted when the selection overlay is active. Enable selection via the `selection` option or `setSelection()` method.
+Selection is resizable by default. Shift-drag creates a range; set `selection: false` to disable it. The methods above also update the overlay programmatically.
 
-Event handlers receive an object with a `value` property. The `on` method returns an unsubscribe function.
+Value events call the handler with `{ type, value, origin? }`. Lifecycle and `change` events call it with the event-name string. `on()` returns an unsubscribe function.
 
 ## See Also
 
 - [Timescope Options](/api/timescope-options)
-- [Chunk Loading guide](/guide/chunk-loading)
-- [Events guide](/guide/events)
+- [Chunk Loading](/guide/concepts#chunk-loading)
+- [Events example](/guide/examples/events)

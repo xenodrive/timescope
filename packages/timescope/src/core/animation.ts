@@ -5,7 +5,12 @@ export type TimescopeAnimationType = 'in-out' | 'linear' | 'out';
 export type TimescopeAnimationInput =
   | false
   | TimescopeAnimationType
-  | { animation: TimescopeAnimationType | false; duration: number; lazy?: boolean };
+  | {
+      animation: TimescopeAnimationType | false;
+      duration: number;
+      lazy?: boolean;
+      tangent?: number;
+    };
 
 export type TimescopeAnimationOptions = {
   origin: () => number;
@@ -14,8 +19,7 @@ export type TimescopeAnimationOptions = {
   update: (value: number, ratio: number) => void;
   done?: (value: number) => void;
   duration?: number;
-
-  overshoot?: number;
+  tangent?: number;
 };
 
 const requestAnimationFrame =
@@ -33,15 +37,14 @@ export class TimescopeAnimation {
 
     this.#done = () => opts.done?.(opts.target());
 
-    const c = opts.overshoot ?? 0;
-
     const duration = opts.duration ?? 500;
+    const tangent = opts.tangent ?? 3;
     const started = performance.now();
     const easingFn = opts.animation
       ? {
           linear: (t: number) => t,
           'in-out': (t: number) => t * t * t * (t * (t * 6 - 15) + 10),
-          out: (t: number) => 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2),
+          out: (t: number) => tangent * t * Math.pow(1 - t, 2) + t * t * (3 - 2 * t),
         }[String(opts.animation)]
       : null;
 
@@ -69,12 +72,14 @@ export class TimescopeAnimation {
   }
 
   done() {
+    const done = this.#done;
     this.cancel();
-    this.#done?.();
+    this.#done = undefined;
+    done?.();
   }
 
   cancel() {
-    if (!this.#id) return;
+    if (this.#id === null) return;
     cancelAnimationFrame(this.#id);
     this.#id = null;
   }
@@ -93,10 +98,19 @@ export class TimescopeAnimatedValue extends TimescopeObservable {
   #value: number | null | undefined;
   #ratio: number = 1;
 
-  setValue(v: number, opts: Pick<TimescopeAnimationOptions, 'animation' | 'duration' | 'overshoot'> = {}) {
+  setValue(v: number, opts: Pick<TimescopeAnimationOptions, 'animation' | 'duration' | 'tangent'> = {}) {
     if (v === this.#target) return;
 
-    this.#origin = this.#value;
+    return this.tween(undefined, v, opts);
+  }
+
+  tween(
+    o: number | undefined | null,
+    v: number,
+    opts: Pick<TimescopeAnimationOptions, 'animation' | 'duration' | 'tangent'> = {},
+  ) {
+    this.#anim.cancel();
+    this.#origin = o ?? this.#value;
     this.#target = v;
 
     const done = () => {

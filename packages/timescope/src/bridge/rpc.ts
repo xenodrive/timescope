@@ -58,12 +58,11 @@ export function defineCalls<C extends Commands>(target: WorkerMessagePort) {
     } = { rpc: false },
   ) {
     const seq = ++_seq;
-    target.postMessage(
-      { type: opts.rpc ? 'rpc' : 'event', command, seq, payload: serialize(payload, opts.transfer) },
-      opts.transfer ?? [],
-    );
-
-    if (!opts.rpc) return Promise.resolve() as CommandResult<C, K>;
+    const message = { type: opts.rpc ? ('rpc' as const) : ('event' as const), command, seq, payload };
+    if (!opts.rpc) {
+      target.postMessage(message, opts.transfer ?? []);
+      return Promise.resolve() as CommandResult<C, K>;
+    }
 
     return new Promise<CommandResult<C, K>>((resolve) => {
       const handler = (ev: MessageEvent<WorkerMessage<C, CommandResult<C, K>>>) => {
@@ -73,90 +72,30 @@ export function defineCalls<C extends Commands>(target: WorkerMessagePort) {
         }
       };
       target.addEventListener('message', handler);
+      target.postMessage(message, opts.transfer ?? []);
     });
   };
 }
 
-export function listenCalls<C extends Commands>(target: WorkerMessagePort, recvCommands: C) {
+export function listenCalls<C extends Commands>(
+  target: WorkerMessagePort,
+  recvCommands: C,
+  transferResult?: (command: CommandNames<C>, result: CommandResult<C>) => Transferable[],
+) {
   target.addEventListener(
     'message',
     async ({ data: { type, command, seq, payload } }: MessageEvent<WorkerMessage<C, CommandPayload<C>>>) => {
       const result =
-        (command in recvCommands && (await (recvCommands[command](unserialize(payload)) as CommandResult<C>))) || null;
+        command in recvCommands ? await (recvCommands[command](unserialize(payload)) as CommandResult<C>) : null;
       if (type === 'rpc') {
-        target.postMessage({ type: 'rpc:ack', command, seq, payload: serialize(result) });
+        target.postMessage(
+          { type: 'rpc:ack', command, seq, payload: result },
+          result == null ? [] : (transferResult?.(command, result) ?? []),
+        );
       }
     },
   );
   return recvCommands;
-}
-
-function cloneStructured(value: any, transfer: Transferable[] | undefined, seen?: WeakSet<object>): any {
-  if (value == null) return value;
-
-  const valueType = typeof value;
-  if (valueType === 'string' || valueType === 'number' || valueType === 'boolean' || valueType === 'bigint') {
-    return value;
-  }
-
-  if (valueType === 'undefined' || valueType === 'symbol' || valueType === 'function') {
-    return undefined;
-  }
-
-  if (value instanceof Date || value instanceof RegExp || ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
-    return value;
-  }
-
-  if (transfer?.includes(value)) {
-    return value;
-  }
-
-  if (Decimal.isDecimal(value)) {
-    return { coeff: value.coeff, digits: value.digits };
-  }
-
-  if (seen?.has(value)) {
-    throw new TypeError('Cannot serialize circular reference');
-  }
-
-  seen?.add(value);
-
-  if (typeof value.toJSON === 'function') {
-    const jsonValue = value.toJSON();
-    if (jsonValue !== value) {
-      const result = cloneStructured(jsonValue, transfer, seen);
-      seen?.delete(value);
-      return result;
-    }
-  }
-
-  if (Array.isArray(value)) {
-    const result = new Array(value.length);
-    for (let index = 0; index < value.length; index++) {
-      const entry = cloneStructured(value[index], transfer, seen);
-      result[index] = entry;
-    }
-    seen?.delete(value);
-    return result;
-  }
-
-  if (value instanceof Date || value instanceof RegExp || ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
-    seen?.delete(value);
-    return value;
-  }
-
-  const result: Record<string, unknown> = {};
-  for (const key of Object.keys(value)) {
-    const entry = cloneStructured(value[key], transfer, seen);
-    result[key] = entry;
-  }
-
-  seen?.delete(value);
-  return result;
-}
-
-export function serialize(obj: any, transfer?: Transferable[]): any {
-  return cloneStructured(obj, transfer); //, new WeakSet());
 }
 
 function isDecimalLike(value: unknown) {
@@ -165,11 +104,12 @@ function isDecimalLike(value: unknown) {
     value != null &&
     'coeff' in value &&
     'digits' in value &&
-    typeof value.coeff === 'bigint'
+    typeof value.coeff === 'bigint' &&
+    typeof value.digits === 'number'
   );
 }
 
-function unserialize(value: any): any {
+export function unserialize(value: any, seen = new WeakMap<object, any>()): any {
   if (value == null) return value;
 
   const valueType = typeof value;
@@ -178,32 +118,28 @@ function unserialize(value: any): any {
   }
 
   if (valueType === 'undefined' || valueType === 'symbol' || valueType === 'function') {
-    return undefined;
-  }
-
-  if (value instanceof Date || value instanceof RegExp || ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
     return value;
   }
 
-  if (typeof OffscreenCanvas !== 'undefined' && value instanceof OffscreenCanvas) {
-    return value;
-  }
-
+  if (Decimal.isDecimal(value)) return value;
+  const existing = seen.get(value);
+  if (existing) return existing;
   if (isDecimalLike(value)) {
-    return Decimal(value);
+    const decimal = Decimal(value);
+    seen.set(value, decimal);
+    return decimal;
   }
 
   if (Array.isArray(value)) {
-    return value.map(unserialize);
+    seen.set(value, value);
+    for (let index = 0; index < value.length; index++) value[index] = unserialize(value[index], seen);
+    return value;
   }
 
-  if (value && typeof value === 'object') {
-    const obj: Record<string, any> = {};
-    for (const key of Object.keys(value)) {
-      obj[key] = unserialize(value[key]);
-    }
-    return obj;
-  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return value;
 
+  seen.set(value, value);
+  for (const key in value) value[key] = unserialize(value[key], seen);
   return value;
 }

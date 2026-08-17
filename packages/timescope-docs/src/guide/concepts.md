@@ -1,185 +1,65 @@
 # Core Concepts
 
-Timescope provides time navigation and time-series visualization capabilities.
+Timescope-specific concepts. See the [API reference](/api/timescope) for configuration details.
 
-- Infinite zooming and scrolling using [`Decimal`](https://www.npmjs.com/package/@kikuchan/decimal) for arbitrary-precision arithmetic
-- Time-series data visualization with configurable marks and links
-- Chunk-based data loading based on viewport and zoom level
-- Declarative configuration for visual rendering and interaction behavior
+- The time axis supports infinite, arbitrary-precision navigation.
+- Charts are composed of marks (per row) and links (between rows).
+- Data is loaded in viewport-driven chunks.
 
-```mermaid
-graph TD
-    classDef subgraphFill fill:#f8fafc,stroke:#cbd5e1,color:#0f172a
+## Infinite time navigation
 
-    Time[(Time)]
-    Zoom[(Zoom)]
-    TimeRange([Time Range])
-    ZoomRange([Zoom Range])
-    Src1[(Source)]
-    Src2[(Source)]
-    Series1([Series])
-    Series2([Series])
-    Series3([Series])
-    Track1(Track)
-    Track2(Track)
+The time axis has no fixed precision or scale. By default, the past is unbounded and the future ends at the live clock. Set `timeRange: [undefined, undefined]` to navigate without bounds in either direction.
 
-    subgraph DataFlow["Data flow"]
-        direction TB
-        Src1 --> Series1
-        Src1 --> Series2
-        Src2 --> Series3
+The view is centered on `time`, which follows the live clock when set to `null`. Numeric time uses seconds by default. Date and ISO string inputs are represented as Unix time. Increasing `zoom` by one halves the visible range and time per pixel; decreasing it by one doubles both.
 
-        Series1 --> Track1
-        Series2 --> Track2
-        Series3 --> Track2
-    end
+`timeRange` / `zoomRange` optionally clamp the navigable range and zoom levels.
 
-    subgraph TimescopeState["Timescope state"]
-        direction BT
+![time, timeRange, zoom, zoomRange relationships](./assets/time-zoom.svg)
 
-        TimeRange -.-> Time
-        ZoomRange -.-> Zoom
-    end
+## Marks and links
 
-    class DataFlow,TimescopeState subgraphFill
+A series' chart is not chosen as a whole; it is composed from two primitive families:
 
-```
+- **marks** — drawn per row: circle, bar, section, text, icon, path…
+- **links** — drawn between rows: line, curve, step, or an area between two values…
 
-## Timescope state
+Primitives pick their coordinates with `using` selectors such as `'value@time'`, `'@start'`, `['min', 'max']`, and `'#zero'`. See [Using Selectors](/api/timescope-options#using-selectors).
 
-- `time` — Cursor position. `null` follows current time.
-- `zoom` — Logarithmic zoom level (higher = more detail)
-```TypeScript
-time: new Date(),
-zoom: 3,
-```
+Tracks stack series vertically over a shared time axis. A domain is the value scale behind a Y axis, shared by every series that references it.
 
->[!NOTE]
-> Timescope accepts any scalar unit (seconds, samples, frames). Values are converted to `Decimal` internally for precise arithmetic. The default `timeAxis` assumes seconds. When using custom units, configure the axis formatter accordingly and ensure consistency across loader outputs, `setTime()` calls, and selection ranges.
+![Series anatomy: marks, links, tracks, domains](./assets/series-anatomy.svg)
 
-### Time Range
+## Data sources
 
-Control navigable time bounds.
+Inline arrays provide fixed data. Use `createDataSource()` when rows need to be appended or replaced. URLs and loaders can provide either complete snapshots or viewport-sized chunks.
 
-```TypeScript
-timeRange: [min, max],
-```
+`decoder` converts loaded payloads to Timescope rows. `mappings` maps payload paths to named time and value fields. Snapshot reducers provide aggregate fields such as `value#avg`, `value#min`, and `value#max` for point rows; interval rows remain unchanged.
 
-- `null` means "now".
-- `undefined` means unbounded.
-- `[undefined, 100]` — From negative infinity to 100.
-- `[0, undefined]` — From 0 to positive infinity.
-- `[null, null]` — Locked to current time.
+## Chunk loading
 
-### Zoom Range
+The timeline is tiled into chunks of `chunkSize` selected-resolution intervals. For each visible region, Timescope resolves the current time per pixel through the series' `data.resolution` option, then snaps it to a resolution available from the source. Zooming can therefore re-request the same region at a different source interval.
 
-Constrain zoom levels.
+A chunked loader receives the requested `range` and `resolution`. Return rows at a density matching that resolution. Responses are cached; `api.expiresIn()` sets their lifetime.
 
-```TypeScript
-zoomRange: [min, max],
-```
+Rows overlapping the chunk range are owned by that chunk (marks, tooltips). Also return the 1–2 nearest rows on each side — links need them to continue across boundaries.
 
-- `undefined` means unbounded.
-- `[0, 10]` — Limit zoom between 0 and 10.
-- `[undefined, 5]` — No minimum, maximum 5.
+![Chunk loader: inbound range versus outbound rows](./assets/chunk-context.svg)
 
+## Data pipeline
 
-## Data Sources
+Sources provide rows with `time` or named `times`, `value` or named `values`, and optional `data` metadata:
 
-Data source can be provided in multiple ways:
-- Simple plain object
-- URL string for JSON
-- Custom loader function for chunk-loading
+![Data pipeline: acquisition, transform, canonical rows, reducer](./assets/data-pipeline.svg)
 
-```TypeScript
-sources: {
-  telemetry: {
-    loader: async (chunk, api) => {
-      api.expiresIn(60_000);
-      const start = chunk.range[0]?.number() ?? 0;
-      const end = chunk.range[1]?.number() ?? start + 60;
-      return fetch(`/api?start=${start}&end=${end}`).then((r) => r.json());
-    },
-    chunkSize: 256,
-  },
-  snapshot: { url: '/api/snapshot.json' },
-  inline: [
-    { startedAt: 0, value: 22 },
-    { startedAt: 60, value: 25 },
-  ],
-}
-```
+- Built-in source configuration uses one of `data`, `url`, or `loader`.
+- Snapshot sources support reducers (`min-max-avg`, `percentiles`).
+- Chunked sources load visible ranges as needed — see [Chunk loading](#chunk-loading).
+- `decoder` or `mappings` optionally transform payloads into canonical rows (mutually exclusive).
 
-## Series
+Series bind those rows to charts on tracks — see [Marks and links](#marks-and-links).
 
-Map source data to visual marks and links. Each series follows this flow:
+## Frame synchronization
 
-```mermaid
-flowchart LR
-  classDef subgraphFill fill:#f8fafc,stroke:#cbd5e1,color:#0f172a
-  Source[(Source)]
-  Track(Track)
+`latchFrame()` groups time, zoom, and playback-time changes so they appear together. It is available after mounting and only one latch can be active at a time.
 
-  subgraph Series
-      Parser["<p style='line-height:1.2'>Parser<br />(optional)</p>"]
-      Mapping["<p style='line-height:1.2'>time/value<br />Mappings</p>"]
-      MarksAndLinks["<p style='line-height:1.2'>Marks &amp; Links<br />by <code style='padding:0'>&nbsp;using&nbsp;</code> selector</p>"]
-  end
-  class Series subgraphFill
-
-  Source --> Parser
-  Parser --> Mapping
-  Mapping --> MarksAndLinks
-  MarksAndLinks --> Track
-```
-
-- **Parser** — (optional) reshapes the raw source but must return an array of plain objects.
-- **Mappings** — describe how parsed object expose timestamps and numeric metrics.
-- **Marks** — symbols for each data point.
-- **Links** — connections between data points.
-
-```TypeScript
-series: {
-  temperature: {
-    data: {
-      source: 'telemetry',
-      time: ['time'],
-      value: ['min', 'value', 'max'],
-    },
-    chart: {
-      marks: [{ draw: 'circle' }],
-      links: [{ draw: 'area', using: ['min', 'max'] }],
-    },
-  },
-}
-```
-
-### `using` selectors
-
-`using` strings pick which data fields to draw:
-
-```
-'valueKey@timeKey'
-```
-
-- `valueKey` — Which `value` field to use (defaults to `'value'`).
-- `timeKey` — Which `time` field to use (defaults to `'time'`).
-- `'@start'` is shorthand for `'value@start'`.
-
-Use tuples like `['value@start', 'value@end']` when a primitive needs two coordinates. The special key `'zero'` references the axis.
-
-## Tracks
-
-Organize series into vertical sections.
-
-```TypeScript
-tracks: {
-  overview: { timeAxis: false },
-  detail: {
-    timeAxis: {
-      labels: { color: '#94a3b8', fontSize: '12px' },
-      timeFormat: ({ time }) => new Date(time.mul(1000).number()).toLocaleTimeString(),
-    },
-  },
-}
-```
+Call the setters after creating the latch, then call `commit()` to apply the grouped change. `commit()` returns a Promise. Call `abort()` to discard a pending change. Starting an incompatible operation may also abort the latch; use its `signal` or handle an `AbortError` when cancellation matters.

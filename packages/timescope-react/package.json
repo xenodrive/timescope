@@ -16,17 +16,17 @@
     "import": "./src/index.ts"
   },
   "devDependencies": {
-    "@kikuchan/calendar": "^0.0.1-alpha.2",
-    "@kikuchan/decimal": "^0.1.0-alpha.7",
-    "@types/react": "^19.2.9",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.2",
+    "@kikuchan/calendar": "^0.0.1-alpha.4",
+    "@kikuchan/decimal": "^0.1.0-alpha.10",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.26",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.6",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "dependencies": {
     "timescope": "workspace:*"

@@ -24,15 +24,15 @@
     }
   },
   "devDependencies": {
-    "@kikuchan/calendar": "^0.0.1-alpha.2",
-    "@kikuchan/decimal": "^0.1.0-alpha.7",
-    "@sveltejs/package": "^2.5.7",
-    "@sveltejs/vite-plugin-svelte": "^6.2.4",
-    "eslint-plugin-svelte": "^3.14.0",
-    "prettier-plugin-svelte": "^3.4.1",
-    "publint": "^0.3.17",
-    "svelte": "^5.48.0",
-    "svelte-preprocess": "^6.0.3"
+    "@kikuchan/calendar": "^0.0.1-alpha.4",
+    "@kikuchan/decimal": "^0.1.0-alpha.10",
+    "@sveltejs/package": "^2.5.8",
+    "@sveltejs/vite-plugin-svelte": "^7.3.0",
+    "eslint-plugin-svelte": "^3.23.0",
+    "prettier-plugin-svelte": "^4.1.1",
+    "publint": "^0.3.24",
+    "svelte": "^5.57.0",
+    "svelte-preprocess": "^6.0.5"
   },
   "peerDependencies": {
     "@kikuchan/calendar": "^0.0.1-alpha.2",

@@ -1,7 +1,3 @@
----
-title: Chart Presets
-titleTemplate: Timescope Examples
----
 <script setup>
 import Example from '@/guide/examples/chart-presets.vue';
 import { ref } from 'vue';
@@ -44,47 +40,67 @@ const chart = ref('linespoints');
 <Example v-model="chart" />
 
 ## Code
-```TypeScript-vue{8}
-new Timescope({
-     :
+
+```TypeScript
+import { Timescope, type TimescopeChartType } from 'timescope';
+
+const timescope = new Timescope({
+  target: '#timescope',
+  time: 0.5,
+  zoom: 6,
+  sources: {
+    samples: [
+      { time: 0, value: 1 },
+      { time: 1, value: 2 },
+    ],
+  },
   series: {
     temperature: {
-      data: {
-        source: 'samples',
-      },
-      chart: '{{ chart }}',
+      data: { source: 'samples' },
+      chart: 'linespoints',
     },
   },
-     :
-})
+  tracks: { default: { timeAxis: { relative: true } } },
+});
+
+function setChart(chart: TimescopeChartType) {
+  timescope.updateOptions({
+    series: {
+      temperature: {
+        data: { source: 'samples' },
+        chart,
+      },
+    },
+  });
+}
 ```
 
 ## Presets
 
-| Chart preset | Marks | Links |
-| --- | --- | --- |
-| `lines` | – | `line` |
-| `lines:filled` | – | `area`, `line` |
-| `curves` | – | `curve` |
-| `curves:filled` | – | `curve-area`, `curve` |
-| `steps-start` | – | `step-start` |
-| `steps-start:filled` | – | `step-area-start`, `step-start` |
-| `steps` | – | `step` |
-| `steps:filled` | – | `step-area`, `step` |
-| `steps-end` | – | `step-end` |
-| `steps-end:filled` | – | `step-area-end`, `step-end` |
-| `points` | `circle` | – |
-| `linespoints` | `circle` | `line` |
-| `linespoints:filled` | `circle` | `area`, `line` |
-| `curvespoints` | `circle` | `curve` |
-| `curvespoints:filled` | `circle` | `curve-area`, `curve` |
-| `stepspoints-start` | `circle` | `step-start` |
-| `stepspoints-start:filled` | `circle` | `step-area-start`, `step-start` |
-| `stepspoints` | `circle` | `step` |
-| `stepspoints:filled` | `circle` | `step-area`, `step` |
-| `stepspoints-end` | `circle` | `step-end` |
-| `stepspoints-end:filled` | `circle` | `step-area-end`, `step-end` |
-| `impulses` | `line` (using `value`, `zero`) | – |
-| `impulsespoints` | `line` (using `value`, `zero`), `circle` | – |
-| `bars` | `bar` (using `value`, `zero`; fill `transparent`) | – |
-| `bars:filled` | `bar` (using `value`, `zero`) | – |
+| Chart preset               | Marks                                              | Links                           |
+| -------------------------- | -------------------------------------------------- | ------------------------------- |
+| `lines`                    | –                                                  | `line`                          |
+| `lines:filled`             | –                                                  | `area`, `line`                  |
+| `curves`                   | –                                                  | `curve`                         |
+| `curves:filled`            | –                                                  | `curve-area`, `curve`           |
+| `steps-start`              | –                                                  | `step-start`                    |
+| `steps-start:filled`       | –                                                  | `step-area-start`, `step-start` |
+| `steps`                    | –                                                  | `step`                          |
+| `steps:filled`             | –                                                  | `step-area`, `step`             |
+| `steps-end`                | –                                                  | `step-end`                      |
+| `steps-end:filled`         | –                                                  | `step-area-end`, `step-end`     |
+| `points`                   | `circle`                                           | –                               |
+| `linespoints`              | `circle`                                           | `line`                          |
+| `linespoints:filled`       | `circle`                                           | `area`, `line`                  |
+| `curvespoints`             | `circle`                                           | `curve`                         |
+| `curvespoints:filled`      | `circle`                                           | `curve-area`, `curve`           |
+| `stepspoints-start`        | `circle`                                           | `step-start`                    |
+| `stepspoints-start:filled` | `circle`                                           | `step-area-start`, `step-start` |
+| `stepspoints`              | `circle`                                           | `step`                          |
+| `stepspoints:filled`       | `circle`                                           | `step-area`, `step`             |
+| `stepspoints-end`          | `circle`                                           | `step-end`                      |
+| `stepspoints-end:filled`   | `circle`                                           | `step-area-end`, `step-end`     |
+| `impulses`                 | `line` (using `value`, `#zero`)                    | –                               |
+| `impulsespoints`           | `line` (using `value`, `#zero`), `circle`          | –                               |
+| `bars`                     | `bar` (using `value`, `#zero`; fill `transparent`) | –                               |
+| `bars:filled`              | `bar` (using `value`, `#zero`)                     | –                               |

@@ -40,6 +40,8 @@ export type TimescopeSize = {
   width: number;
   /** Canvas height in CSS pixels. */
   height: number;
+  /** Device pixel ratio used for rendering. */
+  dpr: number;
 };
 
 type TimescopeUpdateOptions<
@@ -54,6 +56,27 @@ export type TimescopeFitOptions = {
   animation?: boolean;
   padding?: number | [l: number, r: number];
 };
+
+export type TimescopeFrameLatch = {
+  readonly signal: AbortSignal;
+  commit(): Promise<void>;
+  abort(reason?: unknown): void;
+};
+
+type ActiveFrameLatch = {
+  controller: AbortController;
+  state: 'open' | 'committing' | 'finished';
+  superseded?: boolean;
+  reject?: (reason: unknown) => void;
+  time?: { value: Decimal | null; animation: TimescopeAnimationInput };
+  zoom?: { value: Decimal; animation: TimescopeAnimationInput };
+  playbackTime?: Decimal | null;
+  promise?: Promise<void>;
+};
+
+function abortError() {
+  return new DOMException('The frame latch was aborted', 'AbortError');
+}
 
 export class Timescope<
   Sources extends Record<string, TimescopeSourceInput> = Record<string, TimescopeSourceInput>,
@@ -72,23 +95,24 @@ export class Timescope<
   | TimescopeEvent<'zoomchanged', number>
   | TimescopeEvent<'zoomanimating', number>
   | TimescopeEvent<'zoomanimated', number>
-  | TimescopeEvent<'selectedrangechanging', TimescopeRange<Decimal> | null>
-  | TimescopeEvent<'selectedrangechanged', TimescopeRange<Decimal> | null>
+  | TimescopeEvent<'selectionrangechanging', TimescopeRange<Decimal> | null>
+  | TimescopeEvent<'selectionrangechanged', TimescopeRange<Decimal> | null>
 > {
   #element: HTMLCanvasElement | null = null;
   #renderer: TimescopeWorkerRenderer | null = null;
   #interactionManager: InteractionManager | null = null;
 
   #state: TimescopeState;
-  #selectedRange: TimescopeRange<Decimal> | null = null;
-  #selectedRangeChanging: TimescopeRange<Decimal> | null = null;
+  #selectionRange: TimescopeRange<Decimal> | null = null;
+  #selectionRangeChanging: TimescopeRange<Decimal> | null = null;
 
   #options: TimescopeOptions;
-  #fonts: (string | TimescopeFont)[];
+  #fonts: (string | TimescopeFont)[] | undefined;
 
   #wheelSensitivity;
 
   #loaded = false;
+  #frameLatch: ActiveFrameLatch | null = null;
 
   get time(): Decimal | null {
     return this.#state.time.committing?.clone() ?? null;
@@ -99,6 +123,14 @@ export class Timescope<
   }
 
   setTime(v: TimeLike | null, animation?: TimescopeAnimationInput) {
+    if (this.#frameLatch?.state === 'committing') this.#supersedeFrameLatch();
+    else if (this.#frameLatch?.state === 'finished') this.#frameLatch.superseded = true;
+    if (this.#frameLatch?.state === 'open') {
+      const target = this.#state.resolveTimeTarget(v, animation);
+      if (!target) return false;
+      this.#frameLatch.time = target;
+      return true;
+    }
     return this.#state.setTime(v, animation);
   }
 
@@ -117,10 +149,17 @@ export class Timescope<
   }
 
   setTimeRange(domain?: TimescopeRange<TimeLike | null | undefined>) {
+    if (this.#frameLatch) this.#supersedeFrameLatch();
     this.#state.setTimeRange(domain);
   }
 
   setPlaybackTime(t: TimeLike<null>) {
+    if (this.#frameLatch?.state === 'committing') this.#supersedeFrameLatch();
+    else if (this.#frameLatch?.state === 'finished') this.#frameLatch.superseded = true;
+    if (this.#frameLatch?.state === 'open') {
+      this.#frameLatch.playbackTime = parseTimeLike(t);
+      return;
+    }
     this.#state.setPlaybackTime(t);
   }
 
@@ -133,7 +172,99 @@ export class Timescope<
   }
 
   setZoom(v: ZoomLike, animation?: TimescopeAnimationInput) {
+    if (this.#frameLatch?.state === 'committing') this.#supersedeFrameLatch();
+    else if (this.#frameLatch?.state === 'finished') this.#frameLatch.superseded = true;
+    if (this.#frameLatch?.state === 'open') {
+      const target = this.#state.resolveZoomTarget(v, animation);
+      if (!target) return false;
+      this.#frameLatch.zoom = target;
+      return true;
+    }
     return this.#state.setZoom(v, animation);
+  }
+
+  latchFrame(): TimescopeFrameLatch {
+    if (this.#frameLatch) throw new DOMException('A frame latch is already active', 'InvalidStateError');
+    if (!this.#renderer) throw new DOMException('Timescope is not mounted', 'InvalidStateError');
+
+    const latch: ActiveFrameLatch = {
+      controller: new AbortController(),
+      state: 'open',
+    };
+    this.#frameLatch = latch;
+
+    const commit = () => {
+      if (latch.promise) return latch.promise;
+      if (latch.state === 'finished') {
+        latch.promise = Promise.reject(latch.controller.signal.reason ?? abortError());
+        return latch.promise;
+      }
+
+      latch.state = 'committing';
+      const transaction = Promise.resolve().then(async () => {
+        latch.controller.signal.throwIfAborted();
+        this.#renderer!.latchFrame();
+        const prepared = await this.#renderer!.prepareFrame(
+          {
+            ...(latch.time ? { time: latch.time.value } : {}),
+            ...(latch.zoom ? { zoom: latch.zoom.value } : {}),
+            ...(latch.playbackTime !== undefined ? { playbackTime: latch.playbackTime } : {}),
+          },
+          latch.controller.signal,
+        );
+        if (!prepared.ok) throw latch.controller.signal.reason ?? new Error(prepared.message);
+        if (latch.superseded) throw latch.controller.signal.reason ?? abortError();
+
+        if (latch.playbackTime !== undefined) this.#state.setPlaybackTime(latch.playbackTime);
+        if (latch.time) this.#state.setTime(latch.time.value, latch.time.animation);
+        if (latch.zoom) this.#state.setZoom(latch.zoom.value, latch.zoom.animation);
+
+        // State sync events use microtasks. Flush them before committing so the
+        // worker applies the transaction state before presenting the frame.
+        await Promise.resolve();
+        const presented = await this.#renderer!.commitFrame();
+        if (!presented.ok) throw latch.controller.signal.reason ?? new Error(presented.message);
+        if (latch.superseded) throw latch.controller.signal.reason ?? abortError();
+      });
+      const forceAborted = new Promise<never>((_, reject) => {
+        latch.reject = reject;
+      });
+      latch.promise = Promise.race([transaction, forceAborted])
+        .catch((error) => {
+          this.#abortFrameLatch(latch, error);
+          throw error;
+        })
+        .finally(() => {
+          latch.reject = undefined;
+          latch.state = 'finished';
+          if (this.#frameLatch === latch) this.#frameLatch = null;
+        });
+      return latch.promise;
+    };
+
+    return {
+      signal: latch.controller.signal,
+      commit,
+      abort: (reason?: unknown) => this.#abortFrameLatch(latch, reason),
+    };
+  }
+
+  #abortFrameLatch(latch = this.#frameLatch, reason: unknown = abortError(), force = false) {
+    if (!latch) return;
+    if (latch.state === 'finished') {
+      if (force) latch.reject?.(reason);
+      return;
+    }
+    latch.state = 'finished';
+    latch.controller.abort(reason);
+    this.#renderer?.abortFrame();
+    latch.reject?.(reason);
+    if (!latch.promise && this.#frameLatch === latch) this.#frameLatch = null;
+  }
+
+  #supersedeFrameLatch() {
+    if (this.#frameLatch) this.#frameLatch.superseded = true;
+    this.#abortFrameLatch();
   }
 
   get zoomChanging() {
@@ -175,17 +306,18 @@ export class Timescope<
   }
 
   setZoomRange(domain?: TimescopeRange<ZoomLike | undefined>) {
+    if (this.#frameLatch) this.#supersedeFrameLatch();
     this.#state.setZoomRange(domain);
   }
 
-  setSelectedRange(domain: TimescopeRange<TimeLike<undefined>> | null) {
+  setSelectionRange(domain: TimescopeRange<TimeLike<never>> | null) {
     if (this.#options.selection === false) return;
 
-    const range = (domain?.map((t) => parseTimeLike(t)) ?? null) as TimescopeRange<Decimal | undefined> | null;
+    const range = (domain?.map((t) => parseTimeLike(t)) ?? null) as TimescopeRange<Decimal> | null;
 
     if (
-      range === this.#selectedRange ||
-      (range && this.#selectedRange && range?.every((v, i) => v?.eq(this.#selectedRange![i])))
+      range === this.#selectionRange ||
+      (range && this.#selectionRange && range.every((v, i) => v.eq(this.#selectionRange![i])))
     ) {
       return;
     }
@@ -197,16 +329,16 @@ export class Timescope<
     });
   }
 
-  clearSelectedRange() {
-    this.setSelectedRange(null);
+  clearSelectionRange() {
+    this.setSelectionRange(null);
   }
 
-  get selectedRange() {
-    return this.#selectedRange;
+  get selectionRange() {
+    return this.#selectionRange;
   }
 
-  get selectedRangeChanging() {
-    return this.#selectedRangeChanging;
+  get selectionRangeChanging() {
+    return this.#selectionRangeChanging;
   }
 
   get animating() {
@@ -217,7 +349,7 @@ export class Timescope<
     return this.#state.time.editing;
   }
 
-  #size = {
+  #size: TimescopeSize = {
     x: 0,
     y: 0,
     width: 0,
@@ -225,7 +357,7 @@ export class Timescope<
     dpr: 0,
   };
 
-  get size() {
+  get size(): TimescopeSize {
     return { ...this.#size };
   }
 
@@ -244,11 +376,13 @@ export class Timescope<
   }
 
   setOptions(opts: TimescopeOptions) {
+    if (this.#frameLatch) this.#supersedeFrameLatch();
     this.#options = { style: undefined, ...opts };
     this.#applyOptions(this.#options, true);
   }
 
   updateOptions(opts: TimescopeUpdateOptions<Sources, Series, Track>) {
+    if (this.#frameLatch) this.#supersedeFrameLatch();
     mergeOptions(this.#options, opts);
     this.#applyOptions(opts, false);
   }
@@ -278,6 +412,7 @@ export class Timescope<
     const rect = this.#element.getBoundingClientRect();
 
     if (this.#size.width === rect.width && this.#size.height === rect.height && this.#size.dpr === dpr) return;
+    if (this.#frameLatch) this.#supersedeFrameLatch();
 
     this.#size = {
       x: rect.x,
@@ -320,6 +455,7 @@ export class Timescope<
   #onWheel(e: WheelEvent) {
     if (this.#disabled) return;
     e.preventDefault();
+    this.#supersedeFrameLatch();
 
     const deltaY = normalizeWheel(e);
     this.#state.setZoom(this.#state.zoom.committing.add(-deltaY / this.#wheelSensitivity));
@@ -333,7 +469,7 @@ export class Timescope<
     this.#installTimeZoomEventHandler();
 
     this.#options = { style: undefined, ..._opts } as TimescopeOptions;
-    this.#fonts = _opts.fonts ?? [];
+    this.#fonts = _opts.fonts;
 
     this.#wheelSensitivity = _opts.wheelSensitivity ?? config.wheelSensitivity;
 
@@ -380,13 +516,13 @@ export class Timescope<
     this.#state.zoom.restore();
 
     new ResizeObserver(() => this.#resize()).observe(this.#element);
-    this.#resize();
 
     // change event chain
     this.#renderer.on('change', () => this.changed());
 
     // time state sync
     this.#renderer.on('sync', (e) => {
+      if (this.#frameLatch?.state === 'finished') this.#frameLatch.superseded = true;
       if (e.value.time) {
         this.#state.time.handleSyncEvent(e.value.time);
         this.#state.time.dispatchEvent(new TimescopeEvent('sync', e.value.time, e.origin));
@@ -399,14 +535,14 @@ export class Timescope<
 
     this.#renderer.on('renderer:event', (e) => {
       if (typeof e.value === 'object' && e.value && 'range' in e.value && 'resizing' in e.value) {
-        this.#selectedRangeChanging = e.value.range as TimescopeRange<Decimal> | null;
+        this.#selectionRangeChanging = e.value.range as TimescopeRange<Decimal> | null;
         this.dispatchEvent(
-          new TimescopeEvent('selectedrangechanging', e.value.range as TimescopeRange<Decimal> | null, e.origin),
+          new TimescopeEvent('selectionrangechanging', e.value.range as TimescopeRange<Decimal> | null, e.origin),
         );
         if (!e.value.resizing) {
-          this.#selectedRange = e.value.range as TimescopeRange<Decimal> | null;
+          this.#selectionRange = e.value.range as TimescopeRange<Decimal> | null;
           this.dispatchEvent(
-            new TimescopeEvent('selectedrangechanged', e.value.range as TimescopeRange<Decimal> | null, e.origin),
+            new TimescopeEvent('selectionrangechanged', e.value.range as TimescopeRange<Decimal> | null, e.origin),
           );
         }
       }
@@ -419,6 +555,7 @@ export class Timescope<
       transform: (p) => p.sub([this.#size.x, this.#size.y]),
 
       handler: (info) => {
+        if (info.type === 'down') this.#supersedeFrameLatch();
         this.#renderer?.onPointerEvent(info);
       },
 
@@ -438,6 +575,8 @@ export class Timescope<
   }
 
   unmount() {
+    if (this.#frameLatch) this.#frameLatch.superseded = true;
+    this.#abortFrameLatch(this.#frameLatch, abortError(), true);
     const mounted = Boolean(this.#element);
 
     this.#element?.remove();

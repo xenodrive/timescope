@@ -7,20 +7,20 @@ export function App() {
   const [zoom] = createSignal<number>(-22);
   const [timeAnimating, setTimeAnimating] = createSignal<Decimal | null>(null);
   const [timeChanging, setTimeChanging] = createSignal<Decimal | null>(null);
-  const [selectedRangeChanged, setSelectedRangeChanged] = createSignal<TimescopeRange<Decimal> | null>(null);
-  const [selectedRangeChanging, setSelectedRangeChanging] = createSignal<TimescopeRange<Decimal> | null>(null);
+  const [selectionRange, setSelectionRange] = createSignal<TimescopeRange<Decimal> | null>(null);
+  const [selectionRangeChanging, setSelectionRangeChanging] = createSignal<TimescopeRange<Decimal> | null>(null);
 
   return (
     <>
       <Timescope
         time={time()}
         zoom={zoom()}
-        selectedRange={selectedRangeChanged()}
+        selectionRange={selectionRange()}
         onTimeAnimating={setTimeAnimating}
         onTimeChanging={setTimeChanging}
         onTimeChanged={setTime}
-        onSelectedRangeChanged={setSelectedRangeChanged}
-        onSelectedRangeChanging={setSelectedRangeChanging}
+        onSelectionRangeChanged={setSelectionRange}
+        onSelectionRangeChanging={setSelectionRangeChanging}
       />
       <pre>
         time: {time()?.toString()}
@@ -29,7 +29,7 @@ export function App() {
         <br />
         timeAnimating: {timeAnimating()?.toString()}
         <br />
-        selectedRangeChanging: {selectedRangeChanging()?.toString()}
+        selectionRangeChanging: {selectionRangeChanging()?.toString()}
         <br />
       </pre>
     </>

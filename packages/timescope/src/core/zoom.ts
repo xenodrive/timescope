@@ -1,5 +1,6 @@
 import config from '#src/core/config';
 import { Decimal, type NumberLike } from '#src/core/decimal';
+import type { TimescopeResolutionSnap } from '#src/core/types';
 import { LRUCache } from './cache';
 
 export type ZoomLike = NumberLike;
@@ -29,8 +30,31 @@ export function createZoomLevels(minZ: number, maxZ: number, step: number = 0.5)
   return result;
 }
 
-export function getConstraintedResolution(resolution: Decimal, resolutions: readonly Decimal[] | undefined): Decimal {
-  if (!resolutions || resolutions?.length === 0) return resolutionFor(Math.round(zoomFor(resolution)));
+export function getConstraintedResolution(
+  resolution: Decimal,
+  resolutions: readonly Decimal[] | undefined,
+  snap: TimescopeResolutionSnap = 'nearest',
+): Decimal {
+  if (!resolutions || resolutions.length === 0) {
+    const zoom = zoomFor(resolution);
+    if (snap === 'floor') return resolutionFor(Math.ceil(zoom));
+    if (snap === 'ceil') return resolutionFor(Math.floor(zoom));
+    return resolutionFor(Math.round(zoom));
+  }
+  if (snap !== 'nearest') {
+    let match: Decimal | undefined;
+    let fallback = resolutions[0];
+    for (const candidate of resolutions) {
+      if (snap === 'ceil') {
+        if (candidate.gt(fallback)) fallback = candidate;
+        if (candidate.ge(resolution) && (!match || candidate.lt(match))) match = candidate;
+      } else {
+        if (candidate.lt(fallback)) fallback = candidate;
+        if (candidate.le(resolution) && (!match || candidate.gt(match))) match = candidate;
+      }
+    }
+    return match ?? fallback;
+  }
   const z = zoomFor(resolution);
   return resolutions.reduce((prev, curr) => {
     const zp = zoomFor(prev);

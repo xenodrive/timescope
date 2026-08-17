@@ -31,7 +31,7 @@
     indicator?: boolean;
     selection?: TimescopeOptionsSelection;
 
-    selectedRange?: TimescopeRange<Decimal> | null;
+    selectionRange?: TimescopeRange<Decimal> | null;
 
     showFps?: boolean;
 
@@ -49,8 +49,8 @@
     zoomchanged: number;
     zoomchanging: number;
     zoomanimating: number;
-    selectedrangechanging: [Decimal, Decimal] | null;
-    selectedrangechanged: [Decimal, Decimal] | null;
+    selectionrangechanging: [Decimal, Decimal] | null;
+    selectionrangechanged: [Decimal, Decimal] | null;
     animating: boolean;
     editing: boolean;
   };
@@ -68,7 +68,7 @@
     tracks,
     indicator = true,
     selection,
-    selectedRange = $bindable<TimescopeRange<Decimal> | null | undefined>(undefined),
+    selectionRange = $bindable<TimescopeRange<Decimal> | null | undefined>(undefined),
     showFps,
     fonts,
   } = $props<TimescopeProps>();
@@ -99,10 +99,10 @@
       dispatch('zoomchanged', e.value);
     });
     timescope.on('zoomanimating', (e) => dispatch('zoomanimating', e.value));
-    timescope.on('selectedrangechanging', (e) => dispatch('selectedrangechanging', e.value));
-    timescope.on('selectedrangechanged', (e) => {
-      selectedRange = e.value;
-      dispatch('selectedrangechanged', e.value);
+    timescope.on('selectionrangechanging', (e) => dispatch('selectionrangechanging', e.value));
+    timescope.on('selectionrangechanged', (e) => {
+      selectionRange = e.value;
+      dispatch('selectionrangechanged', e.value);
     });
 
     let animating = timescope.animating;
@@ -152,7 +152,7 @@
 
   $effect(() => {
     if (!timescope) return;
-    if (selectedRange !== undefined) timescope.setSelectedRange(selectedRange ?? null);
+    if (selectionRange !== undefined) timescope.setSelectionRange(selectionRange ?? null);
   });
 
   $effect(() => {

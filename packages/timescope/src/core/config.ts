@@ -2,8 +2,7 @@
 export default {
   clickTolerance: 8,
 
-  // zoomlevels
-  defaultChunkSize: 256, // in pixels
+  defaultChunkSize: 256, // selected-resolution intervals per chunk
   base: 2,
   chunkStep: 1,
   wheelSensitivity: 200,

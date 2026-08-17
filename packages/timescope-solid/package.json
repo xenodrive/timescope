@@ -33,14 +33,14 @@
     "solid-js": "^1.9.9"
   },
   "devDependencies": {
-    "@kikuchan/calendar": "^0.0.1-alpha.2",
-    "@kikuchan/decimal": "^0.1.0-alpha.7",
+    "@kikuchan/calendar": "^0.0.1-alpha.4",
+    "@kikuchan/decimal": "^0.1.0-alpha.10",
     "@solidjs/testing-library": "^0.8.10",
-    "@vitest/browser-playwright": "^4.0.18",
-    "bumpp": "^10.4.0",
-    "eslint-plugin-solid": "^0.14.5",
+    "@vitest/browser-playwright": "^5.0.0",
+    "bumpp": "^12.3.0",
+    "eslint-plugin-solid": "^0.17.0",
     "rolldown-plugin-solid": "^0.2.1",
-    "vite-plugin-solid": "^2.11.10"
+    "vite-plugin-solid": "^2.11.14"
   },
   "dependencies": {
     "timescope": "workspace:*"

@@ -3,174 +3,218 @@ title: Audio Waveform Visualization
 ---
 
 <template>
-<!-- #region html -->
-<div>
-  <div id="example-audio-waveform"></div>
-  <audio id="example-audio-player" src="/timescope/audio.wav" controls style="width: 100%" />
-</div>
-<!-- #endregion html -->
+  <!-- #region html -->
+  <div>
+    <div id="example-audio-waveform"></div>
+    <audio
+      id="example-audio-player"
+      src="/timescope/audio.wav"
+      controls
+      style="width: 100%"
+    />
+  </div>
+  <!-- #endregion html -->
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue';
+import { onBeforeUnmount, onMounted } from "vue";
 
 // #region code
-import { Decimal, Timescope } from 'timescope';
-import { IntervalTree } from './tree.ts';
-import { loadWaveFile } from './format.ts';
+import { Timescope } from "timescope";
 
-onMounted(() => { // ignore:
+// #region docs-ignore
+onMounted(() => {
+  // #endregion docs-ignore
 
-const player = document.getElementById('example-audio-player') as HTMLAudioElement;
+  const player = document.getElementById(
+    "example-audio-player",
+  ) as HTMLAudioElement;
 
-let tree: IntervalTree<{ time: Decimal, data: number[] }> | null = null;
+  const audioContext = new AudioContext();
 
-async function loadData() {
-  const data = await fetch(player.src).then((r) => r.bytes());
+  async function decodeAudio(response: Response) {
+    const audio = await audioContext.decodeAudioData(
+      await response.arrayBuffer(),
+    );
+    const left = audio.getChannelData(0);
+    const right = audio.numberOfChannels > 1 ? audio.getChannelData(1) : left;
+    return Array.from({ length: audio.length }, (_, index) => ({
+      time: index / audio.sampleRate,
+      values: { waveformL: left[index], waveformR: right[index] },
+    }));
+  }
 
-  const { samples } = loadWaveFile(data) || {};
-  if (!samples) return;
+  const timescope = new Timescope({
+    target: "#example-audio-waveform",
+    style: { height: "320px" },
+    time: 0,
+    timeRange: [0, 0],
+    zoom: 8,
+    sources: {
+      waveform: {
+        url: player.src,
+        decoder: decodeAudio,
+        reducer: "min-max-avg",
+      },
+    },
+    series: {
+      waveformL: {
+        data: {
+          source: "waveform",
+          domain: { range: [-1, 1] },
+        },
+        chart: {
+          links: ({ resolution }) =>
+            resolution.lt(0.00001)
+              ? []
+              : [
+                  { draw: "line", using: "waveformL#avg" },
+                  {
+                    draw: "area",
+                    using: ["waveformL#min", "waveformL#max"],
+                  },
+                ],
+          marks: ({ resolution }) =>
+            resolution.lt(0.00001)
+              ? [
+                  { draw: "line", using: ["waveformL#avg", "#zero"] },
+                  { draw: "circle", using: "waveformL#avg" },
+                ]
+              : [],
+        },
+        track: "waveformL",
+        tooltip: false,
+      },
+      waveformR: {
+        data: {
+          source: "waveform",
+          domain: { range: [-1, 1] },
+        },
+        chart: {
+          links: ({ resolution }) =>
+            resolution.lt(0.00001)
+              ? []
+              : [
+                  { draw: "line", using: "waveformR#avg" },
+                  {
+                    draw: "area",
+                    using: ["waveformR#min", "waveformR#max"],
+                  },
+                ],
+          marks: ({ resolution }) =>
+            resolution.lt(0.00001)
+              ? [
+                  { draw: "line", using: ["waveformR#avg", "#zero"] },
+                  { draw: "circle", using: "waveformR#avg" },
+                ]
+              : [],
+        },
+        track: "waveformR",
+        tooltip: false,
+      },
+    },
+    tracks: {
+      waveformL: {
+        symmetric: true,
+        timeAxis: false,
+      },
+      waveformR: {
+        symmetric: true,
+        timeAxis: { relative: true },
+      },
+    },
+  });
 
-  tree = new IntervalTree();
-  tree.bulkInsert(samples, (item) => [item.time, item.time, '[]']);
+  let playing = false;
+  let frameLatch: ReturnType<Timescope["latchFrame"]> | null = null;
+  let animationFrame: number | null = null;
+  let playbackStartedAt = 0;
+  let playbackStartedFrom = 0;
 
-  timescope.reload();
-}
+  function resetPlaybackClock() {
+    playbackStartedAt = Date.now();
+    playbackStartedFrom = player.currentTime;
+    timescope.setPlaybackTime(0);
+    timescope.setTime(null, false);
+  }
 
-async function query(range: [Decimal | undefined, Decimal | undefined], resolution: Decimal, channel: number) {
-  if (!range[0] || !range[1] || !tree) return [];
+  function currentPlaybackTime() {
+    return (
+      playbackStartedFrom +
+      ((Date.now() - playbackStartedAt) / 1000) * player.playbackRate
+    );
+  }
 
-  const result: { time: Decimal; value: number; min: number; max: number }[] = [];
+  async function update() {
+    if (!playing) return;
 
-  for (let t = range[0]; t.lt(range[1]); t = t.add(resolution)) {
-    const values = tree.query(t, t.add(resolution)).map((item) => item.data[channel]);
+    frameLatch = timescope.latchFrame();
+    timescope.setPlaybackTime(currentPlaybackTime());
 
-    if (values.length) {
-      const value = values.reduce((a, b) => a + b, 0) / values.length;
-      const min = Math.min(...values);
-      const max = Math.max(...values);
+    try {
+      await frameLatch.commit();
+    } catch {
+      // A direct interaction can supersede the pending playback frame.
+    } finally {
+      frameLatch = null;
+    }
 
-      result.push({ time: t, value, min, max });
+    if (playing) animationFrame = requestAnimationFrame(update);
+  }
+
+  function onPlay() {
+    resetPlaybackClock();
+    playing = true;
+    void update();
+  }
+
+  function onPause() {
+    playing = false;
+    frameLatch?.abort();
+    timescope.setPlaybackTime(player.currentTime);
+  }
+
+  function onSeeking() {
+    if (playing) {
+      resetPlaybackClock();
+    } else if (!timescope.editing && !timescope.animating) {
+      timescope.setTime(player.currentTime, false);
     }
   }
 
-  return result;
-}
-
-const timescope = new Timescope({
-  target: '#example-audio-waveform',
-  style: { height: '320px' },
-  time: 0,
-  timeRange: [0, 0],
-  zoom: 8,
-  sources: {
-    waveformL: {
-      loader: async ({ range, resolution }) => {
-        return query(range, resolution, 0);
-      },
-    },
-    waveformR: {
-      loader: async ({ range, resolution }) => {
-        return query(range, resolution, 1);
-      },
-    },
-  },
-  series: {
-    waveformL: {
-      data: {
-        source: 'waveformL',
-        value: ['min', 'max', 'value'],
-        domain: { range: [-1, 1] },
-      },
-      chart: {
-        links: (chunk) => chunk.resolution.lt(0.00001) ? [] : [
-          { draw: 'line', using: 'value' },
-          { draw: 'area', using: ['min', 'max'] },
-        ],
-        marks: (chunk) => chunk.resolution.lt(0.00001) ? [
-          { draw: 'line', using: ['value', 'zero'] },
-          { draw: 'circle', using: 'value' },
-        ] : [],
-      },
-      track: 'waveformL',
-      tooltip: false,
-    },
-    waveformR: {
-      data: {
-        source: 'waveformR',
-        value: ['min', 'max', 'value'],
-        domain: { range: [-1, 1] },
-      },
-      chart: {
-        links: (chunk) => chunk.resolution.lt(0.00001) ? [] : [
-          { draw: 'line', using: 'value' },
-          { draw: 'area', using: ['min', 'max'] },
-        ],
-        marks: (chunk) => chunk.resolution.lt(0.00001) ? [
-          { draw: 'line', using: ['value', 'zero'] },
-          { draw: 'circle', using: 'value' },
-        ] : [],
-      },
-      track: 'waveformR',
-      tooltip: false,
-    },
-  },
-  tracks: {
-    waveformL: {
-      symmetric: true,
-      timeAxis: {
-        relative: true,
-      },
-    },
-    waveformR: {
-      symmetric: true,
-      timeAxis: {
-        relative: true,
-      },
-    },
-  },
-});
-
-let playing = false;
-
-function update() {
-  if (playing) requestAnimationFrame(update);
-  timescope.setPlaybackTime(player.currentTime);
-}
-
-player.addEventListener('play', () => {
-  playing = true;
-  timescope.setPlaybackTime(player.currentTime);
-  timescope.setTime(null, false);
-  update();
-});
-
-player.addEventListener('ended', () => {
-  playing = false;
-  timescope.setPlaybackTime(player.currentTime);
-});
-
-player.addEventListener('seeking', () => {
-  if (!playing && !timescope.editing && !timescope.animating) {
-    timescope.setTime(player.currentTime, false);
+  function onRateChange() {
+    if (playing) resetPlaybackClock();
   }
-});
 
-timescope.on('timechanging', (e) => {
-  if (!playing) {
-    player.currentTime = e.value?.number() ?? 0;
+  timescope.on("timechanging", (e) => {
+    if (!playing) {
+      player.currentTime = e.value?.number() ?? 0;
+    }
+  });
+
+  function onDurationChange() {
+    timescope.setTimeRange([0, player.duration]);
   }
+
+  player.addEventListener("play", onPlay);
+  player.addEventListener("pause", onPause);
+  player.addEventListener("seeking", onSeeking);
+  player.addEventListener("ratechange", onRateChange);
+  player.addEventListener("durationchange", onDurationChange);
+
+  // #endregion code
+
+  onBeforeUnmount(() => {
+    playing = false;
+    frameLatch?.abort();
+    if (animationFrame != null) cancelAnimationFrame(animationFrame);
+    player.removeEventListener("play", onPlay);
+    player.removeEventListener("pause", onPause);
+    player.removeEventListener("seeking", onSeeking);
+    player.removeEventListener("ratechange", onRateChange);
+    player.removeEventListener("durationchange", onDurationChange);
+    void audioContext.close();
+    timescope.dispose();
+  });
 });
-
-player.addEventListener('durationchange', () => {
-  timescope.setTimeRange([0, player.duration]);
-});
-
-loadData();
-// #endregion code
-
-onBeforeUnmount(() => timescope?.dispose());
-
-});
-
 </script>

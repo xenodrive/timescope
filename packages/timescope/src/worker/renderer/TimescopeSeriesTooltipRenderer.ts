@@ -1,7 +1,4 @@
-import type {
-  TimescopeSeriesChartProviderData,
-  TimescopeSeriesInstantaneousValueProviderData,
-} from '#src/bridge/protocol';
+import type { TimescopeSeriesTooltipData } from '#src/bridge/protocol';
 import { Decimal } from '#src/core/decimal';
 import { Vector2f } from '#src/core/vector';
 import { bisectRight } from '#src/worker/bisect';
@@ -11,6 +8,12 @@ import type { TimescopeRenderingContext } from '#src/worker/types';
 import { forEachTrack } from '#src/worker/utils';
 import type { TimescopeDataCache } from '../TimescopeDataCache';
 
+export function tooltipXPlacement(x: number, left: number, right: number, sideX: number) {
+  if (x < left) return { x: left, sideX: 1, sticky: true };
+  if (x > right) return { x: right, sideX: -1, sticky: true };
+  return { x, sideX, sticky: false };
+}
+
 export class TimescopeSeriesTooltipRenderer extends TimescopeRenderer {
   postRender(timescope: TimescopeRenderingContext): void {
     super.postRender(timescope);
@@ -18,10 +21,10 @@ export class TimescopeSeriesTooltipRenderer extends TimescopeRenderer {
     this.#renderTooltips(timescope);
   }
 
-  #readByTime(data: TimescopeSeriesInstantaneousValueProviderData['data'], t: Decimal) {
+  #readByTime(data: TimescopeSeriesTooltipData['data'], t: Decimal) {
     if (!data) return;
-    const idx = bisectRight(data, t, (o) => o.time.time);
-    if (0 < idx && idx <= data.length) return data[idx - 1];
+    const idx = bisectRight(data.t, t);
+    if (0 < idx && idx <= data.t.length) return idx - 1;
     return undefined;
   }
 
@@ -48,9 +51,7 @@ export class TimescopeSeriesTooltipRenderer extends TimescopeRenderer {
 
         if (series.tooltip === false) continue;
 
-        const cache = timescope.dataCaches[
-          `series:${k}:instantaneous`
-        ] as TimescopeDataCache<TimescopeSeriesInstantaneousValueProviderData>;
+        const cache = timescope.dataCaches[`series:${k}:tooltip`] as TimescopeDataCache<TimescopeSeriesTooltipData>;
 
         if (!cache || !cache.data) continue;
 
@@ -58,21 +59,21 @@ export class TimescopeSeriesTooltipRenderer extends TimescopeRenderer {
           data: { data: tooltipData, meta },
         } = cache;
 
-        const data = this.#readByTime(tooltipData, cursorDecimal);
+        const idx = this.#readByTime(tooltipData, cursorDecimal);
+        if (idx == null) continue;
 
-        if (!data) continue;
-
-        const time = data.time.time;
+        const time = tooltipData.t[idx];
         if (!time) continue;
         const x = timescope.timeAxis.p(time);
+        const placement = tooltipXPlacement(x, timescope.chart.ox, timescope.chart.ox + timescope.chart.width, sideX);
 
         /*
         if (s.options.label === false) continue;
         if (s.options.label?.side) sideX = s.options.label.side === 'right' ? 1 : -1;
         */
 
-        const point_y = data.point.y;
-        const text = data.text;
+        const point_y = tooltipData.y[idx];
+        const text = tooltipData.text[idx];
 
         const metrics = ctx.measureText(text);
 
@@ -83,22 +84,20 @@ export class TimescopeSeriesTooltipRenderer extends TimescopeRenderer {
 
         if (point_y == null) continue;
 
-        const chartCache = timescope.dataCaches[`series:${k}:chart`] as
-          | TimescopeDataCache<TimescopeSeriesChartProviderData>
-          | undefined;
-        const floating = chartCache?.data?.meta?.floating ?? 0;
-        const y = track.y(point_y, floating) ?? NaN;
+        const y = track.yForDomain(meta.projection.domainId, point_y);
+        if (!Number.isFinite(y)) continue;
 
         labels.push({
           id: labels.length,
 
-          cx: x,
+          cx: placement.x,
           cy: y,
           point: new Vector2f(0, y),
           color,
           metrics,
+          sticky: placement.sticky,
 
-          sideX: sideX,
+          sideX: placement.sideX,
 
           text: {
             dx: paddingX,
@@ -120,10 +119,11 @@ export class TimescopeSeriesTooltipRenderer extends TimescopeRenderer {
       disperse(labels, timescope.chart.oy, timescope.chart.oy + timescope.chart.height);
 
       for (const p of labels) {
-        p.point.x = p.cx + p.sideX * (p.point.x + 20);
+        p.point.x = p.sticky ? p.cx : p.cx + p.sideX * (p.point.x + 20);
       }
 
-      for (const { cx, cy, point, color } of labels) {
+      for (const { cx, cy, point, color, sticky } of labels) {
+        if (sticky) continue;
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.lineTo(point.x, point.y);
@@ -137,13 +137,15 @@ export class TimescopeSeriesTooltipRenderer extends TimescopeRenderer {
         ctx.setLineDash([]);
       }
 
-      for (const { cx, cy, point, sideX, text, color, box } of labels) {
-        ctx.beginPath();
-        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.strokeStyle = 'white';
-        ctx.stroke();
+      for (const { cx, cy, point, sideX, text, color, box, sticky } of labels) {
+        if (!sticky) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.fill();
+          ctx.strokeStyle = 'white';
+          ctx.stroke();
+        }
 
         ctx.beginPath();
         ctx.roundRect(point.x + box.dx, point.y + box.dy, box.width * sideX, box.height, 4);

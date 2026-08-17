@@ -1,4 +1,4 @@
-import type { InteractionInfo, TimescopeOptionsForWorker } from '#src/bridge/protocol';
+import type { InteractionInfoWire, TimescopeOptionsForWorker } from '#src/bridge/protocol';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
 import type { Interaction, TimescopeRenderingContext } from '#src/worker/types';
 
@@ -24,10 +24,10 @@ export class TimescopeRenderer<E extends TimescopeEvent<string, unknown> | strin
     /* noop */
   }
 
-  onPointerEvent(_info: InteractionInfo, _timescope: TimescopeRenderingContext): boolean | void {
+  onPointerEvent(_info: InteractionInfoWire, _timescope: TimescopeRenderingContext): boolean | void {
     /* noop */
   }
-  pointerStyle(_info: InteractionInfo, _timescope: TimescopeRenderingContext): string | void {
+  pointerStyle(_info: InteractionInfoWire, _timescope: TimescopeRenderingContext): string | void {
     /* noop */
   }
 }

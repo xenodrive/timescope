@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "svelte-check --tsconfig ./tsconfig.json && vite build"
+  },
+  "dependencies": {
+    "@kikuchan/calendar": "0.0.1-alpha.4",
+    "@kikuchan/decimal": "0.1.0-alpha.10",
+    "svelte": "5.56.10"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "7.3.0",
+    "svelte-check": "4.7.6",
+    "typescript": "6.0.3",
+    "vite": "8.2.2"
+  }
+}

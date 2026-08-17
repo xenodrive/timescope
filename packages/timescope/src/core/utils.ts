@@ -36,7 +36,8 @@ export function createGetter(key: string) {
 }
 
 function isPlainObject(obj: object) {
-  return Object.prototype.toString.call(obj) === '[object Object]';
+  const prototype = Object.getPrototypeOf(obj);
+  return prototype === Object.prototype || prototype === null;
 }
 
 export function mergeOptions(dst: object, src: object) {

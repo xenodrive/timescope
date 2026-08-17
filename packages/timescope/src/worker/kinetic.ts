@@ -1,6 +1,6 @@
 type Point = { x: number; y: number; t: number };
 
-// re-implements almost-equivalent version of ol/Kinetic class
+// Adapted from ol/Kinetic with different velocity and stopping-distance behavior.
 export class Kinetic {
   private decay: number;
   private minVelocity: number;

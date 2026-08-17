@@ -8,7 +8,13 @@ const pkgRoot = resolve(__dirname, '..');
 export default defineConfig({
   head: [
     ['link', { rel: 'icon', href: '/timescope/logo.svg' }],
-    ["meta", { property: "og:image", content: "https://xenodrive.github.io/timescope/ogp.png" }],
+    [
+      'meta',
+      {
+        property: 'og:image',
+        content: 'https://xenodrive.github.io/timescope/ogp.png',
+      },
+    ],
   ],
   title: 'Timescope',
   titleTemplate: ':title | Timescope',
@@ -16,6 +22,7 @@ export default defineConfig({
   srcDir: './src',
   outDir: './dist',
   base: '/timescope/',
+  appearance: false,
   cleanUrls: true,
   lastUpdated: false,
   markdown: {
@@ -35,35 +42,72 @@ export default defineConfig({
       { text: 'Examples', link: '/guide/examples/' },
       { text: 'API', link: '/api/timescope' },
     ],
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/xenodrive/timescope' },
-    ],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/xenodrive/timescope' }],
     sidebar: (() => {
       const shared = [
         {
           text: 'Guide',
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
-            { text: 'Core Concepts', link: '/guide/concepts' },
-            { text: 'Events', link: '/guide/events' },
-            { text: 'Chunk Loading', link: '/guide/chunk-loading' },
+            {
+              text: 'Core Concepts',
+              link: '/guide/concepts',
+              items: [
+                {
+                  text: 'Infinite Time Navigation',
+                  link: '/guide/concepts#infinite-time-navigation',
+                },
+                { text: 'Marks & Links', link: '/guide/concepts#marks-and-links' },
+                { text: 'Chunk Loading', link: '/guide/concepts#chunk-loading' },
+                { text: 'Data Pipeline', link: '/guide/concepts#data-pipeline' },
+              ],
+            },
             {
               text: 'Examples',
+              link: '/guide/examples/',
               items: [
-                { text: 'Overview', link: '/guide/examples/' },
-                { text: 'Simple Timeline', link: '/guide/examples/simple-timeline' },
+                {
+                  text: 'Simple Timeline',
+                  link: '/guide/examples/simple-timeline',
+                },
                 { text: 'Events', link: '/guide/examples/events' },
                 { text: 'Basic Chart', link: '/guide/examples/basic-chart' },
+                { text: 'Decimation', link: '/guide/examples/decimation' },
                 { text: 'Log Scale', link: '/guide/examples/log-scale' },
-                { text: 'Chart Presets', link: '/guide/examples/chart-presets' },
-                { text: 'Marks & Links', link: '/guide/examples/marks-and-links' },
-                { text: 'Multiple Tracks', link: '/guide/examples/multiple-tracks' },
+                {
+                  text: 'Chart Presets',
+                  link: '/guide/examples/chart-presets',
+                },
+                {
+                  text: 'Marks & Links',
+                  link: '/guide/examples/marks-and-links',
+                },
+                {
+                  text: 'Multiple Tracks',
+                  link: '/guide/examples/multiple-tracks',
+                },
                 { text: 'Gantt Chart', link: '/guide/examples/gantt-chart' },
-                { text: 'Dynamic Loader', link: '/guide/examples/dynamic-loader' },
-                { text: 'System Metrics', link: '/guide/examples/system-metrics' },
+                {
+                  text: 'Dynamic Loader',
+                  link: '/guide/examples/dynamic-loader',
+                },
+                {
+                  text: 'Realtime Data',
+                  link: '/guide/examples/realtime-data',
+                },
+                {
+                  text: 'System Metrics',
+                  link: '/guide/examples/system-metrics',
+                },
                 { text: 'Log Viewer', link: '/guide/examples/log-viewer' },
-                { text: 'Financial Chart', link: '/guide/examples/financial-chart' },
-                { text: 'Audio Waveform', link: '/guide/examples/audio-waveform' },
+                {
+                  text: 'Financial Chart',
+                  link: '/guide/examples/financial-chart',
+                },
+                {
+                  text: 'Audio Waveform',
+                  link: '/guide/examples/audio-waveform',
+                },
                 { text: 'Styling', link: '/guide/examples/styling' },
               ],
             },

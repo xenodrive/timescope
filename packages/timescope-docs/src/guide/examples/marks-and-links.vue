@@ -3,55 +3,49 @@
 </template>
 
 <script setup lang="ts">
-import { Timescope, TimescopeChartLink, TimescopeChartMark } from 'timescope';
-import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
+import { Timescope, TimescopeChartLink, TimescopeChartMark } from "timescope";
+import { computed, onBeforeUnmount, onMounted, watch } from "vue";
 
-const props = withDefaults(defineProps<{
-  links?: TimescopeChartLink<any>[];
-  marks?: TimescopeChartMark<any>[];
-}>(), {
-  links: () => [
-    { draw: 'line' },
-  ],
-  marks: () => [
-    { draw: 'star', style: { size: 20 } },
-  ],
-});
+const props = withDefaults(
+  defineProps<{
+    links?: TimescopeChartLink<any>[];
+    marks?: TimescopeChartMark<any>[];
+  }>(),
+  {
+    links: () => [{ draw: "line" }],
+    marks: () => [{ draw: "star", style: { size: 20 } }],
+  },
+);
 
 const samples = [
-  { time: -3.5, value: { value: -0.3, min: -0.8, max: -0.1 } },
-  { time: -2.5, value: { value: -0.4, min: -0.6, max: -0.3 } },
-  { time: -1.5, value: { value: 0.15, min: -0.2, max: 0.35 } },
-  { time: -0.5, value: { value: 0.4, min: 0.1, max: 0.7 } },
-  { time: 0.5, value: { value: 0.55, min: 0.2, max: 0.85 } },
-  { time: 1.5, value: { value: 0.32, min: 0.05, max: 0.6 } },
-  { time: 2.5, value: { value: 0.7, min: 0.4, max: 0.95 } },
+  { time: -3.5, values: { value: -0.3, min: -0.8, max: -0.1 } },
+  { time: -2.5, values: { value: -0.4, min: -0.6, max: -0.3 } },
+  { time: -1.5, values: { value: 0.15, min: -0.2, max: 0.35 } },
+  { time: -0.5, values: { value: 0.4, min: 0.1, max: 0.7 } },
+  { time: 0.5, values: { value: 0.55, min: 0.2, max: 0.85 } },
+  { time: 1.5, values: { value: 0.32, min: 0.05, max: 0.6 } },
+  { time: 2.5, values: { value: 0.7, min: 0.4, max: 0.95 } },
 ];
 
 const series = computed(() => ({
   series: {
     telemetry: {
       data: {
-        source: 'samples',
-        value: {
-          value: 'value.value',
-          min: 'value.min',
-          max: 'value.max',
-        },
+        source: "samples",
       },
       chart: {
         links: props.links,
         marks: props.marks,
       },
       tooltip: false,
-      track: 'main',
+      track: "main",
     },
   },
 }));
 
 const options = computed(() => ({
   style: {
-    height: '240px',
+    height: "240px",
   },
   sources: { samples },
   ...series.value,
@@ -73,16 +67,18 @@ onMounted(() => {
     ...options.value,
     time: 0,
     zoom: 6,
-    target: '#example-chart-marks-links-view',
-    fonts: ['https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css'],
+    target: "#example-chart-marks-links-view",
   });
 
-  watch(options, (opts) => {
-    if (timescope) timescope.updateOptions(opts);
-    modelValue.value = opts;
-  }, { deep: true, immediate: true });
+  watch(
+    options,
+    (opts) => {
+      if (timescope) timescope.updateOptions(opts);
+      modelValue.value = opts;
+    },
+    { deep: true, immediate: true },
+  );
 
   onBeforeUnmount(() => timescope?.dispose());
 });
-
 </script>

@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "vue-tsc --noEmit && vite build"
+  },
+  "dependencies": {
+    "@kikuchan/calendar": "0.0.1-alpha.4",
+    "@kikuchan/decimal": "0.1.0-alpha.10",
+    "vue": "3.5.41"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "6.0.8",
+    "typescript": "6.0.3",
+    "vite": "8.2.2",
+    "vue-tsc": "3.3.11"
+  }
+}
