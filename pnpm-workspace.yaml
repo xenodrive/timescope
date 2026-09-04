@@ -1,6 +1,9 @@
 packages:
   - packages/*
 
+update:
+  githubActions: true
+
 allowBuilds:
   esbuild: true
   svelte-preprocess: true
