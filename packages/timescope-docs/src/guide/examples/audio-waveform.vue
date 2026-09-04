@@ -116,7 +116,7 @@ onMounted(() => {
     tracks: {
       waveformL: {
         symmetric: true,
-        timeAxis: false,
+        timeAxis: { relative: true },
       },
       waveformR: {
         symmetric: true,
@@ -128,28 +128,12 @@ onMounted(() => {
   let playing = false;
   let frameLatch: ReturnType<Timescope["latchFrame"]> | null = null;
   let animationFrame: number | null = null;
-  let playbackStartedAt = 0;
-  let playbackStartedFrom = 0;
-
-  function resetPlaybackClock() {
-    playbackStartedAt = Date.now();
-    playbackStartedFrom = player.currentTime;
-    timescope.setPlaybackTime(0);
-    timescope.setTime(null, false);
-  }
-
-  function currentPlaybackTime() {
-    return (
-      playbackStartedFrom +
-      ((Date.now() - playbackStartedAt) / 1000) * player.playbackRate
-    );
-  }
 
   async function update() {
     if (!playing) return;
 
     frameLatch = timescope.latchFrame();
-    timescope.setPlaybackTime(currentPlaybackTime());
+    timescope.setPlaybackTime(player.currentTime);
 
     try {
       await frameLatch.commit();
@@ -163,7 +147,8 @@ onMounted(() => {
   }
 
   function onPlay() {
-    resetPlaybackClock();
+    timescope.setPlaybackTime(player.currentTime);
+    timescope.setTime(null, false);
     playing = true;
     void update();
   }
@@ -175,15 +160,9 @@ onMounted(() => {
   }
 
   function onSeeking() {
-    if (playing) {
-      resetPlaybackClock();
-    } else if (!timescope.editing && !timescope.animating) {
+    if (!playing && !timescope.editing && !timescope.animating) {
       timescope.setTime(player.currentTime, false);
     }
-  }
-
-  function onRateChange() {
-    if (playing) resetPlaybackClock();
   }
 
   timescope.on("timechanging", (e) => {
@@ -199,7 +178,6 @@ onMounted(() => {
   player.addEventListener("play", onPlay);
   player.addEventListener("pause", onPause);
   player.addEventListener("seeking", onSeeking);
-  player.addEventListener("ratechange", onRateChange);
   player.addEventListener("durationchange", onDurationChange);
 
   // #endregion code
@@ -211,7 +189,6 @@ onMounted(() => {
     player.removeEventListener("play", onPlay);
     player.removeEventListener("pause", onPause);
     player.removeEventListener("seeking", onSeeking);
-    player.removeEventListener("ratechange", onRateChange);
     player.removeEventListener("durationchange", onDurationChange);
     void audioContext.close();
     timescope.dispose();
