@@ -102,9 +102,6 @@ importers:
       '@luna_ui/luna':
         specifier: ^0.23.0
         version: 0.23.0
-      react:
-        specifier: ^19.2.8
-        version: 19.2.8
 
   packages/timescope-react:
     dependencies:

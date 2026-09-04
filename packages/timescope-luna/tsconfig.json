@@ -8,7 +8,8 @@
     "jsxImportSource": "@luna_ui/luna",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["rolldown-plugin-inline-worker"]
   },
-  "include": ["./src/**/*"]
+  "include": ["./src/**/*", "./playground/**/*"]
 }

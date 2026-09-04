@@ -15,20 +15,21 @@
     }
   },
   "scripts": {
+    "diagnose": "node ./diagnose.mjs",
     "dev": "vite",
     "build": "tsdown",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@kikuchan/calendar": "^0.0.1-alpha.4",
     "@kikuchan/decimal": "^0.1.0-alpha.10",
-    "@luna_ui/luna": "^0.23.0",
-    "react": "^19.2.8"
+    "@luna_ui/luna": "^0.23.0"
   },
   "peerDependencies": {
     "@kikuchan/calendar": "^0.0.1-alpha.2",
     "@kikuchan/decimal": "^0.1.0-alpha.7",
-    "@luna_ui/luna": "^0.3.5"
+    "@luna_ui/luna": "^0.23.0"
   },
   "dependencies": {
     "timescope": "workspace:*"

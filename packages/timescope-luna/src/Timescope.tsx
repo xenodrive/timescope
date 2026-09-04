@@ -1,8 +1,8 @@
 import { Decimal } from '@kikuchan/decimal';
-import { Accessor, effect, onCleanup } from '@luna_ui/luna';
+import { effect, onCleanup } from '@luna_ui/luna';
 import {
   Timescope,
-  TimescopeOptions,
+  TimescopeOptionsDomains,
   TimescopeOptionsInitial,
   TimescopeOptionsSelection,
   TimescopeOptionsSeries,
@@ -35,6 +35,7 @@ type TimescopeProps<
   sources?: MaybeAccessor<TimescopeOptionsSources<Sources> | undefined>;
   series?: MaybeAccessor<TimescopeOptionsSeries<Sources, Series, Track> | undefined>;
   tracks?: MaybeAccessor<TimescopeOptionsTracks<Track> | undefined>;
+  domains?: MaybeAccessor<TimescopeOptionsDomains | undefined>;
 
   indicator?: MaybeAccessor<boolean | undefined>;
   selection?: MaybeAccessor<TimescopeOptionsSelection | undefined>;
@@ -57,15 +58,8 @@ type TimescopeProps<
   onAnimating?: (v: boolean) => void;
 };
 
-type NormalizedProp<T> = T extends MaybeAccessor<infer A> ? Accessor<A> : T & Accessor<unknown>;
-type NormalizedProps<T> = {
-  [K in keyof T]: NormalizedProp<T[K]>;
-};
-
-function normalizeProps<T extends object>(props: T): NormalizedProps<T> {
-  return Object.fromEntries(
-    Object.entries(props).map(([k, v]) => [k, typeof v === 'function' ? v : v == null ? v : () => v]),
-  ) as NormalizedProps<T>;
+function readProp<T>(prop: MaybeAccessor<T> | undefined): T | undefined {
+  return typeof prop === 'function' ? (prop as () => T)() : prop;
 }
 
 function TimescopeComponent<
@@ -73,13 +67,13 @@ function TimescopeComponent<
   Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
 >(props_: TimescopeProps<Sources, Series, Track>) {
-  const props = normalizeProps(props_);
-  const timescope = new Timescope({
-    time: props.time?.() ?? null,
-    timeRange: props.timeRange?.(),
-    zoom: props.zoom?.() ?? 0,
-    zoomRange: props.zoomRange?.(),
-    fonts: props.fonts?.(),
+  const props = props_;
+  const timescope = new Timescope<Sources, Series, Track>({
+    time: readProp(props.time) ?? null,
+    timeRange: readProp(props.timeRange),
+    zoom: readProp(props.zoom) ?? 0,
+    zoomRange: readProp(props.zoomRange),
+    fonts: readProp(props.fonts),
   });
 
   timescope.on('timeanimating', (e) => props.onTimeAnimating?.(e.value));
@@ -103,42 +97,49 @@ function TimescopeComponent<
   });
 
   effect(() => {
-    if (props.time) timescope.setTime(props.time() ?? null);
+    if (props.time !== undefined) timescope.setTime(readProp(props.time) ?? null);
   });
   effect(() => {
-    timescope.setTimeRange(props.timeRange?.());
+    timescope.setTimeRange(readProp(props.timeRange));
   });
   effect(() => {
-    if (props.zoom) timescope.setZoom(props.zoom() ?? 0);
+    if (props.zoom !== undefined) timescope.setZoom(readProp(props.zoom) ?? 0);
   });
   effect(() => {
-    timescope.setZoomRange(props.zoomRange?.());
+    timescope.setZoomRange(readProp(props.zoomRange));
   });
   effect(() => {
-    if (props.selectionRange) timescope.setSelectionRange(props.selectionRange() ?? null);
+    if (props.selectionRange !== undefined) timescope.setSelectionRange(readProp(props.selectionRange) ?? null);
   });
   effect(() => {
     timescope.updateOptions({
-      style: { width: props.width?.() ?? '100%', height: props.height?.() ?? '36px', background: props.background?.() },
+      style: {
+        width: readProp(props.width) ?? '100%',
+        height: readProp(props.height) ?? '36px',
+        background: readProp(props.background),
+      },
     });
   });
   effect(() => {
-    timescope.updateOptions({ sources: props.sources?.() } as TimescopeOptions);
+    timescope.updateOptions({ sources: readProp(props.sources) });
   });
   effect(() => {
-    timescope.updateOptions({ series: props.series?.() } as TimescopeOptions);
+    timescope.updateOptions({ series: readProp(props.series) });
   });
   effect(() => {
-    timescope.updateOptions({ tracks: props.tracks?.() } as TimescopeOptions);
+    timescope.updateOptions({ tracks: readProp(props.tracks) });
   });
   effect(() => {
-    timescope.updateOptions({ indicator: props.indicator?.() ?? true } as TimescopeOptions);
+    timescope.updateOptions({ domains: readProp(props.domains) });
   });
   effect(() => {
-    timescope.updateOptions({ selection: props.selection?.() } as TimescopeOptions);
+    timescope.updateOptions({ indicator: readProp(props.indicator) ?? true });
   });
   effect(() => {
-    timescope.updateOptions({ showFps: props.showFps?.() } as TimescopeOptions);
+    if (props.selection !== undefined) timescope.updateOptions({ selection: readProp(props.selection) });
+  });
+  effect(() => {
+    timescope.updateOptions({ showFps: readProp(props.showFps) });
   });
 
   onCleanup(() => {
