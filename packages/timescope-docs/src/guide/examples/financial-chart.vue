@@ -12,85 +12,186 @@ title: Financial Chart
 import { onBeforeUnmount, onMounted } from "vue";
 
 // #region code
-import { Timescope } from "timescope";
+import { Decimal, Timescope, type TimescopeResolutionContext } from "timescope";
+
+const DAY = 86400;
+const CANDLE_SPACING = 5;
+const CHUNK_SIZE = 960;
+const MA_CONTEXT = 20;
+
+const intervals = [
+  { interval: "1s", seconds: 1 },
+  { interval: "1m", seconds: 60 },
+  { interval: "3m", seconds: 180 },
+  { interval: "5m", seconds: 300 },
+  { interval: "15m", seconds: 900 },
+  { interval: "30m", seconds: 1800 },
+  { interval: "1h", seconds: 3600 },
+  { interval: "2h", seconds: 7200 },
+  { interval: "4h", seconds: 14400 },
+  { interval: "6h", seconds: 21600 },
+  { interval: "8h", seconds: 28800 },
+  { interval: "12h", seconds: 43200 },
+  { interval: "1d", seconds: DAY },
+  { interval: "3d", seconds: 3 * DAY },
+  { interval: "1w", seconds: 7 * DAY },
+  // Binance months are calendar-based. Thirty days is used only for Timescope's fixed zoom resolution.
+  { interval: "1M", seconds: 30 * DAY },
+] as const;
+
+const resolutions = intervals.map(({ seconds }) => Decimal(seconds));
+const viewResolutions = resolutions.map((resolution) =>
+  resolution.div(CANDLE_SPACING),
+);
+const initialResolution = Decimal(15 * 60)
+  .div(CANDLE_SPACING)
+  .number();
+const candleResolution = {
+  resolve: ({ resolution }: TimescopeResolutionContext) =>
+    resolution.mul(CANDLE_SPACING),
+  snap: "ceil",
+} as const;
+const priceFormatter = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+type BinanceKline = [
+  openTime: number,
+  open: string,
+  high: string,
+  low: string,
+  close: string,
+  volume: string,
+  ...rest: unknown[],
+];
+
+function intervalFor(resolution: Decimal) {
+  const index = resolutions.findIndex((value) => value.eq(resolution));
+  if (index < 0)
+    throw new RangeError(`Unsupported Binance resolution: ${resolution}`);
+  return intervals[index];
+}
+
+function candleSize(resolution: Decimal, intervalSeconds: number) {
+  return Math.max(
+    1,
+    Math.min(8, (intervalSeconds / resolution.number()) * 0.72),
+  );
+}
+
+function movingAverage(klines: BinanceKline[], index: number, period: number) {
+  if (index < period - 1) return null;
+
+  let sum = 0;
+  for (let i = index - period + 1; i <= index; i++) {
+    sum += Number(klines[i][4]);
+  }
+  return sum / period;
+}
 
 // #region docs-ignore
 onMounted(() => {
   // #endregion docs-ignore
 
-  const priceData: {
-    time: number;
-    values: {
-      open: number;
-      high: number;
-      low: number;
-      close: number;
-      ma: number | null;
-    };
-  }[] = [];
-  const volumeData: { time: number; value: number }[] = [];
-
-  let price = 100;
-  let time = 0;
-
-  for (let i = 0; i < 120; i++) {
-    const open = price;
-    const trend = (Math.random() - 0.48) * 2;
-    const volatility = 0.5 + Math.random() * 1.5;
-
-    const high = open + Math.random() * volatility;
-    const low = open - Math.random() * volatility;
-    const close = open + trend;
-
-    const candleValue = {
-      open,
-      high: Math.max(high, open, close),
-      low: Math.min(low, open, close),
-      close,
-    };
-
-    priceData.push({ time, values: { ...candleValue, ma: null } });
-
-    volumeData.push({
-      time,
-      value: 1000000 + Math.random() * 2000000,
-    });
-
-    price = close;
-    time += 3600;
-  }
-
-  const period = 20;
-  for (let i = 0; i < priceData.length; i++) {
-    if (i >= period - 1) {
-      const sum = priceData
-        .slice(i - period + 1, i + 1)
-        .reduce((acc, d) => acc + d.values.close, 0);
-      priceData[i].values.ma = sum / period;
-    }
-  }
+  const now = Math.floor(Date.now() / 1000);
 
   const timescope = new Timescope({
     target: "#example-financial-chart",
-    style: { height: "400px" },
-    time: priceData[60]?.time || 0,
-    zoom: -9,
+    style: { height: "280px" },
+    time: now - DAY,
+    timeRange: ["2017-08-17T00:00:00Z", null],
+    zoom: -Math.log2(initialResolution),
+    zoomRange: [
+      -Math.log2(viewResolutions.at(-1)!.number()),
+      -Math.log2(viewResolutions[0].number()),
+    ],
+    selection: { color: "rgba(14, 118, 149, 0.16)" },
     sources: {
-      price: { immediate: true, data: priceData },
-      volume: volumeData,
+      market: {
+        chunkSize: CHUNK_SIZE,
+        resolutions,
+        loader: async (chunk, api) => {
+          const config = intervalFor(chunk.resolution);
+          const contextSeconds =
+            config.interval === "1M" ? 32 * DAY : config.seconds;
+          const startTime = Math.max(
+            0,
+            chunk.range[0]!.sub(contextSeconds * MA_CONTEXT)
+              .mul(1000)
+              .floor()
+              .number(),
+          );
+          const endTime = Math.min(
+            Date.now(),
+            chunk.range[1]!.add(contextSeconds).mul(1000).ceil().number() - 1,
+          );
+
+          if (endTime < startTime) return [];
+
+          const params = new URLSearchParams({
+            symbol: "BTCUSDT",
+            interval: config.interval,
+            startTime: String(startTime),
+            endTime: String(endTime),
+            limit: "1000",
+          });
+
+          try {
+            const response = await fetch(
+              `https://data-api.binance.vision/api/v3/klines?${params}`,
+            );
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const klines = (await response.json()) as BinanceKline[];
+
+            if (endTime >= Date.now() - contextSeconds * 1000) {
+              api.expiresIn(
+                Math.max(5000, Math.min(60000, config.seconds * 1000)),
+              );
+            }
+
+            return klines.map(
+              ([openTime, open, high, low, close, volume], index) => ({
+                time: openTime / 1000,
+                values: {
+                  open,
+                  high,
+                  low,
+                  close,
+                  volume,
+                  ma5: movingAverage(klines, index, 5),
+                  ma20: movingAverage(klines, index, 20),
+                },
+                data: { intervalSeconds: config.seconds },
+              }),
+            );
+          } catch (error) {
+            api.expiresIn(30000);
+            console.warn("Failed to load Binance market data", error);
+            return [];
+          }
+        },
+      },
+    },
+    domains: {
+      price: {
+        range: { shrink: true, expand: true, default: [undefined, undefined] },
+        unit: "USDT",
+        digits: 2,
+      },
+      volume: { range: [0, undefined], unit: "BTC", digits: 2 },
     },
     series: {
-      stock: {
+      price: {
         data: {
-          source: "price",
-          domain: {
-            unit: "$",
-            range: {
-              shrink: true,
-              expand: true,
-              default: [undefined, undefined],
-            },
-          },
+          source: "market",
+          name: "BTC / USDT",
+          instantaneous: { using: "close" },
+          domain: "price",
+          resolution: candleResolution,
         },
         chart: {
           marks: [
@@ -98,69 +199,86 @@ onMounted(() => {
               draw: "section",
               using: ["high", "low"],
               style: {
+                size: ({ resolution, data }) =>
+                  candleSize(resolution, data.intervalSeconds),
                 lineColor: ({ values }) =>
-                  values.open != null &&
-                  values.close != null &&
-                  values.open.lt(values.close)
-                    ? "#10b981"
-                    : "#ef4444",
+                  values.close!.ge(values.open!) ? "#10b981" : "#ef4444",
                 lineWidth: 1,
               },
             },
             {
               draw: "bar",
               using: ["open", "close"],
-              style: ({ values }) =>
-                values.open != null &&
-                values.close != null &&
-                values.open.lt(values.close)
-                  ? {
-                      lineColor: "#10b981",
-                      fillColor: "#10b981",
-                    }
-                  : {
-                      lineColor: "#ef4444",
-                      fillColor: "#ef4444",
-                    },
+              style: ({ resolution, data, values }) => {
+                const color = values.close!.ge(values.open!)
+                  ? "#10b981"
+                  : "#ef4444";
+                return {
+                  size: candleSize(resolution, data.intervalSeconds),
+                  lineColor: color,
+                  fillColor: color,
+                };
+              },
             },
           ],
           links: [
             {
               draw: "line",
-              using: ["ma"],
-              style: {
-                lineColor: "#f59e0b",
-              },
+              using: "ma5",
+              style: { lineColor: "#3b82f6", lineWidth: 1.5 },
+            },
+            {
+              draw: "line",
+              using: "ma20",
+              style: { lineColor: "#f59e0b", lineWidth: 1.5 },
             },
           ],
         },
-        tooltip: false,
+        tooltip: {
+          format: ({ value }) =>
+            value ? priceFormatter.format(value.number()) : "—",
+        },
         track: "price",
       },
       volume: {
         data: {
-          source: "volume",
-          color: "#8b5cf6",
-          domain: { unit: "shares" },
+          source: "market",
+          name: "Volume",
+          domain: "volume",
+          resolution: candleResolution,
         },
-        chart: "bars:filled",
+        chart: {
+          marks: [
+            {
+              draw: "bar",
+              using: ["volume", "#zero"],
+              style: ({ resolution, data, values }) => ({
+                size: candleSize(resolution, data.intervalSeconds),
+                fillColor: values.close!.ge(values.open!)
+                  ? "#10b981"
+                  : "#ef4444",
+                fillOpacity: 0.55,
+                lineWidth: 0,
+              }),
+            },
+          ],
+        },
         tooltip: false,
         track: "volume",
       },
     },
     tracks: {
-      price: {
-        timeAxis: false,
-        height: 300,
-      },
-      volume: {
-        timeAxis: { relative: true },
-        height: 100,
-      },
+      price: { height: 210, timeAxis: false },
+      volume: { height: 70, timeAxis: true },
     },
   });
+
+  timescope.on("load", () => {
+    timescope.fitTo([now - 2 * DAY, now], { animation: false, padding: 16 });
+  });
+
   // #endregion code
 
-  onBeforeUnmount(() => timescope?.dispose());
+  onBeforeUnmount(() => timescope.dispose());
 });
 </script>
