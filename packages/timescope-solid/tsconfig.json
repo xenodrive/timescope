@@ -16,5 +16,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "isolatedModules": true
-  }
+  },
+  "include": ["./src/**/*"]
+
 }

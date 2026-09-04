@@ -21,12 +21,12 @@
   "scripts": {
     "dev": "pnpm run -C packages/timescope dev",
     "docs": "pnpm run -C packages/timescope-docs start",
-    "build": "pnpm run build:libs; pnpm run build:docs",
-    "build:libs": "pnpm run -r --filter \\!timescope-docs --filter \\!. build && pnpm run check:libs",
+    "build": "pnpm run build:libs && pnpm run check:libs; pnpm run build:docs",
+    "build:libs": "pnpm run -r --filter \\!timescope-docs --filter \\!. build",
     "check:libs": "vitest run tests/dist-frameworks.test.ts",
     "build:docs": "pnpm run -r --filter timescope-docs build"
   },
-  "packageManager": "pnpm@11.25.0",
+  "packageManager": "pnpm@12",
   "devDependencies": {
     "@eslint/compat": "^2.1.0",
     "@eslint/js": "^10.0.1",
