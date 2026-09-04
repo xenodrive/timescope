@@ -1,6 +1,6 @@
-import { Accessor, createEffect, createSignal, render, Show } from '@luna_ui/luna';
-import { Decimal, Timescope } from '@timescope/luna';
-import { TimescopeRange } from 'timescope';
+import { createSignal, render, Show } from '@luna_ui/luna';
+import { type Decimal, Timescope } from '@timescope/luna';
+import { type TimescopeRange } from 'timescope';
 
 function App() {
   const [time, setTime] = createSignal<Decimal | null>(null);
