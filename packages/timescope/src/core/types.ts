@@ -270,7 +270,6 @@ export type TimescopeYAxisOptions = {
 export type TimescopeDomainOptions = {
   scale?: 'linear' | 'log' | 'linear-symmetric';
   animation?: boolean;
-  initialAnimation?: boolean | number;
   range?:
     | NumberLike
     | TimescopeRange<NumberLike | undefined>

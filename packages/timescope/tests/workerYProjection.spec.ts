@@ -15,7 +15,6 @@ function projection(revision: number, scale: number, offset: number): TimescopeY
     revision,
     autoscale: true,
     animation: true,
-    initialAnimation: true,
     mode: 'floating-positive',
     extent: [0, 1],
     gap: 20,

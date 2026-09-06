@@ -227,32 +227,17 @@ export class TimescopeTrack extends TimescopeObservable {
       const target = this.#targetAffine(projection, min, max, targetZero);
       const targetFade = target.floating;
       const rebase = rebases.get(domainId);
-      let initialDuration = 0;
-      if (projection.initialAnimation !== false) {
-        initialDuration =
-          typeof projection.initialAnimation === 'number' ? Math.max(0, projection.initialAnimation) : 200;
-      }
-      const initialAnimation = initialDuration
-        ? { animation: 'linear' as const, duration: initialDuration }
-        : { animation: false as const, duration: 0 };
+      const stateAnimation = reset ? { animation: false as const, duration: 0 } : updateAnimation;
       if (rebase && state.scale.value != null && state.offset.value != null) {
         const startScale = state.scale.value / rebase.scale;
         const startOffset = state.offset.value - (state.scale.value * rebase.offset) / rebase.scale;
         state.scale.tween(startScale, target.scale, updateAnimation);
         state.offset.tween(startOffset, target.offset, updateAnimation);
-      } else if (!existing && !reset && initialDuration) {
-        state.scale.tween(0, target.scale, initialAnimation);
-        state.offset.tween(targetZero, target.offset, initialAnimation);
       } else {
-        const stateAnimation = reset ? { animation: false as const, duration: 0 } : updateAnimation;
         state.scale.setValue(target.scale, stateAnimation);
         state.offset.setValue(target.offset, stateAnimation);
       }
-      if (!existing && !reset && initialDuration) {
-        state.fade.tween(0, targetFade, initialAnimation);
-      } else {
-        state.fade.setValue(targetFade, reset ? { animation: false, duration: 0 } : updateAnimation);
-      }
+      state.fade.setValue(targetFade, stateAnimation);
 
       state.projection = projection;
       state.axis = axesByDomain.get(domainId);

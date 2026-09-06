@@ -43,9 +43,6 @@ const resolutions = intervals.map(({ seconds }) => Decimal(seconds));
 const viewResolutions = resolutions.map((resolution) =>
   resolution.div(CANDLE_SPACING),
 );
-const initialResolution = Decimal(15 * 60)
-  .div(CANDLE_SPACING)
-  .number();
 const candleResolution = {
   resolve: ({ resolution }: TimescopeResolutionContext) =>
     resolution.mul(CANDLE_SPACING),
@@ -101,9 +98,9 @@ onMounted(() => {
   const timescope = new Timescope({
     target: "#example-financial-chart",
     style: { height: "280px" },
-    time: now - DAY,
+    time: now - (365 * DAY) / 2,
     timeRange: ["2017-08-17T00:00:00Z", null],
-    zoom: -Math.log2(initialResolution),
+    zoom: -15,
     zoomRange: [
       -Math.log2(viewResolutions.at(-1)!.number()),
       -Math.log2(viewResolutions[0].number()),
@@ -268,13 +265,13 @@ onMounted(() => {
       },
     },
     tracks: {
-      price: { height: 210, timeAxis: false },
+      price: { height: 210, timeAxis: true },
       volume: { height: 70, timeAxis: true },
     },
   });
 
   timescope.on("load", () => {
-    timescope.fitTo([now - 2 * DAY, now], { animation: false, padding: 16 });
+    timescope.fitTo([now - 365 * DAY, now], { animation: false });
   });
 
   // #endregion code

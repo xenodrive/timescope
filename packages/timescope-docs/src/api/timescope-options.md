@@ -305,7 +305,6 @@ Selection is resizable by default. Shift-drag creates a range.
 | `scale`            | `'linear' \| 'linear-symmetric' \| 'log'`                               | Sets the value scale.                                               |
 | `axis`             | `boolean \| 'left' \| 'right' \| TimescopeYAxisOptions`                 | Shows and configures a value axis.                                  |
 | `animation`        | `boolean`                                                               | Animates range changes. Default: `true`.                            |
-| `initialAnimation` | `boolean \| number`                                                     | Animates the initial chart. A number sets milliseconds.             |
 | `range`            | `TimescopeNumberLike \| [min?, max?] \| { expand?, shrink?, default? }` | Sets or configures the value range.                                 |
 | `expand`           | `boolean`                                                               | Allows the range to expand for observed values. Default: `false`.   |
 | `shrink`           | `boolean`                                                               | Allows the range to contract. Default: `true`.                      |

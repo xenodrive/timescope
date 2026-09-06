@@ -184,19 +184,17 @@ export class TimescopeDomain extends TimescopeObservable {
     }
 
     let next: TimescopeRange<Decimal> | null = null;
-    if (lower || upper) {
-      lower ??= upper;
-      upper ??= lower;
-      if (lower!.gt(upper!)) {
+    if (lower !== undefined && upper !== undefined) {
+      if (lower.gt(upper)) {
         if (!expandLower) upper = lower;
         else if (!expandUpper) lower = upper;
         else [lower, upper] = [upper, lower];
       }
-      if (lower!.eq(upper!) && previousExtent) {
-        if (expandLower && previousExtent[0].lt(lower!)) lower = previousExtent[0];
-        if (expandUpper && previousExtent[1].gt(upper!)) upper = previousExtent[1];
+      if (lower.eq(upper) && previousExtent) {
+        if (expandLower && previousExtent[0].lt(lower)) lower = previousExtent[0];
+        if (expandUpper && previousExtent[1].gt(upper)) upper = previousExtent[1];
       }
-      next = [lower!, upper!];
+      next = [lower, upper];
     }
 
     const extentChanged =
@@ -231,10 +229,6 @@ export class TimescopeDomain extends TimescopeObservable {
 
   get animation() {
     return this.#options.animation ?? true;
-  }
-
-  get initialAnimation() {
-    return this.#options.initialAnimation ?? this.autoscale;
   }
 
   get unit() {
@@ -288,7 +282,6 @@ export class TimescopeDomain extends TimescopeObservable {
         revision: ++this.#projectionRevision,
         autoscale: this.autoscale,
         animation: this.animation,
-        initialAnimation: this.initialAnimation,
         mode: projection.mode,
         extent: projection.extent,
         gap: projection.gap,

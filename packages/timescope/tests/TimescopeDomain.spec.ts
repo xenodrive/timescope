@@ -45,6 +45,18 @@ describe('TimescopeDomain', () => {
     expect(domain.createProjection().wire.mode).toBe('empty');
   });
 
+  it('stays empty until a chart completes a partially specified range', () => {
+    const domain = new TimescopeDomain({ range: [0, undefined] });
+    const series = createSeries();
+    domain.addSeries(series);
+
+    expect(values(domain)).toBeNull();
+    expect(domain.createProjection().wire.mode).toBe('empty');
+
+    report(domain, series, [10, 20]);
+    expect(values(domain)).toEqual([0, 20]);
+  });
+
   it('preserves negative numeric lower and upper semantics', () => {
     const domain = new TimescopeDomain();
     const series = createSeries();
@@ -77,19 +89,15 @@ describe('TimescopeDomain', () => {
     const automatic = new TimescopeDomain().createProjection().wire;
     expect(automatic.autoscale).toBe(true);
     expect(automatic.animation).toBe(true);
-    expect(automatic.initialAnimation).toBe(true);
 
     const fixedDefault = new TimescopeDomain({ range: [-1, 1] }).createProjection().wire;
     expect(fixedDefault.autoscale).toBe(false);
-    expect(fixedDefault.initialAnimation).toBe(false);
 
-    const fixedOverride = new TimescopeDomain({
+    const fixed = new TimescopeDomain({
       range: [-1, 1],
       animation: false,
-      initialAnimation: 350,
     }).createProjection().wire;
-    expect(fixedOverride.animation).toBe(false);
-    expect(fixedOverride.initialAnimation).toBe(350);
+    expect(fixed.animation).toBe(false);
   });
 
   it('returns to an empty range when a chart becomes empty', () => {

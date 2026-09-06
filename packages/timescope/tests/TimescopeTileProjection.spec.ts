@@ -10,7 +10,6 @@ describe('render-column projection', () => {
       revision: 1,
       autoscale: true,
       animation: true,
-      initialAnimation: true,
       mode: 'floating-positive' as const,
       extent: [0, 1] as [number, number],
       gap: 20,

@@ -9,7 +9,7 @@ function projection(
   mode: TimescopeYProjectionWire['mode'],
   extent: [number, number],
   floating = 0,
-  options: Partial<Pick<TimescopeYProjectionWire, 'autoscale' | 'animation' | 'initialAnimation' | 'numericZero'>> = {},
+  options: Partial<Pick<TimescopeYProjectionWire, 'autoscale' | 'animation' | 'numericZero'>> = {},
 ): TimescopeYProjectionWire {
   return {
     domainId,
@@ -17,7 +17,6 @@ function projection(
     revision: 1,
     autoscale: true,
     animation: true,
-    initialAnimation: true,
     mode,
     extent,
     gap: 20,
@@ -79,19 +78,13 @@ describe('TimescopeTrack Y projection', () => {
     expect(value.axes).toEqual([expect.objectContaining({ id: 'domain', side: 'right', label: 'Value' })]);
   });
 
-  it('keeps the zero axis at its target while the initial chart grows from it', () => {
+  it('shows the initial chart immediately', () => {
     const value = track(['a']);
     value.adjustScale(context({}));
 
     value.adjustScale(context({ a: projection('a', 'zero-inclusive', [-0.25, 1]) }));
 
     const targetZero = value.bottom - value.chartHeight * 0.2;
-    expect(value.y0).toBeCloseTo(targetZero);
-    expect(value.yForDomain('a', -0.25)).toBeCloseTo(targetZero);
-    expect(value.yForDomain('a', 1)).toBeCloseTo(targetZero);
-    expect(value.animating).toBe(true);
-
-    finishAnimations();
     expect(value.y0).toBeCloseTo(targetZero);
     expect(value.yForDomain('a', -0.25)).toBeCloseTo(value.bottom);
     expect(value.yForDomain('a', 1)).toBeCloseTo(value.top);
@@ -102,7 +95,6 @@ describe('TimescopeTrack Y projection', () => {
     const value = track(['a']);
     const source = projection('a', 'zero-inclusive', [-0.25, 1], 0, {
       autoscale: false,
-      initialAnimation: false,
     });
 
     value.adjustScale(context({ a: source }));
@@ -110,53 +102,12 @@ describe('TimescopeTrack Y projection', () => {
     expect(value.yForDomain('a', -0.25)).toBeCloseTo(value.bottom);
     expect(value.yForDomain('a', 1)).toBeCloseTo(value.top);
     expect(value.animating).toBe(false);
-  });
-
-  it('allows an initial animation override for a fixed-range chart', () => {
-    const value = track(['a']);
-    const source = projection('a', 'zero-inclusive', [-0.25, 1], 0, {
-      autoscale: false,
-      initialAnimation: 350,
-    });
-
-    value.adjustScale(context({ a: source }));
-
-    expect(value.yForDomain('a', -0.25)).toBeCloseTo(value.y0);
-    expect(value.yForDomain('a', 1)).toBeCloseTo(value.y0);
-    expect(value.animating).toBe(true);
-    vi.advanceTimersByTime(400);
-    expect(value.yForDomain('a', 1)).toBeCloseTo(value.top);
-  });
-
-  it('supports disabling the initial animation', () => {
-    const value = track(['a']);
-    const source = projection('a', 'zero-inclusive', [-0.25, 1], 0, { initialAnimation: false });
-
-    value.adjustScale(context({ a: source }));
-
-    expect(value.yForDomain('a', -0.25)).toBeCloseTo(value.bottom);
-    expect(value.yForDomain('a', 1)).toBeCloseTo(value.top);
-    expect(value.animating).toBe(false);
-  });
-
-  it('uses a numeric initial animation duration in milliseconds', () => {
-    const value = track(['a']);
-    const source = projection('a', 'zero-inclusive', [-0.25, 1], 0, { initialAnimation: 500 });
-
-    value.adjustScale(context({ a: source }));
-    vi.advanceTimersByTime(250);
-    expect(value.animating).toBe(true);
-
-    vi.advanceTimersByTime(300);
-    expect(value.animating).toBe(false);
-    expect(value.yForDomain('a', 1)).toBeCloseTo(value.top);
   });
 
   it('supports disabling autoscale update animations', () => {
     const value = track(['a']);
     const source = projection('a', 'zero-inclusive', [-0.25, 1], 0, {
       animation: false,
-      initialAnimation: false,
     });
     value.adjustScale(context({ a: source }));
 
@@ -184,7 +135,6 @@ describe('TimescopeTrack Y projection', () => {
   it('keeps a logarithmic range separated from the zero axis', () => {
     const value = track(['a']);
     const source = projection('a', 'floating-positive', [0, 1], 20, {
-      initialAnimation: false,
       numericZero: null,
     });
 
@@ -211,7 +161,6 @@ describe('TimescopeTrack Y projection', () => {
   it('includes zero when a positive autoscale reaches it within the floating gap', () => {
     const value = track(['a']);
     const source = projection('a', 'floating-positive', [0, 1], 20, {
-      initialAnimation: false,
       numericZero: -0.1,
     });
 
@@ -226,7 +175,6 @@ describe('TimescopeTrack Y projection', () => {
   it('includes zero when a negative autoscale reaches it within the floating gap', () => {
     const value = track(['a']);
     const source = projection('a', 'floating-negative', [-1, 0], -20, {
-      initialAnimation: false,
       numericZero: 0.1,
     });
 
@@ -242,7 +190,6 @@ describe('TimescopeTrack Y projection', () => {
     const value = track(['a']);
     const source = projection('a', 'floating-positive', [0, 1], 20, {
       autoscale: false,
-      initialAnimation: false,
       numericZero: -0.1,
     });
 

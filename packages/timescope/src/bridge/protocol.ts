@@ -287,7 +287,6 @@ export type TimescopeYProjectionWire = {
   revision: number;
   autoscale: boolean;
   animation: boolean;
-  initialAnimation: boolean | number;
   mode: TimescopeYProjectionMode;
   extent: [number, number] | null;
   gap: number;
