@@ -7,6 +7,7 @@ export {
   type TimescopeDataSourceInvalidation,
   type TimescopeMutableDataSource,
 } from '#src/main/TimescopeDataSource';
+export { Calendar } from '@kikuchan/calendar';
 export { Decimal } from '@kikuchan/decimal';
 
 // types
