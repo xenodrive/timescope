@@ -34,38 +34,44 @@ export class TimescopeYAxisRenderer extends TimescopeRenderer {
     ctx.textBaseline = 'middle';
     ctx.textAlign = left ? 'left' : 'right';
 
-    ctx.beginPath();
-    ctx.moveTo(x, track.top);
-    ctx.lineTo(x, track.bottom);
-    for (const tick of axis.ticks) {
+    const floating = track.fadeForDomain(axis.id);
+    const bottom = floating > 0 ? Math.min(track.bottom, track.y0 - floating) : track.bottom;
+    const title = [axis.label, axis.unit].filter(Boolean).join(' ');
+    const titleY = 1;
+    const titleMetrics = title ? ctx.measureText(title) : undefined;
+    const titleBottom = titleMetrics
+      ? titleY + Math.max(11, titleMetrics.actualBoundingBoxAscent + titleMetrics.actualBoundingBoxDescent) + 4
+      : -Infinity;
+    const top = Math.max(track.top, titleBottom, floating < 0 ? track.y0 - floating : -Infinity);
+    const ticks = axis.ticks.flatMap((tick) => {
       const y = track.yForDomain(axis.id, tick.value);
-      if (!Number.isFinite(y) || y < track.top - 1 || y > track.bottom + 1) continue;
+      if (!Number.isFinite(y) || y < top || y > bottom) return [];
+      const metrics = ctx.measureText(tick.text);
+      const textTop = y - Math.max(5.5, metrics.actualBoundingBoxAscent);
+      if (textTop <= titleBottom) return [];
+      return [{ text: tick.text, y }];
+    });
+
+    ctx.beginPath();
+    if (top <= bottom) {
+      ctx.moveTo(x, top);
+      ctx.lineTo(x, bottom);
+    }
+    for (const { y } of ticks) {
       ctx.moveTo(x, y + 0.5);
       ctx.lineTo(x + direction * 5, y + 0.5);
     }
     ctx.stroke();
 
-    for (const tick of axis.ticks) {
-      const y = track.yForDomain(axis.id, tick.value);
-      if (!Number.isFinite(y) || y < track.top - 1 || y > track.bottom + 1) continue;
-      ctx.fillText(tick.text, x + direction * 8, y);
+    for (const { text, y } of ticks) {
+      ctx.fillText(text, x + direction * 8, y);
     }
 
-    const title = [axis.label, axis.unit].filter(Boolean).join(' ');
     if (title) {
       ctx.textBaseline = 'top';
-      ctx.fillText(title, x + direction * 8, track.top);
+      ctx.fillText(title, x - direction * 0.5, titleY);
     }
 
-    const projection = track.projectionForDomain(axis.id);
-    if (projection && track.fadeForDomain(axis.id)) {
-      const y = track.y0;
-      ctx.beginPath();
-      ctx.moveTo(x - direction * 4, y - 4);
-      ctx.lineTo(x + direction * 4, y);
-      ctx.lineTo(x - direction * 4, y + 4);
-      ctx.stroke();
-    }
     ctx.restore();
   }
 }
