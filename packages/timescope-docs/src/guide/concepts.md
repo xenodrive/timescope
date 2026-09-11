@@ -1,10 +1,10 @@
 # Core Concepts
 
-Timescope-specific concepts. See the [API reference](/api/timescope) for configuration details.
+- The time axis supports **infinite**, **arbitrary-precision** navigation.
+- Charts are composed of **marks** (per row) and **links** (between rows).
+- Data is loaded in viewport-driven **chunks**.
 
-- The time axis supports infinite, arbitrary-precision navigation.
-- Charts are composed of marks (per row) and links (between rows).
-- Data is loaded in viewport-driven chunks.
+See the [API reference](/api/timescope) for configuration details.
 
 ## Infinite time navigation
 
