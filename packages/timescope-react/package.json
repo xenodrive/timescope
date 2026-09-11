@@ -16,7 +16,7 @@
     "import": "./src/index.ts"
   },
   "devDependencies": {
-    "@kikuchan/calendar": "^0.0.1-alpha.4",
+    "@kikuchan/calendar": "^0.1.0-alpha.0",
     "@kikuchan/decimal": "^0.1.0-alpha.10",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
@@ -32,7 +32,7 @@
     "timescope": "workspace:*"
   },
   "peerDependencies": {
-    "@kikuchan/calendar": "^0.0.1-alpha.2",
+    "@kikuchan/calendar": "^0.1.0-alpha.0",
     "@kikuchan/decimal": "^0.1.0-alpha.7",
     "react": "^19.2.3"
   }

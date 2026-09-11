@@ -18,7 +18,7 @@
     }
   },
   "devDependencies": {
-    "@kikuchan/calendar": "^0.0.1-alpha.4",
+    "@kikuchan/calendar": "^0.1.0-alpha.0",
     "@kikuchan/decimal": "^0.1.0-alpha.10",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/eslint-config-prettier": "^10.2.0",
@@ -31,7 +31,7 @@
     "vue-tsc": "^3.3.11"
   },
   "peerDependencies": {
-    "@kikuchan/calendar": "^0.0.1-alpha.2",
+    "@kikuchan/calendar": "^0.1.0-alpha.0",
     "@kikuchan/decimal": "^0.1.0-alpha.7",
     "vue": "^3.5.26"
   },

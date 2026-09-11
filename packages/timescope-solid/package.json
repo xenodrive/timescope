@@ -28,12 +28,12 @@
     "dist"
   ],
   "peerDependencies": {
-    "@kikuchan/calendar": "^0.0.1-alpha.2",
+    "@kikuchan/calendar": "^0.1.0-alpha.0",
     "@kikuchan/decimal": "^0.1.0-alpha.7",
     "solid-js": "^1.9.9"
   },
   "devDependencies": {
-    "@kikuchan/calendar": "^0.0.1-alpha.4",
+    "@kikuchan/calendar": "^0.1.0-alpha.0",
     "@kikuchan/decimal": "^0.1.0-alpha.10",
     "@solidjs/testing-library": "^0.8.10",
     "@vitest/browser-playwright": "^5.0.0",

@@ -418,6 +418,7 @@ export type TimeFormatLabeler = {
 };
 
 export type TimescopeTimeAxisOptions = {
+  timeZone?: string;
   axis?: false | { color?: string };
   ticks?: false | { color?: string };
   labels?: false | TextStyleOptions;

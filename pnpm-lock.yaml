@@ -57,8 +57,8 @@ importers:
   packages/timescope:
     devDependencies:
       '@kikuchan/calendar':
-        specifier: ^0.0.1-alpha.4
-        version: 0.0.1-alpha.4(@kikuchan/decimal@0.1.0-alpha.10)
+        specifier: ^0.1.0-alpha.0
+        version: 0.1.0-alpha.0(@kikuchan/decimal@0.1.0-alpha.10)
       '@kikuchan/decimal':
         specifier: ^0.1.0-alpha.10
         version: 0.1.0-alpha.10
@@ -94,8 +94,8 @@ importers:
         version: link:../timescope
     devDependencies:
       '@kikuchan/calendar':
-        specifier: ^0.0.1-alpha.4
-        version: 0.0.1-alpha.4(@kikuchan/decimal@0.1.0-alpha.10)
+        specifier: ^0.1.0-alpha.0
+        version: 0.1.0-alpha.0(@kikuchan/decimal@0.1.0-alpha.10)
       '@kikuchan/decimal':
         specifier: ^0.1.0-alpha.10
         version: 0.1.0-alpha.10
@@ -110,8 +110,8 @@ importers:
         version: link:../timescope
     devDependencies:
       '@kikuchan/calendar':
-        specifier: ^0.0.1-alpha.4
-        version: 0.0.1-alpha.4(@kikuchan/decimal@0.1.0-alpha.10)
+        specifier: ^0.1.0-alpha.0
+        version: 0.1.0-alpha.0(@kikuchan/decimal@0.1.0-alpha.10)
       '@kikuchan/decimal':
         specifier: ^0.1.0-alpha.10
         version: 0.1.0-alpha.10
@@ -153,8 +153,8 @@ importers:
         version: link:../timescope
     devDependencies:
       '@kikuchan/calendar':
-        specifier: ^0.0.1-alpha.4
-        version: 0.0.1-alpha.4(@kikuchan/decimal@0.1.0-alpha.10)
+        specifier: ^0.1.0-alpha.0
+        version: 0.1.0-alpha.0(@kikuchan/decimal@0.1.0-alpha.10)
       '@kikuchan/decimal':
         specifier: ^0.1.0-alpha.10
         version: 0.1.0-alpha.10
@@ -184,8 +184,8 @@ importers:
         version: link:../timescope
     devDependencies:
       '@kikuchan/calendar':
-        specifier: ^0.0.1-alpha.4
-        version: 0.0.1-alpha.4(@kikuchan/decimal@0.1.0-alpha.10)
+        specifier: ^0.1.0-alpha.0
+        version: 0.1.0-alpha.0(@kikuchan/decimal@0.1.0-alpha.10)
       '@kikuchan/decimal':
         specifier: ^0.1.0-alpha.10
         version: 0.1.0-alpha.10
@@ -218,8 +218,8 @@ importers:
         version: link:../timescope
     devDependencies:
       '@kikuchan/calendar':
-        specifier: ^0.0.1-alpha.4
-        version: 0.0.1-alpha.4(@kikuchan/decimal@0.1.0-alpha.10)
+        specifier: ^0.1.0-alpha.0
+        version: 0.1.0-alpha.0(@kikuchan/decimal@0.1.0-alpha.10)
       '@kikuchan/decimal':
         specifier: ^0.1.0-alpha.10
         version: 0.1.0-alpha.10
@@ -507,8 +507,8 @@ packages:
   '@kikuchan/binary-reader@0.1.0-alpha.8':
     resolution: {integrity: sha512-sesLDBT6jhl2Rwatp4kz+PHiDEeMLysOdbrKoJghRgEV6GZHyeK9X4SFK9o9iOF5laYe9g3/ReyvYPTFpygR8Q==}
 
-  '@kikuchan/calendar@0.0.1-alpha.4':
-    resolution: {integrity: sha512-sm7rii5uU8MOfmJNLAkeih0aulDXWrLoYTpMLc3FTiRXUDPnt+R8IU5UMNpaaAlCfx88t9p3lK24E2tE9u0BCg==}
+  '@kikuchan/calendar@0.1.0-alpha.0':
+    resolution: {integrity: sha512-423ofLV/OaqfKBmH+5U5z+PvpRAb8MctLzOMmkf2QCluH+d/x4hO1mVUA9OcMCsyVvnE1nU7n6E+Kd2TJ32Jyg==}
     peerDependencies:
       '@kikuchan/decimal': ^0.1.0-alpha.10
 
@@ -3723,7 +3723,7 @@ snapshots:
 
   '@kikuchan/binary-reader@0.1.0-alpha.8': {}
 
-  '@kikuchan/calendar@0.0.1-alpha.4(@kikuchan/decimal@0.1.0-alpha.10)':
+  '@kikuchan/calendar@0.1.0-alpha.0(@kikuchan/decimal@0.1.0-alpha.10)':
     dependencies:
       '@kikuchan/decimal': 0.1.0-alpha.10
 

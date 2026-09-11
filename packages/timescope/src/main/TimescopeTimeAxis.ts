@@ -30,69 +30,6 @@ export type TickLabel = {
   major?: boolean;
 };
 
-type CalendarParts = {
-  year: bigint;
-  month: bigint;
-  day: bigint;
-  hour: bigint;
-  minute: bigint;
-  second: bigint;
-  subseconds: Decimal;
-  weekday: number;
-};
-
-function toLocalDate(value: Decimal): Calendar {
-  return Calendar.fromEpoch(value, 'local');
-}
-
-function epochSecondsToLocalDateTime(value: Decimal): CalendarParts {
-  const parts = toLocalDate(value).components();
-  const seconds = Decimal(parts.seconds);
-  const [secondIntegral, subseconds] = seconds.split();
-  return {
-    year: parts.year,
-    month: parts.month,
-    day: parts.day,
-    hour: parts.hour,
-    minute: parts.minutes,
-    second: secondIntegral.integer(),
-    subseconds,
-    weekday: parts.weekday,
-  };
-}
-
-function alignToDay(value: Decimal, step?: bigint | bigint[]): Decimal {
-  return toLocalDate(value).alignToDay(step).epoch();
-}
-
-function nextDay(value: Decimal, step?: bigint | bigint[]): Decimal {
-  return toLocalDate(value).nextDay(step).epoch();
-}
-
-function alignToMonth(value: Decimal, step?: bigint | bigint[]): Decimal {
-  return toLocalDate(value).alignToMonth(step).epoch();
-}
-
-function nextMonth(value: Decimal, step?: bigint | bigint[]): Decimal {
-  return toLocalDate(value).nextMonth(step).epoch();
-}
-
-function alignToYear(value: Decimal, step?: bigint): Decimal {
-  return toLocalDate(value).alignToYear(step, { era: true }).epoch();
-}
-
-function nextYear(value: Decimal, step?: bigint): Decimal {
-  return toLocalDate(value).nextYear(step, { era: true }).epoch();
-}
-
-function alignToSecond(value: Decimal, align: Decimal | bigint | number): Decimal {
-  return toLocalDate(value).alignToSecond(Decimal(align)).epoch();
-}
-
-function addSeconds(value: Decimal, seconds: number | Decimal): Decimal {
-  return value.add(Decimal(seconds));
-}
-
 function defaultTimeFormatRelative({
   time,
   digits,
@@ -195,47 +132,39 @@ type TickOps = {
   next(time: Decimal): Decimal | null;
 };
 
-function createSecondTickOps(step: Decimal): TickOps {
+function createSecondTickOps(step: Decimal, timeZone: string): TickOps {
   return {
-    align: (time) => alignToSecond(time, step),
-    next: (time) => addSeconds(time, step),
+    align: (time) => Calendar.fromEpoch(time).zone(timeZone).alignToSecond(step).epoch(),
+    next: (time) => time.add(step),
   };
 }
 
-function createMinuteTickOps(step: Decimal): TickOps {
-  step = step.mul(60);
+function createMinuteTickOps(step: Decimal, timeZone: string): TickOps {
+  return createSecondTickOps(step.mul(60), timeZone);
+}
+
+function createHourTickOps(step: Decimal, timeZone: string): TickOps {
+  return createSecondTickOps(step.mul(3600), timeZone);
+}
+
+function createDayTickOps(step: bigint | bigint[], timeZone: string): TickOps {
   return {
-    align: (time) => alignToSecond(time, step),
-    next: (time) => addSeconds(time, step),
+    align: (time) => Calendar.fromEpoch(time).zone(timeZone).alignToDay(step).epoch(),
+    next: (time) => Calendar.fromEpoch(time).zone(timeZone).nextDay(step).epoch(),
   };
 }
 
-function createHourTickOps(step: Decimal): TickOps {
-  step = step.mul(3600);
+function createMonthTickOps(step: bigint | bigint[], timeZone: string): TickOps {
   return {
-    align: (time) => alignToSecond(time, step),
-    next: (time) => addSeconds(time, step),
+    align: (time) => Calendar.fromEpoch(time).zone(timeZone).alignToMonth(step).epoch(),
+    next: (time) => Calendar.fromEpoch(time).zone(timeZone).nextMonth(step).epoch(),
   };
 }
 
-function createDayTickOps(step: bigint | bigint[]): TickOps {
+function createYearTickOps(step: bigint, timeZone: string): TickOps {
   return {
-    align: (time) => alignToDay(time, step),
-    next: (time) => nextDay(time, step),
-  };
-}
-
-function createMonthTickOps(step: bigint | bigint[]): TickOps {
-  return {
-    align: (time) => alignToMonth(time, step),
-    next: (time) => nextMonth(time, step),
-  };
-}
-
-function createYearTickOps(step: bigint): TickOps {
-  return {
-    align: (time) => alignToYear(time, step),
-    next: (time) => nextYear(time, step),
+    align: (time) => Calendar.fromEpoch(time).zone(timeZone).alignToYear(step, { era: true }).epoch(),
+    next: (time) => Calendar.fromEpoch(time).zone(timeZone).nextYear(step, { era: true }).epoch(),
   };
 }
 
@@ -286,7 +215,7 @@ type Candidate = {
   stride: bigint;
   duration: Decimal;
   digits: number;
-  create: () => TickOps;
+  create: (timeZone: string) => TickOps;
   source?: DefinitionEntry;
   subsecondMetadata?: { exponent: bigint; factor: bigint };
   yearStride?: bigint;
@@ -324,16 +253,16 @@ function inferDefinitionLevel(entry: DefinitionEntry): DefinitionLevel {
   }
 }
 
-function instantiateDefinitionTickOps(entry: DefinitionEntry): TickOps {
+function instantiateDefinitionTickOps(entry: DefinitionEntry, timeZone: string): TickOps {
   const { ops, step } = entry;
   if (ops === createSecondTickOps || ops === createMinuteTickOps || ops === createHourTickOps) {
-    return ops(Decimal(step as number | string | bigint));
+    return ops(Decimal(step as number | string | bigint), timeZone);
   }
   if (ops === createDayTickOps || ops === createMonthTickOps) {
     const normalized = Array.isArray(step)
       ? (step as (number | bigint)[]).map((value) => BigInt(value))
       : BigInt(step as number | bigint);
-    return ops(normalized);
+    return ops(normalized, timeZone);
   }
   throw new Error('Unsupported definition');
 }
@@ -366,7 +295,7 @@ const definitionCandidates = definitions
       stride: strideBigInt,
       duration,
       digits: 0,
-      create: () => instantiateDefinitionTickOps(entry),
+      create: (timeZone: string) => instantiateDefinitionTickOps(entry, timeZone),
       source: entry,
     } satisfies Candidate;
   })
@@ -400,7 +329,7 @@ function createSubsecondCandidate(step: Decimal, exponent: bigint, factor: bigin
     stride: 1n,
     duration: step,
     digits: subsecondDecimals(step),
-    create: () => createSecondTickOps(step),
+    create: (timeZone) => createSecondTickOps(step, timeZone),
     subsecondMetadata: { exponent, factor },
   };
 }
@@ -499,7 +428,7 @@ function createYearCandidate(strideYears: bigint): Candidate {
     stride: strideYears,
     duration,
     digits: 0,
-    create: () => createYearTickOps(strideYears),
+    create: (timeZone) => createYearTickOps(strideYears, timeZone),
     yearStride: strideYears,
   };
 }
@@ -580,6 +509,7 @@ function selectMinorCandidate(major: Candidate, threshold: Decimal): Candidate |
 }
 
 type CalendarContext = {
+  timeZone: string;
   level: CalendarLevel;
   digits: number;
   stride: bigint;
@@ -587,7 +517,7 @@ type CalendarContext = {
   minor: TickOps | null;
 };
 
-function forgeCalendarContext(resolution: Decimal): CalendarContext | null {
+function forgeCalendarContext(resolution: Decimal, timeZone: string): CalendarContext | null {
   if (!resolution) return null;
   if (!resolution.isPositive()) return null;
 
@@ -607,8 +537,9 @@ function forgeCalendarContext(resolution: Decimal): CalendarContext | null {
 
   return {
     level: majorCandidate.level,
-    major: majorCandidate.create(),
-    minor: minorCandidate ? minorCandidate.create() : null,
+    timeZone,
+    major: majorCandidate.create(timeZone),
+    minor: minorCandidate ? minorCandidate.create(timeZone) : null,
     digits: majorCandidate.digits,
     stride: majorCandidate.stride,
   };
@@ -623,9 +554,19 @@ function defaultTimeFormatCalendar(
 ): string {
   const { time, unit } = opts;
   const context = opts;
-  const { year, month, day, hour, minute, second, subseconds, weekday } = epochSecondsToLocalDateTime(
-    scaleTimeUnit(time, unit, 's'),
-  );
+  const {
+    year,
+    month,
+    day,
+    hour,
+    minutes: minute,
+    seconds,
+    weekday,
+  } = Calendar.fromEpoch(scaleTimeUnit(time, unit, 's'))
+    .zone(opts.timeZone)
+    .components();
+  const [secondIntegral, subseconds] = seconds.split();
+  const second = secondIntegral.integer();
   const week = weekday;
   const quarter = Math.floor((Number(month) - 1) / 3) + 1;
 
@@ -716,7 +657,7 @@ function* createCalendarTicks(
   if (end.le(start)) return;
   resolution = scaleTimeUnit(resolution, unit, 's');
 
-  const context: CalendarContext | null = forgeCalendarContext(resolution);
+  const context: CalendarContext | null = forgeCalendarContext(resolution, options.timeZone ?? 'local');
   if (!context) return;
 
   const timeFormat = typeof options.timeFormat === 'function' ? options.timeFormat : undefined;
