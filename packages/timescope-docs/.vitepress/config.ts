@@ -86,6 +86,7 @@ export default defineConfig({
                   text: 'Multiple Tracks',
                   link: '/guide/examples/multiple-tracks',
                 },
+                { text: 'Time Zones', link: '/guide/examples/timezones' },
                 { text: 'Gantt Chart', link: '/guide/examples/gantt-chart' },
                 {
                   text: 'Dynamic Loader',
@@ -119,6 +120,7 @@ export default defineConfig({
             { text: 'Timescope', link: '/api/timescope' },
             { text: 'Timescope Options', link: '/api/timescope-options' },
             { text: 'Decimal', link: '/api/decimal' },
+            { text: 'Calendar', link: '/api/calendar' },
           ],
         },
       ];

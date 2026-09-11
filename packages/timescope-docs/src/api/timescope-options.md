@@ -280,8 +280,19 @@ Mark style values may be callbacks receiving `{ times, values, data, resolution 
 | `relative`   | `boolean`                                                  | Formats time relative to zero.                              |
 | `timeFormat` | `TimeFormatFunc \| TimeFormatLabeler`                      | Formats time-axis labels.                                   |
 | `timeUnit`   | `'s' \| 'ms' \| 'us' \| 'ns'`                              | Sets the numeric time unit used for labels. Default: `'s'`. |
+| `timeZone`   | `string` | Sets the time zone for absolute-time labels and tick boundaries. Default: `'local'`. |
 
 `TimeFormatFunc` receives `{ time, unit, level, digits, stride? }` and returns `string | undefined`. `TimeFormatLabeler` provides optional formatters for year, month, quarter, date, minutes, and seconds.
+
+Use `'local'`, `'utc'`, or an IANA time zone name for `timeZone`. `TimeFormatLabeler` receives date and time components in that time zone.
+
+```ts
+tracks: {
+  main: {
+    timeAxis: { timeZone: 'Asia/Tokyo' },
+  },
+}
+```
 
 ## Selection
 

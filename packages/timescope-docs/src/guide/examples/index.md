@@ -10,6 +10,7 @@ import Decimation from '@/guide/examples/decimation.vue';
 import LogScale from '@/guide/examples/log-scale.vue';
 import MarksAndLinks from '@/guide/examples/marks-and-links.vue';
 import MultipleTracks from '@/guide/examples/multiple-tracks.vue';
+import TimeZones from '@/guide/examples/timezones.vue';
 import DynamicLoader from '@/guide/examples/dynamic-loader.vue';
 import RealtimeData from '@/guide/examples/realtime-data.vue';
 import Events from '@/guide/examples/events.vue';
@@ -55,6 +56,10 @@ import GanttChart from '@/guide/examples/gantt-chart.vue';
 ## [Multiple Tracks & Charts](/guide/examples/multiple-tracks)
 
 <MultipleTracks class="border" />
+
+## [Time Zones](/guide/examples/timezones)
+
+<TimeZones class="border" />
 
 ## [Gantt Chart](/guide/examples/gantt-chart)
 
