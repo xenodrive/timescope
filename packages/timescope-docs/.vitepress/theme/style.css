@@ -44,7 +44,32 @@
   --vp-button-alt-hover-text: #ffffff;
   --vp-button-alt-hover-bg: rgba(255, 255, 255, 0.14);
   color: #eef6f9;
-  background: #050d18 url('./assets/hero-band.svg') center / cover no-repeat;
+  position: relative;
+  isolation: isolate;
+  background: #050d18;
+}
+
+.VPHome .VPHero.warp-ready {
+  background-image: none;
+}
+
+.warp-background {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at var(--warp-x) var(--warp-y), transparent 8%, #02060c55 75%),
+    radial-gradient(ellipse at 0% 85%, #123349 0%, transparent 48%),
+    radial-gradient(ellipse at 90% 15%, #101b31 0%, transparent 50%),
+    #02060c;
+}
+
+.warp-ready .warp-background {
+  opacity: 1;
 }
 
 .VPHome .VPHero .text {
