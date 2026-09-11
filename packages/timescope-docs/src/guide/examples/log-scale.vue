@@ -85,8 +85,8 @@ onMounted(() => {
 
   button {
     position: absolute;
-    left: 0.5rem;
-    top: 0.5rem;
+    right: 0.125rem;
+    top: 0.125rem;
     background: #eee;
     padding: 0 0.5rem;
     border-radius: 0.25rem;
