@@ -1,7 +1,11 @@
-import type { TimescopeSeriesChartData, TimescopeYAxisData, TimescopeYProjectionWire } from '#src/bridge/protocol';
 import { Decimal } from '#src/core/decimal';
-import { TimescopeTrack } from '#src/worker/TimescopeTrack';
-import type { TimescopeRenderingContext } from '#src/worker/types';
+import { TimescopeTrack } from '#src/renderer/TimescopeTrack';
+import type {
+  TimescopeRenderingContext,
+  TimescopeSeriesChartData,
+  TimescopeYAxisData,
+  TimescopeYProjectionWire,
+} from '#src/renderer/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 function projection(

@@ -40,6 +40,7 @@ type TimescopeProps<
   selectionRange?: TimescopeRange<Decimal> | null;
 
   showFps?: boolean;
+  renderThread?: TimescopeOptions['renderThread'];
 
   fonts?: TimescopeOptionsInitial<Sources, Series, Track>['fonts'];
 
@@ -63,6 +64,7 @@ function TimescopeComponent<
   Track extends string,
 >(props: TimescopeProps<Sources, Series, Track>) {
   const timescope = new Timescope({
+    renderThread: props.renderThread,
     time: untrack(() => props.time ?? null),
     timeRange: untrack(() => props.timeRange),
     zoom: untrack(() => props.zoom ?? 0),
@@ -149,7 +151,7 @@ function TimescopeComponent<
     timescope.updateOptions({ selection: props.selection } as TimescopeOptions);
   });
   createEffect(() => {
-    timescope.updateOptions({ showFps: props.showFps } as TimescopeOptions);
+    timescope.updateOptions({ showFps: props.showFps, renderThread: props.renderThread } as TimescopeOptions);
   });
 
   onCleanup(() => {

@@ -20,6 +20,38 @@ type TestCommands = {
 };
 
 describe('worker RPC transport', () => {
+  it('rejects failed calls and releases pending requests on disposal', async () => {
+    const channel = new MessageChannel();
+    channel.port1.start();
+    channel.port2.start();
+    const lifetime = new AbortController();
+    type Calls = { fail: () => never; pending: () => Promise<void> };
+    listenCalls<Calls>(
+      channel.port1 as unknown as WorkerMessagePort,
+      {
+        fail() {
+          throw new RangeError('Invalid frame');
+        },
+        pending: () => new Promise(() => {}),
+      },
+      undefined,
+      lifetime.signal,
+    );
+    const call = defineCalls<Calls>(channel.port2 as unknown as WorkerMessagePort, lifetime.signal);
+    try {
+      await expect(call('fail', undefined, { rpc: true })).rejects.toMatchObject({
+        name: 'RangeError',
+        message: 'Invalid frame',
+      });
+      const pending = call('pending', undefined, { rpc: true });
+      lifetime.abort(new DOMException('Disposed', 'AbortError'));
+      await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    } finally {
+      channel.port1.close();
+      channel.port2.close();
+    }
+  });
+
   it('uses native structured clone and revives Decimal values in place', async () => {
     const channel = new MessageChannel();
     channel.port1.start();

@@ -1,6 +1,6 @@
 import type { TimescopeCommittableMessageSync } from '#src/core/TimescopeCommittable';
 import { Decimal } from '#src/core/decimal';
-import { TimescopeViewport } from '#src/worker/TimescopeViewport';
+import { TimescopeViewport } from '#src/renderer/TimescopeViewport';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('TimescopeViewport kinetic scrolling', () => {

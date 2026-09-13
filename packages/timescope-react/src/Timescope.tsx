@@ -38,6 +38,7 @@ type TimescopeProps<
   selection?: TimescopeOptionsSelection;
 
   showFps?: boolean;
+  renderThread?: TimescopeOptions['renderThread'];
 
   fonts?: TimescopeOptionsInitial<Sources, Series, Track>['fonts'];
 
@@ -126,6 +127,7 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
   useEffect(() => {
     const initialProps = initialPropsRef.current;
     const instance = new Timescope({
+      renderThread: props.renderThread,
       time: initialProps.time ?? null,
       timeRange: initialProps.timeRange,
       zoom: initialProps.zoom ?? 0,
@@ -226,8 +228,8 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
   }, [props.selection]);
 
   useEffect(() => {
-    timescopeRef.current?.updateOptions({ showFps: props.showFps } as TimescopeOptions);
-  }, [props.showFps]);
+    timescopeRef.current?.updateOptions({ showFps: props.showFps, renderThread: props.renderThread } as TimescopeOptions);
+  }, [props.showFps, props.renderThread]);
 
   const containerRef = useCallback((element: HTMLDivElement | null) => {
     setContainerEl(element);

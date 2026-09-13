@@ -1,9 +1,9 @@
 import { createChunk, createChunkList } from '#src/core/chunk';
 import { Decimal } from '#src/core/decimal';
+import { TimescopeStaticSeriesIndex } from '#src/main/reducers/TimescopeStaticSeriesIndex';
 import { TimescopeDataSeries, type TimescopeSeriesPoint } from '#src/main/TimescopeDataSeries';
 import { chunkStoreForDataSource, createDataSource } from '#src/main/TimescopeDataSource';
 import { TimescopeDomain } from '#src/main/TimescopeDomain';
-import { TimescopeStaticSeriesIndex } from '#src/main/TimescopeStaticSeriesIndex';
 import { TimescopeViewRegistry } from '#src/main/TimescopeView';
 import { describe, expect, it, vi } from 'vitest';
 

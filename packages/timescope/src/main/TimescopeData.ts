@@ -1,7 +1,26 @@
 import { Decimal, DecimalSafe, type NumberLike } from '#src/core/decimal';
 import type { IntervalBound } from '#src/core/interval';
 import { parseTimeLike, type TimeLike } from '#src/core/time';
-import { createGetter } from '#src/core/utils';
+
+function createGetter(key: string) {
+  return function (obj: Record<string, unknown>) {
+    const candidates = key.split(',').map((candidate) => candidate.trim());
+    let result: any = obj;
+    for (const candidate of candidates) {
+      result = obj;
+      for (const key of candidate.split('.')) {
+        if (result == null) break;
+        if (typeof result !== 'object') {
+          result = null;
+          break;
+        }
+        result = result[key];
+      }
+      if (result != null) return result;
+    }
+    return result;
+  };
+}
 
 export type TimescopeValueLike = NumberLike | null;
 

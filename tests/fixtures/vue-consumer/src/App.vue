@@ -7,5 +7,5 @@ void componentIsTyped;
 </script>
 
 <template>
-  <Timescope :zoom="0" />
+  <Timescope :zoom="0" render-thread="main" />
 </template>

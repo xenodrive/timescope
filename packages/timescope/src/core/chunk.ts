@@ -1,7 +1,8 @@
-import config from '#src/core/config';
 import { Decimal } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
 import { zoomFor } from '#src/core/zoom';
+
+export const DEFAULT_CHUNK_SIZE = 256;
 
 /**
  * Chunk descriptor with optional payload.
@@ -52,7 +53,7 @@ export function createChunk<T = never>(chunk: TimescopeChunkInit<T>): TimescopeC
 export function createChunkList(
   range: TimescopeRange<Decimal | undefined>,
   resolution: Decimal,
-  chunkSize: number = config.defaultChunkSize,
+  chunkSize: number = DEFAULT_CHUNK_SIZE,
   chunkOffset?: Decimal,
 ): TimescopeChunk[] {
   if (!range[0] || !range[1]) throw new RangeError('Chunk range must be finite');

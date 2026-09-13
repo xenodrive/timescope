@@ -14,11 +14,27 @@ titleTemplate: Timescope API
 | `padding`   | `number[]`                                           | Sets canvas padding as `[top, right, bottom, left]`. |
 | `indicator` | `boolean`                                            | Shows the cursor indicator. Default: `true`.         |
 | `showFps`   | `boolean`                                            | Shows the FPS overlay.                               |
+| `renderThread` | `'worker' \| 'main'` | Selects the render engine's thread when mounting. Default: `'worker'`. |
 | `sources`   | `Record<string, TimescopeSourceInput>`               | Defines data sources.                                |
 | `domains`   | `Record<string, TimescopeDomainOptions>`             | Defines shared value domains.                        |
 | `series`    | `Record<string, TimescopeSeriesInput>`               | Defines series.                                      |
 | `tracks`    | `Record<string, { height?, symmetric?, timeAxis? }>` | Defines track layout.                                |
 | `selection` | `boolean \| { resizable?, color?, invert?, range? }` | Configures range selection.                          |
+
+## Rendering Thread
+
+The same render engine and drawing layers can run in a Worker or on the main thread:
+
+```ts
+new Timescope({
+  target: '#timescope',
+  renderThread: 'main',
+});
+```
+
+`'worker'` uses a Worker and transfers the canvas to it. `'main'` runs the engine directly on the main thread using the canvas's 2D context. Data sources and loaders run on the main thread in both modes.
+
+The setting is applied when mounting. Changing it with `setOptions()` or `updateOptions()` takes effect on the next mount.
 
 ## Sources
 

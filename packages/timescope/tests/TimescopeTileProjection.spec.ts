@@ -1,5 +1,5 @@
 import { Decimal } from '#src/core/decimal';
-import { createLinkProjectionRebase, renderScaleX } from '#src/worker/renderer/TimescopeSeriesChartRenderer';
+import { createLinkProjectionRebase, renderScaleX } from '#src/renderer/layers/TimescopeSeriesChartLayer';
 import { describe, expect, it } from 'vitest';
 
 describe('render-column projection', () => {

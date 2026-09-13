@@ -5,10 +5,10 @@ import { resolutionFor } from '#src/core/zoom';
 import { TimescopeDataSeries, type TimescopeSeriesPoint } from '#src/main/TimescopeDataSeries';
 import { chunkStoreForDataSource, createDataSource, TimescopeDataSourceBase } from '#src/main/TimescopeDataSource';
 import { TimescopeDomain } from '#src/main/TimescopeDomain';
-import { TimescopeSeriesChart } from '#src/main/TimescopeSeriesChart';
-import { TimescopeSeriesTooltip } from '#src/main/TimescopeSeriesTooltip';
 import { TimescopeViewRegistry, type TimescopeViewState } from '#src/main/TimescopeView';
-import { TimescopeAggregateSeriesIndex } from '#src/main/static/TimescopeAggregateSeriesIndex';
+import { TimescopeSeriesChart } from '#src/main/loaders/TimescopeSeriesChart';
+import { TimescopeSeriesTooltip } from '#src/main/loaders/TimescopeSeriesTooltip';
+import { TimescopeAggregateSeriesIndex } from '#src/main/reducers/TimescopeAggregateSeriesIndex';
 import { createYProjection } from '#src/main/yProjection';
 import { describe, expect, it, vi } from 'vitest';
 

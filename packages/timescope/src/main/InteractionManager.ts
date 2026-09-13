@@ -1,10 +1,10 @@
+import { Vector2f } from '#src/core/vector';
 import type {
   InteractionEventName,
   InteractionInfo,
   InteractionPointerInfo,
   InteractionState,
-} from '#src/bridge/protocol';
-import { Vector2f } from '#src/core/vector';
+} from '#src/renderer/types';
 
 /** @internal */
 type InteractionEventHandler = (
@@ -123,15 +123,20 @@ export class InteractionManager {
 
   #cursorHandler?: InteractionCursorHandler;
   async #applyCursor(e: PointerEvent) {
-    if (this.#element && this.#cursorHandler) {
-      this.#element.style.cursor =
-        (await this.#cursorHandler({
+    const element = this.#element;
+    if (element && this.#cursorHandler) {
+      try {
+        const cursor = await this.#cursorHandler({
           type: 'cursor',
           state: this.#state,
           buttons: this.#pointers,
           latest: this.#record[e.pointerId],
           shiftKey: e.shiftKey,
-        })) ?? '';
+        });
+        if (this.#element === element) element.style.cursor = cursor ?? '';
+      } catch (error) {
+        if (!(error instanceof Error) || error.name !== 'AbortError') throw error;
+      }
     }
   }
 
@@ -188,5 +193,6 @@ export class InteractionManager {
 
   detach() {
     this.#abortController?.abort();
+    this.#element = undefined;
   }
 }

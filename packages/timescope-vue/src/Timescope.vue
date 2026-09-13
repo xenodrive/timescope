@@ -71,6 +71,7 @@ const props = withDefaults(
     selectionRange?: TimescopeRange<Decimal> | null;
 
     showFps?: boolean;
+    renderThread?: TimescopeOptions['renderThread'];
 
     fonts?: TimescopeOptionsInitial<Sources, Series, Track>['fonts'];
   }>(),
@@ -109,6 +110,7 @@ function createTimescopeRef<T extends Combination>(...args: T) {
 
 const timescope = markRaw(
   new Timescope({
+    renderThread: props.renderThread,
     time: props.time ?? null,
     timeRange: props.timeRange,
     zoom: props.zoom ?? 0,
@@ -247,8 +249,8 @@ watch(
 );
 
 watch(
-  () => props.showFps,
-  () => timescope.updateOptions({ showFps: props.showFps } as TimescopeOptions),
+  () => [props.showFps, props.renderThread],
+  () => timescope.updateOptions({ showFps: props.showFps, renderThread: props.renderThread } as TimescopeOptions),
   { immediate: true },
 );
 

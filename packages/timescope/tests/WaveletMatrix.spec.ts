@@ -1,5 +1,5 @@
-import { RankBitVector } from '#src/main/static/RankBitVector';
-import { WaveletMatrix } from '#src/main/static/WaveletMatrix';
+import { RankBitVector } from '#src/core/RankBitVector';
+import { WaveletMatrix } from '#src/core/WaveletMatrix';
 import { describe, expect, it } from 'vitest';
 
 describe('RankBitVector', () => {

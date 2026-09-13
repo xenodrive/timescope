@@ -1,4 +1,4 @@
-import { mergeOptions } from '#src/core/utils';
+import { mergeOptions } from '#src/core/options';
 import { describe, expect, it } from 'vitest';
 
 describe('mergeOptions', () => {

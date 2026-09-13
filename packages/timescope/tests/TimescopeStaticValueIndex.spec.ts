@@ -1,5 +1,5 @@
 import { Decimal } from '#src/core/decimal';
-import { TimescopeStaticValueIndex } from '#src/main/static/TimescopeStaticValueIndex';
+import { TimescopeStaticValueIndex } from '#src/main/reducers/TimescopeStaticValueIndex';
 import { describe, expect, it } from 'vitest';
 
 describe('TimescopeStaticValueIndex', () => {

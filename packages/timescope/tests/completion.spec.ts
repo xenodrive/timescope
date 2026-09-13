@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { API, type Project, type Snapshot } from 'typescript/unstable/sync';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import '../src/core/types';
+import '../src/main/options';
 
 type CompletionCase = {
   marker: string;

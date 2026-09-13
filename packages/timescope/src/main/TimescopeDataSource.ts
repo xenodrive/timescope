@@ -1,33 +1,122 @@
-import { type TimescopeChunk, type TimescopeChunkLoader, type TimescopeChunkLoaderContext } from '#src/core/chunk';
-import config from '#src/core/config';
-import { Decimal } from '#src/core/decimal';
+import {
+  DEFAULT_CHUNK_SIZE,
+  type TimescopeChunk,
+  type TimescopeChunkLoader,
+  type TimescopeChunkLoaderContext,
+} from '#src/core/chunk';
+import { Decimal, type NumberLike } from '#src/core/decimal';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
 import { parseTimeLike, type TimeLike } from '#src/core/time';
-import type {
-  TimescopeDataDecoder,
-  TimescopePercentilesReducer,
-  TimescopeReducer,
-  TimescopeSnapshotLoader,
-  TimescopeSourceInput,
-  TimescopeSourceOptions,
-} from '#src/core/types';
 import { resolutionFor } from '#src/core/zoom';
+import { TimescopeReducer as SnapshotReducer } from '#src/main/reducers/TimescopeReducer';
+import { TimescopeChunkStore } from '#src/main/TimescopeChunkStore';
 import {
   normalizeDataRows,
   type TimescopeDataRow,
   type TimescopeDataRowInput,
   type TimescopeMappings,
 } from '#src/main/TimescopeData';
-import { TimescopeStaticSeriesIndex } from '#src/main/TimescopeStaticSeriesIndex';
-import { TimescopeChunkStore } from '#src/main/TimescopeChunkStore';
 import {
   TimescopeView,
   type TimescopeViewRegistry,
   type TimescopeViewRequest,
   timescopeViewRequestKey,
 } from '#src/main/TimescopeView';
-import { TimescopeAggregateSeriesIndex } from '#src/main/static/TimescopeAggregateSeriesIndex';
+
+export type TimescopeSourceCommonOptions = {
+  /** Number of selected-resolution intervals per chunk for tiled loading. */
+  chunkSize?: number;
+  /** Time offset for chunk indexing. */
+  chunkOffset?: NumberLike;
+  /** Continue loading charts backed by this source during view interactions. */
+  immediate?: boolean;
+  /** Available source intervals used to load data. A chunk spans chunkSize * resolution time units. */
+  resolutions?: NumberLike[];
+  zoomLevels?: number[];
+};
+export type TimescopeDataDecoder = (
+  payload: any,
+) => Promise<readonly TimescopeDataRowInput[]> | readonly TimescopeDataRowInput[];
+export type TimescopePercentilesReducer = {
+  type: 'percentiles';
+  values?: readonly (0.5 | 0.9 | 0.95)[];
+  primary?: 0.5 | 0.9 | 0.95;
+};
+export type TimescopeReducer = 'min-max-avg' | 'percentiles' | 'null' | TimescopePercentilesReducer;
+export type TimescopeSnapshotLoader<T = unknown> = (context?: TimescopeChunkLoaderContext) => T | Promise<T>;
+type TimescopeSnapshotAcquisition =
+  | { url: string; data?: never; loader?: never }
+  | { data: unknown; url?: never; loader?: never }
+  | { loader: TimescopeSnapshotLoader; url?: never; data?: never; chunked: false };
+type TimescopeChunkedAcquisition =
+  | { url: string; data?: never; loader?: never }
+  | { loader: TimescopeChunkLoader<unknown>; url?: never; data?: never; chunked?: true };
+type TimescopeSourceTransform =
+  | { decoder: TimescopeDataDecoder; mappings?: never }
+  | { decoder?: never; mappings: TimescopeMappings }
+  | { decoder?: never; mappings?: never };
+export type TimescopeSourceOptions = TimescopeSourceCommonOptions &
+  TimescopeSourceTransform &
+  (
+    | (TimescopeSnapshotAcquisition & { reducer?: TimescopeReducer })
+    | (TimescopeChunkedAcquisition & { reducer?: never })
+  );
+export type TimescopeSourceInput =
+  | string
+  | readonly TimescopeDataRowInput[]
+  | TimescopeChunkLoader<readonly TimescopeDataRowInput[]>
+  | TimescopeSourceOptions
+  | TimescopeDataSource<any>;
+export type TimescopeOptionsSources<Sources extends Record<string, TimescopeSourceInput>> = {
+  [K in keyof Sources]: Sources[K];
+};
+
+type MinMaxAvgSuffix = 'avg' | 'first' | 'last' | 'min' | 'max';
+type PercentileSuffix = 'first' | 'last' | 'min' | 'max' | 'p50' | 'p90' | 'p95';
+type InferReturnedRow<T> = Awaited<T> extends readonly (infer R)[] ? R : never;
+type InferLoaderRow<T> = [InferReturnedRow<T>] extends [never] ? TimescopeDataRowInput : InferReturnedRow<T>;
+export type InferSourceRow<S> =
+  S extends TimescopeDataSource<infer R>
+    ? R
+    : S extends { mappings: infer M extends TimescopeMappings }
+      ? { times: M['times']; values: M['values'] }
+      : S extends { decoder: (...args: any[]) => infer R }
+        ? InferReturnedRow<R>
+        : S extends { loader: (...args: any[]) => infer R }
+          ? InferLoaderRow<R>
+          : S extends (...args: any[]) => infer R
+            ? InferLoaderRow<R>
+            : S extends { data: readonly (infer R)[] }
+              ? R
+              : S extends readonly (infer R)[]
+                ? R
+                : TimescopeDataRowInput;
+export type InferTimesKey<R> = R extends { times: infer T extends Record<string, unknown> } ? string & keyof T : 'time';
+type InferRawValuesKey<R> = R extends { values: infer V extends Record<string, unknown> } ? string & keyof V : 'value';
+type InferRowData<R> = R extends { data?: infer D } ? D : undefined;
+export type InferSourceData<S> = S extends unknown ? InferRowData<InferSourceRow<S>> : never;
+type InferSnapshotValueKey<S, K extends string> = S extends { reducer: 'min-max-avg' }
+  ? K | `${K}#${MinMaxAvgSuffix}`
+  : S extends { reducer: 'percentiles' | { type: 'percentiles' } }
+    ? K | `${K}#${PercentileSuffix}`
+    : K;
+export type InferSourceValueKey<S> =
+  InferRawValuesKey<InferSourceRow<S>> extends infer K extends string
+    ? S extends TimescopeDataSource<any>
+      ? K
+      : S extends { loader: unknown }
+        ? S extends { chunked: false }
+          ? InferSnapshotValueKey<S, K>
+          : K
+        : S extends { url: infer U extends string }
+          ? U extends `${string}{${string}}${string}`
+            ? K
+            : InferSnapshotValueKey<S, K>
+          : S extends string
+            ? K
+            : InferSnapshotValueKey<S, K>
+    : never;
 
 export type TimescopeDataSourceInvalidation = {
   range?: TimescopeRange<Decimal | undefined>;
@@ -74,7 +163,7 @@ export abstract class TimescopeDataSourceBase<Row = TimescopeDataRowInput>
     > = {},
   ) {
     super();
-    this.chunkSize = options.chunkSize ?? config.defaultChunkSize;
+    this.chunkSize = options.chunkSize ?? DEFAULT_CHUNK_SIZE;
     if (!Number.isSafeInteger(this.chunkSize) || this.chunkSize <= 0) {
       throw new RangeError('Chunk size must be a positive integer');
     }
@@ -109,8 +198,6 @@ type DataSourceOptions = TimescopeSourceOptions & {
   resolutions?: Decimal[];
 };
 
-type SnapshotIndex = TimescopeAggregateSeriesIndex | TimescopeStaticSeriesIndex;
-
 function resolveUrl(url: string, chunk: TimescopeChunk) {
   return url.replace(/{[a-zA-Z]+}/g, (match) => {
     switch (match.slice(1, -1)) {
@@ -137,15 +224,6 @@ async function canonicalize(payload: unknown, decoder?: TimescopeDataDecoder, ma
   if (decoder) return normalizeDataRows(await decoder(payload));
   if (payload instanceof Response) payload = await payload.json();
   return normalizeDataRows(payload, mappings);
-}
-
-function reducerKind(reducer: TimescopeReducer | undefined) {
-  if (reducer === undefined || reducer === 'null') return 'null' as const;
-  if (reducer === 'min-max-avg') return 'min-max-avg' as const;
-  if (reducer === 'percentiles' || (typeof reducer === 'object' && reducer?.type === 'percentiles')) {
-    return 'percentiles' as const;
-  }
-  throw new Error('Invalid snapshot reducer');
 }
 
 function rowRange(rows: readonly TimescopeDataRow[]): TimescopeRange<Decimal> | undefined {
@@ -194,12 +272,10 @@ class SnapshotDataSource<Row> extends TimescopeDataSourceBase<Row> implements Ti
   #acquire: () => unknown | Promise<unknown>;
   #decoder?: TimescopeDataDecoder;
   #mappings?: TimescopeMappings;
-  #kind: ReturnType<typeof reducerKind>;
-  #percentiles?: TimescopePercentilesReducer;
+  #reducer: SnapshotReducer;
   #state?: Promise<void>;
   #acquisitionGeneration = 0;
   #rows: TimescopeDataRow[] = [];
-  #index?: SnapshotIndex;
   #mutable: boolean;
 
   constructor(options: DataSourceOptions, acquire: () => unknown | Promise<unknown>, mutable: boolean) {
@@ -207,8 +283,7 @@ class SnapshotDataSource<Row> extends TimescopeDataSourceBase<Row> implements Ti
     this.#acquire = acquire;
     this.#decoder = options.decoder;
     this.#mappings = options.mappings;
-    this.#kind = reducerKind(options.reducer);
-    this.#percentiles = typeof options.reducer === 'object' ? options.reducer : undefined;
+    this.#reducer = new SnapshotReducer(options.reducer);
     this.#mutable = mutable;
   }
 
@@ -220,38 +295,13 @@ class SnapshotDataSource<Row> extends TimescopeDataSourceBase<Row> implements Ti
       .then((rows) => {
         if (generation !== this.#acquisitionGeneration) throw new Error('Stale snapshot acquisition');
         this.#rows = rows;
-        this.#rebuild();
+        this.#reducer.reset(rows);
       }));
-  }
-
-  #rebuild() {
-    this.#index =
-      this.#kind === 'percentiles'
-        ? new TimescopeStaticSeriesIndex(this.#rows, true)
-        : new TimescopeAggregateSeriesIndex(this.#rows);
   }
 
   async query(chunk: TimescopeChunk) {
     await this.#initialize();
-    const rows =
-      this.#kind === 'null'
-        ? (this.#index as TimescopeAggregateSeriesIndex).queryRaw(chunk)
-        : this.#index!.query(chunk);
-    if (!this.#percentiles) return rows;
-    const values = this.#percentiles.values ?? [0.5, 0.9, 0.95];
-    const primary = this.#percentiles.primary ?? 0.5;
-    const allowed = new Set(values.map((value) => `p${value * 100}`));
-    allowed.add(`p${primary * 100}`);
-    const valueKeys = new Set(this.#rows.flatMap((row) => Object.keys(row.values)));
-    return rows.map((row) => {
-      const next = { ...row.values };
-      for (const key of Object.keys(next)) {
-        const suffix = key.split('#').at(-1)!;
-        if (/^p\d+$/.test(suffix) && !allowed.has(suffix)) delete next[key];
-      }
-      for (const key of valueKeys) next[key] = next[`${key}#p${primary * 100}`] ?? null;
-      return { ...row, values: next };
-    });
+    return this.#reducer.query(chunk);
   }
 
   override invalidate(range?: TimescopeRange<Decimal | undefined>) {
@@ -259,7 +309,7 @@ class SnapshotDataSource<Row> extends TimescopeDataSourceBase<Row> implements Ti
       this.#acquisitionGeneration++;
       this.#state = undefined;
       this.#rows = [];
-      this.#index = undefined;
+      this.#reducer.reset([]);
       super.invalidate();
       return;
     }
@@ -274,8 +324,7 @@ class SnapshotDataSource<Row> extends TimescopeDataSourceBase<Row> implements Ti
     if (!changed) return;
     const dirty = mutationRange(this.#rows, changed, rows);
     this.#rows.push(...rows);
-    if (this.#index instanceof TimescopeAggregateSeriesIndex) this.#index.append(rows);
-    else this.#rebuild();
+    this.#reducer.append(rows, this.#rows);
     this.invalidate(dirty);
   }
 
@@ -294,8 +343,7 @@ class SnapshotDataSource<Row> extends TimescopeDataSourceBase<Row> implements Ti
       return start.eq(end) ? start.lt(range[0]) || start.ge(range[1]) : end.le(range[0]) || start.ge(range[1]);
     });
     this.#rows.push(...rows);
-    if (this.#index instanceof TimescopeAggregateSeriesIndex) this.#index.replaceRange(range, rows);
-    else this.#rebuild();
+    this.#reducer.replace(range, rows, this.#rows);
     this.invalidate(dirty);
   }
 }

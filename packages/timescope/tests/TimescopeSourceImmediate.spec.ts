@@ -1,12 +1,13 @@
+import { dataBuffers } from '#src/bridge/renderEngine';
 import { Vector2f } from '#src/core/vector';
-import { dataBuffers, TimescopeWorkerRenderer } from '#src/main/TimescopeWorkerRenderer';
+import { TimescopeWorkerRenderer } from '#src/main/TimescopeWorkerRenderer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const { workers } = vi.hoisted(() => ({
   workers: [] as { messages: any[] }[],
 }));
 
-vi.mock('../src/worker/index.ts?worker&inline', () => ({
+vi.mock('../src/renderer/worker.ts?worker&inline', () => ({
   default: class {
     messages: any[] = [];
     listeners = new Set<EventListenerOrEventListenerObject>();

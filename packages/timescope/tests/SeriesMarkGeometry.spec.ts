@@ -5,7 +5,7 @@ import {
   createMarkFillStyle,
   createUnitPathMarks,
   groupMarkPointsByLayer,
-} from '#src/worker/renderer/TimescopeSeriesChartRenderer';
+} from '#src/renderer/layers/TimescopeSeriesChartLayer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 type MatrixSnapshot = Pick<DOMMatrix2DInit, 'a' | 'b' | 'c' | 'd' | 'e' | 'f'>;

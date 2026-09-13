@@ -2,6 +2,7 @@ import { Decimal } from '@kikuchan/decimal';
 import { effect, onCleanup } from '@luna_ui/luna';
 import {
   Timescope,
+  TimescopeOptions,
   TimescopeOptionsDomains,
   TimescopeOptionsInitial,
   TimescopeOptionsSelection,
@@ -43,6 +44,7 @@ type TimescopeProps<
   selectionRange?: MaybeAccessor<TimescopeRange<Decimal> | null | undefined>;
 
   showFps?: MaybeAccessor<boolean | undefined>;
+  renderThread?: MaybeAccessor<TimescopeOptions['renderThread']>;
 
   fonts?: MaybeAccessor<TimescopeOptionsInitial<Sources, Series, Track>['fonts'] | undefined>;
 
@@ -69,6 +71,7 @@ function TimescopeComponent<
 >(props_: TimescopeProps<Sources, Series, Track>) {
   const props = props_;
   const timescope = new Timescope<Sources, Series, Track>({
+    renderThread: readProp(props.renderThread),
     time: readProp(props.time) ?? null,
     timeRange: readProp(props.timeRange),
     zoom: readProp(props.zoom) ?? 0,
@@ -139,7 +142,7 @@ function TimescopeComponent<
     if (props.selection !== undefined) timescope.updateOptions({ selection: readProp(props.selection) });
   });
   effect(() => {
-    timescope.updateOptions({ showFps: readProp(props.showFps) });
+    timescope.updateOptions({ showFps: readProp(props.showFps), renderThread: readProp(props.renderThread) });
   });
 
   onCleanup(() => {

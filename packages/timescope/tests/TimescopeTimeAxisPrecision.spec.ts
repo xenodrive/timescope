@@ -1,5 +1,5 @@
 import { Decimal } from '#src/core/decimal';
-import { TimescopeViewport } from '#src/worker/TimescopeViewport';
+import { TimescopeViewport } from '#src/renderer/TimescopeViewport';
 import { describe, expect, it } from 'vitest';
 
 describe('TimescopeViewport coordinate precision', () => {

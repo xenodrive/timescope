@@ -33,10 +33,13 @@ async function checkConsumer(framework: "svelte" | "vue") {
   packageJson.dependencies[`@timescope/${framework}`] =
     `file:${tarballs[framework]}`;
   packageJson.dependencies.timescope = `file:${tarballs.core}`;
-  packageJson.pnpm = { overrides: { timescope: `file:${tarballs.core}` } };
   await fs.writeFile(
     packageJsonPath,
     `${JSON.stringify(packageJson, null, 2)}\n`,
+  );
+  await fs.writeFile(
+    path.join(directory, "pnpm-workspace.yaml"),
+    `overrides:\n  timescope: ${JSON.stringify(`file:${tarballs.core}`)}\n`,
   );
 
   await run("pnpm", ["install"], directory);

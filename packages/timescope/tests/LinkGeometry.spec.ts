@@ -4,7 +4,7 @@ import {
   compileLinkGeometry as compileSourceCommands,
   type LinkGeometryCoordinate,
   type LinkGeometryKind,
-} from '#src/main/LinkGeometry';
+} from '#src/main/loaders/LinkGeometry';
 import { describe, expect, it } from 'vitest';
 
 type TestRow = {

@@ -1,7 +1,7 @@
 import { createChunk } from '#src/core/chunk';
 import { Decimal } from '#src/core/decimal';
 import type { TimescopeDataRow } from '#src/main/TimescopeData';
-import { TimescopeAggregateSeriesIndex } from '#src/main/static/TimescopeAggregateSeriesIndex';
+import { TimescopeAggregateSeriesIndex } from '#src/main/reducers/TimescopeAggregateSeriesIndex';
 import { describe, expect, it } from 'vitest';
 
 function point(time: number, values: Record<string, number | null> = { value: time }): TimescopeDataRow {

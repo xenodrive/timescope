@@ -1,7 +1,18 @@
-import config from '#src/core/config';
 import { Decimal, type NumberLike } from '#src/core/decimal';
-import type { TimescopeResolutionSnap } from '#src/core/types';
 import { LRUCache } from './cache';
+
+const ZOOM_BASE = 2;
+
+export type TimescopeResolutionSnap = 'nearest' | 'floor' | 'ceil';
+export type TimescopeResolutionContext = { resolution: Decimal; resolutions: readonly Decimal[] };
+export type TimescopeResolutionResolver = NumberLike | ((context: TimescopeResolutionContext) => NumberLike);
+export type TimescopeDataResolution =
+  | TimescopeResolutionSnap
+  | TimescopeResolutionResolver
+  | {
+      resolve?: TimescopeResolutionResolver;
+      snap?: TimescopeResolutionSnap;
+    };
 
 export type ZoomLike = NumberLike;
 
@@ -14,12 +25,12 @@ const cacheZ2R = new LRUCache<number, Decimal>({
 
 export function zoomFor(resolution: Decimal): number {
   const key = resolution.toString();
-  return cacheR2Z.set(key, cacheR2Z.get(key) ?? -resolution.log(config.base).number());
+  return cacheR2Z.set(key, cacheR2Z.get(key) ?? -resolution.log(ZOOM_BASE).number());
 }
 
 export function resolutionFor(zoom: number): Decimal {
   const key = zoom;
-  return cacheZ2R.set(key, cacheZ2R.get(key) ?? Decimal(config.base).pow(-zoom, BigInt(Math.floor(zoom))));
+  return cacheZ2R.set(key, cacheZ2R.get(key) ?? Decimal(ZOOM_BASE).pow(-zoom, BigInt(Math.floor(zoom))));
 }
 
 export function createZoomLevels(minZ: number, maxZ: number, step: number = 0.5) {

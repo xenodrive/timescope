@@ -13,6 +13,15 @@ export interface TimescopeStateOptions {
   zoomRange?: TimescopeRange<ZoomLike | undefined>;
 }
 
+export type TimescopeViewportSnapshot = {
+  current: { center: Decimal; resolution: Decimal };
+  candidate: { center: Decimal; resolution: Decimal };
+  cursor: { center: Decimal };
+  axisSize: readonly [number, number];
+  editing: boolean;
+  animating: boolean;
+};
+
 export class TimescopeViewState extends TimescopeObservable {
   range: TimescopeRange<Decimal> | null = null;
   resolution: Decimal | null = null;
@@ -39,9 +48,6 @@ export class TimescopeState extends TimescopeObservable<
 
   constructor(opts: TimescopeStateOptions) {
     super();
-    this.time = new TimescopeCommittable();
-    this.zoom = new TimescopeCommittable();
-
     this.time = new TimescopeCommittable<null>({
       initialValue: parseTimeLike(opts.time ?? null),
       domain: parseTimeDomainLike(opts.timeRange ?? [undefined, null]),
@@ -125,5 +131,10 @@ export class TimescopeState extends TimescopeObservable<
 
   get now() {
     return this.time.nullValue;
+  }
+
+  dispose() {
+    this.time.dispose();
+    this.zoom.dispose();
   }
 }

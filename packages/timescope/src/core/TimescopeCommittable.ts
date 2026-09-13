@@ -114,6 +114,10 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
   #timeAnimation = new TimescopeAnimation();
   #onNull?: () => NonNullable<unknown>;
 
+  dispose() {
+    this.#timeAnimation.cancel();
+  }
+
   get candidate() {
     return this.#state.candidate;
   }

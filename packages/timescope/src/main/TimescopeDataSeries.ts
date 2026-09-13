@@ -1,7 +1,72 @@
-import type { TimescopeOptions } from '#src/core/types';
+import type { Decimal, NumberLike } from '#src/core/decimal';
+import type { TimescopeDataResolution } from '#src/core/zoom';
+import type { TimescopeOptions } from '#src/main/options';
 import type { TimescopeDataRow } from '#src/main/TimescopeData';
-import type { TimescopeDataSource } from '#src/main/TimescopeDataSource';
-import type { TimescopeDomain } from '#src/main/TimescopeDomain';
+import type {
+  InferSourceData,
+  InferSourceRow,
+  InferSourceValueKey,
+  InferTimesKey,
+  TimescopeDataSource,
+} from '#src/main/TimescopeDataSource';
+import type { TimescopeDomain, TimescopeDomainOptions } from '#src/main/TimescopeDomain';
+import type { MaybeFn, TimescopeChartLink, TimescopeChartMark, TimescopeChartType, Using1 } from '#src/renderer/types';
+
+export type TimescopeSeriesInput<
+  Sources = Record<string, unknown>,
+  SourceName extends keyof Sources = keyof Sources,
+  Track extends string = string,
+  U extends [string, string] = [string, string],
+  D = unknown,
+> = {
+  data: {
+    source: SourceName;
+    name?: string;
+    color?: string;
+    domain?: string | TimescopeDomainOptions;
+    resolution?: TimescopeDataResolution;
+    instantaneous?: false | { using?: Using1<U>; zoom?: number; resolution?: NumberLike };
+  };
+  chart?:
+    | TimescopeChartType
+    | {
+        marks?: MaybeFn<
+          TimescopeChartMark<
+            [{ resolution: Decimal; data: D; times: Record<U[0], Decimal>; values: Record<U[1], Decimal | null> }],
+            U
+          >[],
+          [{ resolution: Decimal; data: D; times: Record<U[0], Decimal>; values: Record<U[1], Decimal | null> }]
+        >;
+        links?: MaybeFn<TimescopeChartLink<[opts: { resolution: Decimal }], U>[], [opts: { resolution: Decimal }]>;
+      };
+  tooltip?:
+    | boolean
+    | {
+        label?: string;
+        format?: (opts: {
+          time: Decimal;
+          value: Decimal | null;
+          name: string | undefined;
+          unit: string;
+          digits: number;
+        }) => string;
+      };
+  track?: Track;
+};
+
+type TimescopeSeriesIdeal<Sources, Series, Track extends string> = {
+  [K in keyof Series]: Series[K] extends { data: { source: infer S extends keyof Sources } }
+    ? TimescopeSeriesInput<
+        Sources,
+        S,
+        Track,
+        [InferTimesKey<InferSourceRow<Sources[S]>>, InferSourceValueKey<Sources[S]>],
+        InferSourceData<Sources[S]>
+      >
+    : TimescopeSeriesInput<Sources, keyof Sources, Track>;
+};
+export type TimescopeOptionsSeries<Sources, Series, Track extends string> =
+  TimescopeSeriesIdeal<Sources, Series, Track> extends Series ? Series : TimescopeSeriesIdeal<Sources, Series, Track>;
 
 type TimescopeDataSeriesInput = NonNullable<TimescopeOptions['series']>[string];
 

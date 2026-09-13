@@ -1,9 +1,9 @@
-import type { TimescopeViewportStateWire } from '#src/bridge/protocol';
+import type { TimescopeViewportSnapshot } from '#src/core/TimescopeState';
 import { createChunkList, type TimescopeChunk } from '#src/core/chunk';
 import { Decimal, type DecimalLike } from '#src/core/decimal';
 import { TimescopeObservable, type Un } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
-import type { TimescopeDataResolution, TimescopeResolutionResolver, TimescopeResolutionSnap } from '#src/core/types';
+import type { TimescopeDataResolution, TimescopeResolutionResolver, TimescopeResolutionSnap } from '#src/core/zoom';
 import { getConstraintedResolution } from '#src/core/zoom';
 import type { TimescopeChunkStore, TimescopeChunkStoreEntry } from '#src/main/TimescopeChunkStore';
 
@@ -21,7 +21,7 @@ export type TimescopeViewSourceOptions = {
   resolutions?: readonly Decimal[];
 };
 
-export type TimescopeViewState = TimescopeViewportStateWire & {
+export type TimescopeViewState = TimescopeViewportSnapshot & {
   phase: 'changing' | 'changed' | 'prepare';
 };
 

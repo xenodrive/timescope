@@ -1,4 +1,4 @@
-import type { TimescopeFont } from '#src/bridge/protocol';
+import type { TimescopeFont } from '#src/renderer/types';
 
 type FontExtractionContext = {
   visited: Set<string>;

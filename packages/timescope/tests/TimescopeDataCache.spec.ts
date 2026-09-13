@@ -4,8 +4,8 @@ import {
   TimescopeDataCache,
   type TimescopeDataCacheFrameView,
   type TimescopeDataCacheOptions,
-} from '../src/worker/TimescopeDataCache';
-import type { TimescopeRenderingContext } from '../src/worker/types';
+} from '../src/renderer/TimescopeDataCache';
+import type { TimescopeRenderingContext } from '../src/renderer/types';
 
 type Data = { id: string };
 type LoadRequest = Parameters<TimescopeDataCacheOptions<Data>['loader']>[0];

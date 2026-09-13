@@ -1,8 +1,6 @@
-import type { TimescopeYProjectionWire } from '#src/bridge/protocol';
 import { Decimal, isDecimal, type NumberLike } from '#src/core/decimal';
 import { TimescopeObservable } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
-import type { TimescopeDomainOptions } from '#src/core/types';
 import type { TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
 import {
   computeYProjectionToAnchor,
@@ -10,6 +8,23 @@ import {
   type YProjection,
   type YProjectionBasis,
 } from '#src/main/yProjection';
+import type { TimescopeYProjectionWire } from '#src/renderer/types';
+
+export type TimescopeYAxisOptions = { side?: 'left' | 'right'; label?: string; color?: string };
+export type TimescopeDomainOptions = {
+  scale?: 'linear' | 'log' | 'linear-symmetric';
+  animation?: boolean;
+  range?:
+    | NumberLike
+    | TimescopeRange<NumberLike | undefined>
+    | { expand?: boolean; shrink?: boolean; default?: NumberLike | TimescopeRange<NumberLike | undefined> };
+  expand?: boolean;
+  shrink?: boolean;
+  unit?: string;
+  digits?: number;
+  floatingGap?: number;
+  axis?: boolean | 'left' | 'right' | TimescopeYAxisOptions;
+};
 
 type DomainRangeInput =
   | NumberLike

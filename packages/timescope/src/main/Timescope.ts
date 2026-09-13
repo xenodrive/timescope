@@ -1,22 +1,23 @@
-import type { TimescopeFont } from '#src/bridge/protocol';
 import type { TimescopeAnimationInput } from '#src/core/animation';
-import config from '#src/core/config';
 import { Decimal } from '#src/core/decimal';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
+import { mergeOptions } from '#src/core/options';
 import type { TimescopeRange } from '#src/core/range';
 import { parseTimeLike, type TimeLike } from '#src/core/time';
 import { TimescopeState } from '#src/core/TimescopeState';
+import { zoomFor, type ZoomLike } from '#src/core/zoom';
+import { InteractionManager } from '#src/main/InteractionManager';
 import type {
   TimescopeOptions,
   TimescopeOptionsInitial,
   TimescopeOptionsSeries,
   TimescopeSeriesInput,
   TimescopeSourceInput,
-} from '#src/core/types';
-import { mergeOptions } from '#src/core/utils';
-import { zoomFor, type ZoomLike } from '#src/core/zoom';
-import { InteractionManager } from '#src/main/InteractionManager';
+} from '#src/main/options';
+import { TimescopeMainThreadRenderer } from '#src/main/TimescopeMainThreadRenderer';
+import type { TimescopeRenderer } from '#src/main/TimescopeRenderer';
 import { TimescopeWorkerRenderer } from '#src/main/TimescopeWorkerRenderer';
+import type { TimescopeFont } from '#src/renderer/types';
 
 function normalizeWheel(e: WheelEvent) {
   const delta = e.deltaY;
@@ -99,8 +100,9 @@ export class Timescope<
   | TimescopeEvent<'selectionrangechanged', TimescopeRange<Decimal> | null>
 > {
   #element: HTMLCanvasElement | null = null;
-  #renderer: TimescopeWorkerRenderer | null = null;
+  #renderer: TimescopeRenderer | null = null;
   #interactionManager: InteractionManager | null = null;
+  #resizeObserver: ResizeObserver | null = null;
 
   #state: TimescopeState;
   #selectionRange: TimescopeRange<Decimal> | null = null;
@@ -471,7 +473,7 @@ export class Timescope<
     this.#options = { style: undefined, ..._opts } as TimescopeOptions;
     this.#fonts = _opts.fonts;
 
-    this.#wheelSensitivity = _opts.wheelSensitivity ?? config.wheelSensitivity;
+    this.#wheelSensitivity = _opts.wheelSensitivity ?? 200;
 
     queueMicrotask(() => {
       if (_opts.target) this.mount(_opts.target);
@@ -504,7 +506,8 @@ export class Timescope<
     this.#element.style.height = this.#options.style?.height ?? '36px';
     this.#element.style.background = this.#options.style?.background ?? '#fff';
 
-    this.#renderer = new TimescopeWorkerRenderer({
+    const Renderer = this.#options.renderThread === 'main' ? TimescopeMainThreadRenderer : TimescopeWorkerRenderer;
+    this.#renderer = new Renderer({
       canvas: this.#element,
       fonts: this.#fonts,
     });
@@ -515,7 +518,8 @@ export class Timescope<
     this.#state.time.restore();
     this.#state.zoom.restore();
 
-    new ResizeObserver(() => this.#resize()).observe(this.#element);
+    this.#resizeObserver = new ResizeObserver(() => this.#resize());
+    this.#resizeObserver.observe(this.#element);
 
     // change event chain
     this.#renderer.on('change', () => this.changed());
@@ -580,12 +584,15 @@ export class Timescope<
     const mounted = Boolean(this.#element);
 
     this.#element?.remove();
+    this.#resizeObserver?.disconnect();
+    this.#resizeObserver = null;
     this.#interactionManager?.detach();
     this.#renderer?.dispose();
 
     this.#renderer = null;
     this.#element = null;
     this.#interactionManager = null;
+    this.#size = { x: 0, y: 0, width: 0, height: 0, dpr: 0 };
 
     if (mounted) this.dispatchEvent('unmount');
   }

@@ -1,7 +1,7 @@
 import { Decimal } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
-import type { TimescopeTimeAxisOptions } from '#src/core/types';
-import { TimescopeTimeAxis } from '#src/main/TimescopeTimeAxis';
+import { TimescopeTimeAxis } from '#src/main/loaders/TimescopeTimeAxis';
+import type { TimescopeTimeAxisOptions } from '#src/main/options';
 import { TimescopeViewRegistry } from '#src/main/TimescopeView';
 import { describe, expect, it } from 'vitest';
 

@@ -5,4 +5,4 @@
   const componentIsTyped: IsAny<typeof Timescope> = false;
 </script>
 
-<Timescope zoom={0} />
+<Timescope zoom={0} renderThread="main" />

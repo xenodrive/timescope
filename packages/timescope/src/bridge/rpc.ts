@@ -19,6 +19,7 @@ export type WorkerMessage<C extends Commands, Payload> = {
   command: CommandNames<C>;
   seq: number;
   payload: Payload;
+  error?: { name: string; message: string };
 };
 
 let _seq = 0;
@@ -48,7 +49,7 @@ export type WorkerMessagePort = {
   ): void;
 };
 
-export function defineCalls<C extends Commands>(target: WorkerMessagePort) {
+export function defineCalls<C extends Commands>(target: WorkerMessagePort, signal?: AbortSignal) {
   return function call<K extends CommandNames<C>>(
     command: K,
     payload: CommandPayload<C, K>,
@@ -57,6 +58,7 @@ export function defineCalls<C extends Commands>(target: WorkerMessagePort) {
       rpc?: boolean;
     } = { rpc: false },
   ) {
+    if (signal?.aborted) return Promise.reject(signal.reason) as CommandResult<C, K>;
     const seq = ++_seq;
     const message = { type: opts.rpc ? ('rpc' as const) : ('event' as const), command, seq, payload };
     if (!opts.rpc) {
@@ -64,15 +66,35 @@ export function defineCalls<C extends Commands>(target: WorkerMessagePort) {
       return Promise.resolve() as CommandResult<C, K>;
     }
 
-    return new Promise<CommandResult<C, K>>((resolve) => {
+    return new Promise<CommandResult<C, K>>((resolve, reject) => {
+      const cleanup = () => {
+        target.removeEventListener('message', handler);
+        signal?.removeEventListener('abort', abort);
+      };
+      const abort = () => {
+        cleanup();
+        reject(signal?.reason);
+      };
       const handler = (ev: MessageEvent<WorkerMessage<C, CommandResult<C, K>>>) => {
         if (ev.data.type === 'rpc:ack' && ev.data.command === command && ev.data.seq === seq) {
-          target.removeEventListener('message', handler);
-          resolve(unserialize(ev.data?.payload));
+          cleanup();
+          if (ev.data.error) {
+            const error = new Error(ev.data.error.message);
+            error.name = ev.data.error.name;
+            reject(error);
+          } else {
+            resolve(unserialize(ev.data.payload));
+          }
         }
       };
       target.addEventListener('message', handler);
-      target.postMessage(message, opts.transfer ?? []);
+      signal?.addEventListener('abort', abort, { once: true });
+      try {
+        target.postMessage(message, opts.transfer ?? []);
+      } catch (error) {
+        cleanup();
+        reject(error);
+      }
     });
   };
 }
@@ -81,20 +103,42 @@ export function listenCalls<C extends Commands>(
   target: WorkerMessagePort,
   recvCommands: C,
   transferResult?: (command: CommandNames<C>, result: CommandResult<C>) => Transferable[],
+  signal?: AbortSignal,
 ) {
-  target.addEventListener(
-    'message',
-    async ({ data: { type, command, seq, payload } }: MessageEvent<WorkerMessage<C, CommandPayload<C>>>) => {
-      const result =
-        command in recvCommands ? await (recvCommands[command](unserialize(payload)) as CommandResult<C>) : null;
-      if (type === 'rpc') {
+  const handler = async ({
+    data: { type, command, seq, payload },
+  }: MessageEvent<WorkerMessage<C, CommandPayload<C>>>) => {
+    if (signal?.aborted || (type !== 'rpc' && type !== 'event')) return;
+    try {
+      const result = command in recvCommands ? await recvCommands[command](unserialize(payload)) : null;
+      if (type === 'rpc' && !signal?.aborted) {
         target.postMessage(
           { type: 'rpc:ack', command, seq, payload: result },
           result == null ? [] : (transferResult?.(command, result) ?? []),
         );
       }
-    },
-  );
+    } catch (error) {
+      if (signal?.aborted) return;
+      if (type === 'rpc') {
+        target.postMessage({
+          type: 'rpc:ack',
+          command,
+          seq,
+          payload: undefined,
+          error: {
+            name: error instanceof Error ? error.name : 'Error',
+            message: error instanceof Error ? error.message : String(error),
+          },
+        });
+      } else {
+        console.error(`RPC ${String(command)} failed`, error);
+      }
+    }
+  };
+  if (!signal?.aborted) {
+    target.addEventListener('message', handler);
+    signal?.addEventListener('abort', () => target.removeEventListener('message', handler), { once: true });
+  }
   return recvCommands;
 }
 

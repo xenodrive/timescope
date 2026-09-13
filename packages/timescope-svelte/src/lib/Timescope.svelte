@@ -34,6 +34,7 @@
     selectionRange?: TimescopeRange<Decimal> | null;
 
     showFps?: boolean;
+    renderThread?: TimescopeOptions['renderThread'];
 
     fonts?: TimescopeOptionsInitial<
       Record<string, TimescopeSourceInput>,
@@ -70,6 +71,7 @@
     selection,
     selectionRange = $bindable<TimescopeRange<Decimal> | null | undefined>(undefined),
     showFps,
+    renderThread,
     fonts,
   } = $props<TimescopeProps>();
 
@@ -80,6 +82,7 @@
 
   onMount(() => {
     timescope = new Timescope({
+      renderThread,
       time: time ?? null,
       timeRange,
       zoom: zoom ?? 0,
@@ -187,7 +190,7 @@
 
   $effect(() => {
     if (!timescope) return;
-    timescope.updateOptions({ showFps } as TimescopeOptions);
+    timescope.updateOptions({ showFps, renderThread } as TimescopeOptions);
   });
 
   export function setTime(...args: Parameters<Timescope['setTime']>) {

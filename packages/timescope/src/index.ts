@@ -1,4 +1,4 @@
-export * from '#src/core/types';
+export * from '#src/main/options';
 export { Timescope } from '#src/main/Timescope';
 export {
   TimescopeDataSourceBase,
@@ -14,7 +14,7 @@ export { Decimal } from '@kikuchan/decimal';
 export type { TimescopeAnimationInput } from '#src/core/animation';
 export type { TimescopeChunk, TimescopeChunkLoaderContext } from '#src/core/chunk';
 export type { TimescopeRange } from '#src/core/range';
-export type { TimescopeOptions, TimescopeOptionsInitial } from '#src/core/types';
+export type { TimescopeOptions, TimescopeOptionsInitial } from '#src/main/options';
 export type * from '#src/main/Timescope';
 export type { TimescopeDataRow, TimescopeDataRowInput } from '#src/main/TimescopeData';
 export type { DecimalLike } from '@kikuchan/decimal';
