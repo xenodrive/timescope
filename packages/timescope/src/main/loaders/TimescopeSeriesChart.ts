@@ -1,5 +1,6 @@
 import { Decimal, isDecimal } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
+import type { TimescopeChartLink, TimescopeChartMark, TimescopeChartType, Using } from '#src/main/chart';
 import {
   compileLinkGeometry,
   type LinkGeometryCoordinate,
@@ -16,14 +17,7 @@ import type { TimescopeDataRow } from '#src/main/TimescopeData';
 import type { TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
 import { releaseViewForDataSource, requestViewForDataSource } from '#src/main/TimescopeDataSource';
 import type { TimescopeView } from '#src/main/TimescopeView';
-import type {
-  TimescopeChartLink,
-  TimescopeChartMark,
-  TimescopeChartType,
-  TimescopeProjectedChartMark,
-  TimescopeSeriesChartData,
-  Using,
-} from '#src/renderer/types';
+import type { TimescopeProjectedChartMark, TimescopeSeriesChartData } from '#src/renderer/types';
 
 const stylePresetLookup: Partial<
   Record<

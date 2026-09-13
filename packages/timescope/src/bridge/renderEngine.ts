@@ -1,12 +1,8 @@
-import type { RenderEngineCommandsWire, RendererCommandsWire } from '#src/bridge/protocol';
-import { defineCalls, listenCalls, unserialize, type WorkerMessagePort } from '#src/bridge/rpc';
+import type { RenderEngineCommandsWire } from '#src/bridge/protocol';
+import type { RenderEngineCommands, RendererCommands } from '#src/bridge/protocol';
+import { defineCalls, listenCalls, type WorkerMessagePort } from '#src/bridge/rpc';
+import type { RenderCall } from '#src/bridge/rpc';
 import { TimescopeRenderEngine, type TimescopeRenderEngineEnvironment } from '#src/renderer/TimescopeRenderEngine';
-import type { RenderCall, RenderEngineCommands, RendererCommands } from '#src/renderer/types';
-
-/** Preserve the same value ownership at a direct connection as at a worker boundary. */
-export function copyRenderPayload<T>(value: T): T {
-  return unserialize(structuredClone(value));
-}
 
 export function dataBuffers(result: unknown): ArrayBuffer[] {
   if (!result || typeof result !== 'object' || !('data' in result)) return [];
@@ -33,21 +29,19 @@ export function dataBuffers(result: unknown): ArrayBuffer[] {
 export function connectWorkerRenderer(port: WorkerMessagePort, callbacks: RendererCommands, canvas: OffscreenCanvas) {
   const lifetime = new AbortController();
   const rpc = defineCalls<RenderEngineCommandsWire>(port, lifetime.signal);
-  listenCalls<RendererCommandsWire>(
+  listenCalls<RendererCommands>(
     port,
     callbacks,
     (command, result) => (command === 'data:load' ? dataBuffers(result) : []),
     lifetime.signal,
   );
-  rpc('init', { canvas }, { transfer: [canvas] });
+  const initialized = rpc('init', { canvas }, { rpc: true, transfer: [canvas] });
+  void initialized.catch(() => {});
   const call: RenderCall<RenderEngineCommands> = (command, payload) => {
-    return rpc(command, payload as never, {
-      rpc:
-        command === 'cursor' ||
-        command === 'frame:capture' ||
-        command === 'frame:prepare' ||
-        command === 'frame:commit',
-    }) as never;
+    if (command === 'init') return Promise.reject(new Error('Render engine already initialized'));
+    // Dispatch immediately to preserve message order and snapshot ownership.
+    const result = rpc(command, payload as never, { rpc: true });
+    return Promise.all([initialized, result]).then(([, value]) => value) as never;
   };
   return {
     call,
@@ -62,9 +56,9 @@ export function connectWorkerEngine(
   environment: Omit<TimescopeRenderEngineEnvironment, 'call'> = {},
 ) {
   const lifetime = new AbortController();
-  const rpc = defineCalls<RendererCommandsWire>(port, lifetime.signal);
+  const rpc = defineCalls<RendererCommands>(port, lifetime.signal);
   const call: RenderCall<RendererCommands> = (command, payload) => {
-    return rpc(command, payload as never, { rpc: command === 'data:load' || command === 'viewport:prepare' }) as never;
+    return rpc(command, payload as never, { rpc: true }) as never;
   };
   const engine = new TimescopeRenderEngine({ ...environment, call });
   listenCalls<RenderEngineCommandsWire>(port, engine.commands, undefined, lifetime.signal);

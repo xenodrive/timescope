@@ -4,10 +4,11 @@ import { Decimal } from '#src/core/decimal';
 import { normalizeOptions } from '#src/core/options';
 import type { TimescopeRange } from '#src/core/range';
 import { type TimeUnit } from '#src/core/time';
+import type { TextStyleOptions } from '#src/main/chart';
 import { TimescopeDataLoaderBase } from '#src/main/loaders/TimescopeDataLoader';
 import { TimescopeChunkStore } from '#src/main/TimescopeChunkStore';
 import { TimescopeView, type TimescopeViewRegistry } from '#src/main/TimescopeView';
-import type { TextStyleOptions, TimescopeTimeAxisData } from '#src/renderer/types';
+import type { TimescopeTimeAxisData } from '#src/renderer/types';
 import { Calendar } from '@kikuchan/calendar';
 
 export type CalendarLevel = 'subsecond' | 'second' | 'minute' | 'hour' | 'day' | 'month' | 'year' | 'relative';

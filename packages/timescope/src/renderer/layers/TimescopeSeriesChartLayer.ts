@@ -1,7 +1,5 @@
 import { Decimal } from '#src/core/decimal';
 import { PathCommand, type TimescopePathCommands } from '#src/core/path';
-import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
-import { clipToTrack } from '#src/renderer/rendering';
 import type {
   AngleStyle,
   BoxStyle,
@@ -11,6 +9,10 @@ import type {
   SizeStyle,
   StrokeStyle,
   TextStyle,
+} from '#src/main/chart';
+import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
+import { clipToTrack } from '#src/renderer/rendering';
+import type {
   TimescopeProjectedChartMark,
   TimescopeRenderEngineOptions,
   TimescopeRenderingContext,

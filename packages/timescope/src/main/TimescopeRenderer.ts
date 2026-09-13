@@ -1,7 +1,20 @@
+import type {
+  InteractionInfoWire,
+  RenderEngineCommands,
+  RendererCommands,
+  TimescopeDataLoadMessage,
+  TimescopeEventMessage,
+  TimescopeFrameCaptureMessage,
+  TimescopeSyncMessage,
+  TimescopeViewportChangedMessage,
+} from '#src/bridge/protocol';
+import type { RenderCall } from '#src/bridge/rpc';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
 import { mergeOptions } from '#src/core/options';
 import { resolutionFor } from '#src/core/zoom';
 import { resolveDocumentFonts, resolveFonts } from '#src/main/font';
+import type { TimescopeFont } from '#src/main/font';
+import type { InteractionInfo } from '#src/main/interaction';
 import type { TimescopeDataLoader, TimescopeDataLoaderClass } from '#src/main/loaders/TimescopeDataLoader';
 import { TimescopeSeriesChart } from '#src/main/loaders/TimescopeSeriesChart';
 import { TimescopeSeriesTooltip } from '#src/main/loaders/TimescopeSeriesTooltip';
@@ -12,21 +25,7 @@ import { createDataSeries, type TimescopeDataSeries } from '#src/main/TimescopeD
 import { createDataSource, type TimescopeDataSource } from '#src/main/TimescopeDataSource';
 import { TimescopeDomain } from '#src/main/TimescopeDomain';
 import { TimescopeViewRegistry } from '#src/main/TimescopeView';
-import type {
-  InteractionInfo,
-  InteractionInfoWire,
-  RenderCall,
-  RenderEngineCommands,
-  RendererCommands,
-  TimescopeDataCacheOptionsWire,
-  TimescopeDataLoadMessage,
-  TimescopeEventMessage,
-  TimescopeFont,
-  TimescopeFrameCaptureMessage,
-  TimescopeRenderEngineOptions,
-  TimescopeSyncMessage,
-  TimescopeViewportChangedMessage,
-} from '#src/renderer/types';
+import type { TimescopeDataCacheOptionsWire, TimescopeRenderEngineOptions } from '#src/renderer/types';
 import { Decimal } from '@kikuchan/decimal';
 
 function deepEqual(a: any, b: any) {
@@ -219,7 +218,9 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
 
   protected attach(connection: TimescopeRendererConnection, fonts?: (string | TimescopeFont)[]) {
     this.#connection = connection;
-    void this.setFonts(fonts);
+    void this.setFonts(fonts).catch((error) => {
+      if (!this.#disposed) console.error('Failed to initialize fonts', error);
+    });
   }
 
   #sources: Record<string, TimescopeDataSource<any>> = {};
@@ -703,7 +704,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
       if (!this.#disposed && this.#useDocumentFonts)
         await this.call('fonts', resolvedFonts.length ? resolvedFonts : undefined);
     } catch (error) {
-      console.error('Failed to resolve document fonts', error);
+      if (!this.#disposed) console.error('Failed to resolve document fonts', error);
     }
   }
 

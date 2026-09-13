@@ -1,9 +1,10 @@
 import type { TimescopeStateOptions } from '#src/core/TimescopeState';
+import type { TimescopeOptionsSelection } from '#src/main/chart';
+import type { TimescopeFont } from '#src/main/font';
 import type { TimescopeTimeAxisOptions } from '#src/main/loaders/TimescopeTimeAxis';
 import type { TimescopeOptionsSeries, TimescopeSeriesInput } from '#src/main/TimescopeDataSeries';
 import type { TimescopeOptionsSources, TimescopeSourceInput } from '#src/main/TimescopeDataSource';
 import type { TimescopeDomainOptions } from '#src/main/TimescopeDomain';
-import type { TimescopeFont, TimescopeOptionsSelection } from '#src/renderer/types';
 
 type TimescopeStyle = { width?: string; height?: string; background?: string };
 
@@ -131,4 +132,4 @@ export type {
   Using,
   Using1,
   Using2,
-} from '#src/renderer/types';
+} from '#src/main/chart';

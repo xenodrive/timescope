@@ -1,8 +1,9 @@
+import type { TimescopeFrameViewMessage } from '#src/bridge/protocol';
 import { Decimal } from '#src/core/decimal';
 import { TimescopeObservable } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
 import { zoomFor } from '#src/core/zoom';
-import type { TimescopeFrameViewMessage, TimescopeRenderingContext } from '#src/renderer/types';
+import type { TimescopeRenderingContext } from '#src/renderer/types';
 
 type DataLike = object & {};
 

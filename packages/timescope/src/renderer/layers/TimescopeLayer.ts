@@ -1,10 +1,6 @@
+import type { InteractionInfoWire } from '#src/bridge/protocol';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
-import type {
-  Interaction,
-  InteractionInfoWire,
-  TimescopeRenderEngineOptions,
-  TimescopeRenderingContext,
-} from '#src/renderer/types';
+import type { Interaction, TimescopeRenderEngineOptions, TimescopeRenderingContext } from '#src/renderer/types';
 
 export class TimescopeLayer<E extends TimescopeEvent<string, unknown> | string = any>
   extends TimescopeObservable<E>

@@ -6,6 +6,7 @@ import type { TimescopeRange } from '#src/core/range';
 import { parseTimeLike, type TimeLike } from '#src/core/time';
 import { TimescopeState } from '#src/core/TimescopeState';
 import { zoomFor, type ZoomLike } from '#src/core/zoom';
+import type { TimescopeFont } from '#src/main/font';
 import { InteractionManager } from '#src/main/InteractionManager';
 import type {
   TimescopeOptions,
@@ -17,7 +18,6 @@ import type {
 import { TimescopeMainThreadRenderer } from '#src/main/TimescopeMainThreadRenderer';
 import type { TimescopeRenderer } from '#src/main/TimescopeRenderer';
 import { TimescopeWorkerRenderer } from '#src/main/TimescopeWorkerRenderer';
-import type { TimescopeFont } from '#src/renderer/types';
 
 function normalizeWheel(e: WheelEvent) {
   const delta = e.deltaY;
@@ -599,5 +599,6 @@ export class Timescope<
 
   dispose() {
     this.unmount();
+    this.#state.dispose();
   }
 }

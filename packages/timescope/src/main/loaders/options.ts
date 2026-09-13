@@ -1,4 +1,4 @@
-import type { Using } from '#src/renderer/types';
+import type { Using } from '#src/main/chart';
 
 export function unwrapFn<T, A extends unknown[]>(obj: T | ((...args: A) => T), ...args: A): T {
   if (typeof obj === 'function') return (obj as (...args: A) => T)(...args);

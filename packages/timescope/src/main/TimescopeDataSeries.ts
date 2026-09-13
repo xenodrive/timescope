@@ -1,5 +1,6 @@
 import type { Decimal, NumberLike } from '#src/core/decimal';
 import type { TimescopeDataResolution } from '#src/core/zoom';
+import type { MaybeFn, TimescopeChartLink, TimescopeChartMark, TimescopeChartType, Using1 } from '#src/main/chart';
 import type { TimescopeOptions } from '#src/main/options';
 import type { TimescopeDataRow } from '#src/main/TimescopeData';
 import type {
@@ -10,7 +11,6 @@ import type {
   TimescopeDataSource,
 } from '#src/main/TimescopeDataSource';
 import type { TimescopeDomain, TimescopeDomainOptions } from '#src/main/TimescopeDomain';
-import type { MaybeFn, TimescopeChartLink, TimescopeChartMark, TimescopeChartType, Using1 } from '#src/renderer/types';
 
 export type TimescopeSeriesInput<
   Sources = Record<string, unknown>,

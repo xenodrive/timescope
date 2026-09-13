@@ -4,7 +4,7 @@ import type {
   InteractionInfo,
   InteractionPointerInfo,
   InteractionState,
-} from '#src/renderer/types';
+} from '#src/main/interaction';
 
 /** @internal */
 type InteractionEventHandler = (

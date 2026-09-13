@@ -1,15 +1,12 @@
-import { copyRenderPayload } from '#src/bridge/renderEngine';
+import type { RendererCommands } from '#src/bridge/protocol';
+import { copyRenderPayload } from '#src/bridge/rpc';
+import type { RenderCall } from '#src/bridge/rpc';
 import { Decimal } from '#src/core/decimal';
 import { TimescopeMainThreadRenderer } from '#src/main/TimescopeMainThreadRenderer';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
 import { TimescopeSeriesChartLayer } from '#src/renderer/layers/TimescopeSeriesChartLayer';
 import { TimescopeRenderEngine } from '#src/renderer/TimescopeRenderEngine';
-import type {
-  RenderCall,
-  RendererCommands,
-  TimescopeRenderingContext,
-  TimescopeSeriesChartData,
-} from '#src/renderer/types';
+import type { TimescopeRenderingContext, TimescopeSeriesChartData } from '#src/renderer/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let frames: Map<number, () => void>;
@@ -64,6 +61,45 @@ afterEach(() => {
 });
 
 describe('main-thread rendering', () => {
+  it('redraws for each loaded font without waiting for slower fonts and releases only owned fonts', async () => {
+    const pending = new Map<string, () => void>();
+    class TestFontFace {
+      constructor(readonly family: string) {}
+      load() {
+        return new Promise<this>((resolve) => pending.set(this.family, () => resolve(this)));
+      }
+    }
+    vi.stubGlobal('FontFace', TestFontFace);
+    const existing = new TestFontFace('document font');
+    const fonts = new Set([existing]);
+    const engine = new TimescopeRenderEngine({
+      call: (async () => undefined) as RenderCall<RendererCommands>,
+      fonts: fonts as unknown as FontFaceSet,
+    });
+    cleanups.push(() => engine.dispose());
+    let finished = false;
+    const loading = Promise.resolve(
+      engine.commands.fonts([
+        { family: 'fast', source: new ArrayBuffer(1) },
+        { family: 'slow', source: new ArrayBuffer(1) },
+      ]),
+    ).then(() => {
+      finished = true;
+    });
+    await flush();
+    frames.clear();
+    pending.get('fast')!();
+    await flush();
+    expect(finished).toBe(false);
+    expect([...fonts].map((font) => font.family)).toEqual(['document font', 'fast']);
+    expect(frames.size).toBe(1);
+    engine.dispose();
+    pending.get('slow')!();
+    await loading;
+    expect([...fonts]).toEqual([existing]);
+    expect(frames.size).toBe(0);
+  });
+
   it('loads real series data and presents a latched frame through the shared engine', async () => {
     const presented: TimescopeSeriesChartData[] = [];
     vi.spyOn(TimescopeSeriesChartLayer.prototype, 'render').mockImplementation((context) => {

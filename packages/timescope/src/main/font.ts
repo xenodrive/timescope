@@ -1,4 +1,8 @@
-import type { TimescopeFont } from '#src/renderer/types';
+export type TimescopeFont = {
+  family: string;
+  source: string | BufferSource;
+  desc?: FontFaceDescriptors;
+};
 
 type FontExtractionContext = {
   visited: Set<string>;

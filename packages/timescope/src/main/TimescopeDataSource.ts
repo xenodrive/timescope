@@ -9,7 +9,7 @@ import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
 import { parseTimeLike, type TimeLike } from '#src/core/time';
 import { resolutionFor } from '#src/core/zoom';
-import { TimescopeReducer as SnapshotReducer } from '#src/main/reducers/TimescopeReducer';
+import { TimescopeSnapshotReducer, type TimescopeReducer } from '#src/main/reducers/TimescopeSnapshotReducer';
 import { TimescopeChunkStore } from '#src/main/TimescopeChunkStore';
 import {
   normalizeDataRows,
@@ -38,12 +38,7 @@ export type TimescopeSourceCommonOptions = {
 export type TimescopeDataDecoder = (
   payload: any,
 ) => Promise<readonly TimescopeDataRowInput[]> | readonly TimescopeDataRowInput[];
-export type TimescopePercentilesReducer = {
-  type: 'percentiles';
-  values?: readonly (0.5 | 0.9 | 0.95)[];
-  primary?: 0.5 | 0.9 | 0.95;
-};
-export type TimescopeReducer = 'min-max-avg' | 'percentiles' | 'null' | TimescopePercentilesReducer;
+export type { TimescopeReducer, TimescopePercentilesReducer } from '#src/main/reducers/TimescopeSnapshotReducer';
 export type TimescopeSnapshotLoader<T = unknown> = (context?: TimescopeChunkLoaderContext) => T | Promise<T>;
 type TimescopeSnapshotAcquisition =
   | { url: string; data?: never; loader?: never }
@@ -272,10 +267,9 @@ class SnapshotDataSource<Row> extends TimescopeDataSourceBase<Row> implements Ti
   #acquire: () => unknown | Promise<unknown>;
   #decoder?: TimescopeDataDecoder;
   #mappings?: TimescopeMappings;
-  #reducer: SnapshotReducer;
+  #reducer: TimescopeSnapshotReducer;
   #state?: Promise<void>;
   #acquisitionGeneration = 0;
-  #rows: TimescopeDataRow[] = [];
   #mutable: boolean;
 
   constructor(options: DataSourceOptions, acquire: () => unknown | Promise<unknown>, mutable: boolean) {
@@ -283,7 +277,7 @@ class SnapshotDataSource<Row> extends TimescopeDataSourceBase<Row> implements Ti
     this.#acquire = acquire;
     this.#decoder = options.decoder;
     this.#mappings = options.mappings;
-    this.#reducer = new SnapshotReducer(options.reducer);
+    this.#reducer = new TimescopeSnapshotReducer(options.reducer);
     this.#mutable = mutable;
   }
 
@@ -294,7 +288,6 @@ class SnapshotDataSource<Row> extends TimescopeDataSourceBase<Row> implements Ti
       .then((payload) => canonicalize(payload, this.#decoder, this.#mappings))
       .then((rows) => {
         if (generation !== this.#acquisitionGeneration) throw new Error('Stale snapshot acquisition');
-        this.#rows = rows;
         this.#reducer.reset(rows);
       }));
   }
@@ -308,7 +301,6 @@ class SnapshotDataSource<Row> extends TimescopeDataSourceBase<Row> implements Ti
     if (!this.#mutable) {
       this.#acquisitionGeneration++;
       this.#state = undefined;
-      this.#rows = [];
       this.#reducer.reset([]);
       super.invalidate();
       return;
@@ -322,9 +314,8 @@ class SnapshotDataSource<Row> extends TimescopeDataSourceBase<Row> implements Ti
     const rows = normalizeDataRows(Array.isArray(input) ? input : [input], this.#mappings);
     const changed = rowRange(rows);
     if (!changed) return;
-    const dirty = mutationRange(this.#rows, changed, rows);
-    this.#rows.push(...rows);
-    this.#reducer.append(rows, this.#rows);
+    const dirty = mutationRange(this.#reducer.rows, changed, rows);
+    this.#reducer.append(rows);
     this.invalidate(dirty);
   }
 
@@ -337,13 +328,8 @@ class SnapshotDataSource<Row> extends TimescopeDataSourceBase<Row> implements Ti
     if (rows.some((row) => !rowIntersectsRange(row, range))) {
       throw new RangeError('Replacement rows must intersect the replacement range');
     }
-    const dirty = mutationRange(this.#rows, range, rows);
-    this.#rows = this.#rows.filter((row) => {
-      const [start, end] = row.range;
-      return start.eq(end) ? start.lt(range[0]) || start.ge(range[1]) : end.le(range[0]) || start.ge(range[1]);
-    });
-    this.#rows.push(...rows);
-    this.#reducer.replace(range, rows, this.#rows);
+    const dirty = mutationRange(this.#reducer.rows, range, rows);
+    this.#reducer.replace(range, rows);
     this.invalidate(dirty);
   }
 }

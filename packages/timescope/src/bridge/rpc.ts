@@ -14,6 +14,46 @@ export type CommandResult<C extends Commands, K extends keyof C = keyof C> = C[K
     ? R
     : never;
 
+/** A request resolves only after the remote handler completes. */
+export type RenderCall<C extends Commands> = <K extends keyof C>(
+  command: K,
+  payload: CommandPayload<C, K>,
+) => Promise<Awaited<ReturnType<C[K]>>>;
+
+export function copyRenderPayload<T>(value: T): T {
+  return unserialize(structuredClone(value));
+}
+
+/** Local equivalent of a request/reply message boundary. */
+export function defineLocalCalls<C extends Commands>(commands: C, signal: AbortSignal): RenderCall<C> {
+  return (command, payload) => {
+    if (signal.aborted) return Promise.reject(signal.reason);
+    let snapshot: CommandPayload<C, typeof command>;
+    try {
+      snapshot = copyRenderPayload(payload);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+    return new Promise((resolve, reject) => {
+      const abort = () => reject(signal.reason);
+      signal.addEventListener('abort', abort, { once: true });
+      void Promise.resolve()
+        .then(async () => {
+          signal.throwIfAborted();
+          const result = await commands[command](snapshot);
+          signal.throwIfAborted();
+          return copyRenderPayload(result);
+        })
+        .then(resolve, (error) => {
+          const remote = new Error(error instanceof Error ? error.message : String(error));
+          remote.name = error instanceof Error ? error.name : 'Error';
+          reject(remote);
+        })
+        .finally(() => signal.removeEventListener('abort', abort));
+    });
+  };
+}
+
 export type WorkerMessage<C extends Commands, Payload> = {
   type: 'rpc' | 'rpc:ack' | 'event';
   command: CommandNames<C>;
@@ -50,7 +90,17 @@ export type WorkerMessagePort = {
 };
 
 export function defineCalls<C extends Commands>(target: WorkerMessagePort, signal?: AbortSignal) {
-  return function call<K extends CommandNames<C>>(
+  function call<K extends CommandNames<C>>(
+    command: K,
+    payload: CommandPayload<C, K>,
+    opts: { transfer?: Transferable[]; rpc: true },
+  ): Promise<Awaited<ReturnType<C[K]>>>;
+  function call<K extends CommandNames<C>>(
+    command: K,
+    payload: CommandPayload<C, K>,
+    opts?: { transfer?: Transferable[]; rpc?: false },
+  ): Promise<void>;
+  function call<K extends CommandNames<C>>(
     command: K,
     payload: CommandPayload<C, K>,
     opts: {
@@ -58,12 +108,16 @@ export function defineCalls<C extends Commands>(target: WorkerMessagePort, signa
       rpc?: boolean;
     } = { rpc: false },
   ) {
-    if (signal?.aborted) return Promise.reject(signal.reason) as CommandResult<C, K>;
+    if (signal?.aborted) return Promise.reject(signal.reason);
     const seq = ++_seq;
     const message = { type: opts.rpc ? ('rpc' as const) : ('event' as const), command, seq, payload };
     if (!opts.rpc) {
-      target.postMessage(message, opts.transfer ?? []);
-      return Promise.resolve() as CommandResult<C, K>;
+      try {
+        target.postMessage(message, opts.transfer ?? []);
+        return Promise.resolve();
+      } catch (error) {
+        return Promise.reject(error);
+      }
     }
 
     return new Promise<CommandResult<C, K>>((resolve, reject) => {
@@ -96,7 +150,8 @@ export function defineCalls<C extends Commands>(target: WorkerMessagePort, signa
         reject(error);
       }
     });
-  };
+  }
+  return call;
 }
 
 export function listenCalls<C extends Commands>(

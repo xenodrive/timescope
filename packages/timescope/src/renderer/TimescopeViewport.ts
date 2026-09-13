@@ -1,10 +1,10 @@
+import type { TimescopeSyncMessage } from '#src/bridge/protocol';
 import { Decimal, type NumberLike } from '#src/core/decimal';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
 import type { TimeRange, TimescopeRange } from '#src/core/range';
 import type { TimeLike } from '#src/core/time';
 import { TimescopeState } from '#src/core/TimescopeState';
 import { resolutionFor, zoomFor } from '#src/core/zoom';
-import type { TimescopeSyncMessage } from '#src/renderer/types';
 
 type KineticPoint = { x: number; y: number; t: number };
 

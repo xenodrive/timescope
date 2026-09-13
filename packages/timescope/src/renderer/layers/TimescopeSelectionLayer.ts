@@ -1,9 +1,10 @@
+import type { InteractionInfoWire } from '#src/bridge/protocol';
 import { Decimal } from '#src/core/decimal';
 import { TimescopeEvent } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
 import { clipToTrack, renderTimeRange, renderTimeRangeInverse } from '#src/renderer/rendering';
-import type { InteractionInfoWire, TimescopeRenderEngineOptions, TimescopeRenderingContext } from '#src/renderer/types';
+import type { TimescopeRenderEngineOptions, TimescopeRenderingContext } from '#src/renderer/types';
 
 function nearby(p: number | undefined, x: number, tolerance: number = 8) {
   return p && p - tolerance <= x && x <= p + tolerance;

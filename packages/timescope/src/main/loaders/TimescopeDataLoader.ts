@@ -9,13 +9,13 @@ export type TimescopeDataLoadOptions = {
   loadMissing?: boolean;
 };
 
-export interface TimescopeDataLoader<D = any, _O = any> extends TimescopeObservable {
+export interface TimescopeDataLoader<D = any> extends TimescopeObservable {
   loadData(
     range: TimescopeRange<Decimal>,
     resolution: Decimal,
     xOrigin?: Decimal,
     options?: TimescopeDataLoadOptions,
-  ): Promise<D>;
+  ): Promise<D> | undefined;
   waitForTarget?(): Promise<void>;
   cancelTargetWaiters?(): void;
   dispose?(): void;
@@ -23,7 +23,10 @@ export interface TimescopeDataLoader<D = any, _O = any> extends TimescopeObserva
 
 export type TimescopeDataLoaderClass = new (options: any) => TimescopeDataLoader;
 
-export abstract class TimescopeDataLoaderBase<D = any, O = any> extends TimescopeObservable {
+export abstract class TimescopeDataLoaderBase<D = any, O = any>
+  extends TimescopeObservable
+  implements TimescopeDataLoader<D>
+{
   options: O;
   #unsubs: Un[] = [];
 

@@ -1,7 +1,21 @@
+import type {
+  InteractionInfoWire,
+  RenderEngineCommands,
+  RendererCommands,
+  RendererInitOptions,
+  RendererResizeOptions,
+  TimescopeEventMessage,
+  TimescopeFrameCaptureMessage,
+  TimescopeFrameViewMessage,
+  TimescopeSyncMessage,
+  TimescopeViewportChangedMessage,
+} from '#src/bridge/protocol';
+import type { RenderCall } from '#src/bridge/rpc';
 import { Decimal } from '#src/core/decimal';
 import type { TimescopeEvent } from '#src/core/event';
 import { mergeOptions } from '#src/core/options';
 import type { TimescopeRange } from '#src/core/range';
+import type { TimescopeFont } from '#src/main/font';
 import type { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
 import { TimescopeSelectionLayer } from '#src/renderer/layers/TimescopeSelectionLayer';
 import { TimescopeSeriesChartLayer } from '#src/renderer/layers/TimescopeSeriesChartLayer';
@@ -14,20 +28,8 @@ import { TimescopeTrack } from '#src/renderer/TimescopeTrack';
 import { TimescopeViewport } from '#src/renderer/TimescopeViewport';
 import type {
   Interaction,
-  InteractionInfoWire,
-  RenderCall,
-  RenderEngineCommands,
-  RendererCommands,
-  RendererInitOptions,
-  RendererResizeOptions,
-  TimescopeEventMessage,
-  TimescopeFont,
-  TimescopeFrameCaptureMessage,
-  TimescopeFrameViewMessage,
   TimescopeRenderEngineOptions,
   TimescopeRenderingContext,
-  TimescopeSyncMessage,
-  TimescopeViewportChangedMessage,
   TimescopeYProjectionWire,
 } from '#src/renderer/types';
 import {
@@ -556,6 +558,7 @@ export class TimescopeRenderEngine {
               if (disposed) return;
               fontFaceSet?.add(face);
               ownedFonts.add(face);
+              render();
             } catch (error) {
               if (key) loadedFonts.delete(key);
               if (!disposed) console.error('Failed to load the font:', error);

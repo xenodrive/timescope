@@ -1,8 +1,9 @@
 import { TimescopeAnimatedValue } from '#src/core/animation';
 import { normalizeOptions } from '#src/core/options';
+import type { TextStyleOptions } from '#src/main/chart';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
 import { forEachTrack } from '#src/renderer/rendering';
-import type { TextStyleOptions, TimescopeRenderingContext, TimescopeTimeAxisData } from '#src/renderer/types';
+import type { TimescopeRenderingContext, TimescopeTimeAxisData } from '#src/renderer/types';
 
 function parseTextStyle(style: TextStyleOptions | undefined, defaults: TextStyleOptions = {}) {
   return {
