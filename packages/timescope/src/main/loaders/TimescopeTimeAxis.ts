@@ -4,9 +4,9 @@ import { Decimal } from '#src/core/decimal';
 import { normalizeOptions } from '#src/core/options';
 import type { TimescopeRange } from '#src/core/range';
 import { type TimeUnit } from '#src/core/time';
+import { TimescopeDataLoaderBase } from '#src/main/loaders/TimescopeDataLoader';
 import { TimescopeChunkStore } from '#src/main/TimescopeChunkStore';
 import { TimescopeView, type TimescopeViewRegistry } from '#src/main/TimescopeView';
-import { TimescopeDataLoaderBase } from '#src/main/loaders/TimescopeDataLoader';
 import type { TextStyleOptions, TimescopeTimeAxisData } from '#src/renderer/types';
 import { Calendar } from '@kikuchan/calendar';
 

@@ -9,18 +9,18 @@ title: Basic Chart
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from "vue";
+import { onBeforeUnmount, onMounted } from 'vue';
 
 // #region code
-import { Timescope } from "timescope";
+import { Timescope } from 'timescope';
 
 // #region docs-ignore
 onMounted(() => {
   // #endregion docs-ignore
 
   const timescope = new Timescope({
-    target: "#example-basic-chart",
-    style: { height: "240px" },
+    target: '#example-basic-chart',
+    style: { height: '240px' },
     time: 1.5,
     zoom: 6,
     sources: {
@@ -34,9 +34,9 @@ onMounted(() => {
     series: {
       temperature: {
         data: {
-          source: "samples",
+          source: 'samples',
         },
-        chart: "linespoints",
+        chart: 'linespoints',
       },
     },
     tracks: { default: { timeAxis: { relative: true } } },

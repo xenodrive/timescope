@@ -43,7 +43,9 @@ export type TextStyleOptions = {
 
 export type MaybeFn<R, T> = T extends unknown[] ? ((...args: T) => R) | R : R;
 type UsingElement<V extends [string, string]> =
-  `${V[1] | '#zero' | '#top' | '#bottom'}@${V[0]}` | (V[1] | '#zero' | '#top' | '#bottom') | `@${V[0]}`;
+  | `${V[1] | '#zero' | '#top' | '#bottom'}@${V[0]}`
+  | (V[1] | '#zero' | '#top' | '#bottom')
+  | `@${V[0]}`;
 export type Using1<V extends [string, string]> = UsingElement<V> | [UsingElement<V>];
 export type Using2<V extends [string, string]> = [UsingElement<V>, UsingElement<V>];
 export type Using<V extends [string, string] = [string, string]> = Using1<V> | Using2<V>;
@@ -436,7 +438,12 @@ export type TimescopeCompiledChartLink = {
 };
 
 export type TimescopeYProjectionMode =
-  'zero-inclusive' | 'floating-positive' | 'floating-negative' | 'zero-only' | 'constant' | 'empty';
+  | 'zero-inclusive'
+  | 'floating-positive'
+  | 'floating-negative'
+  | 'zero-only'
+  | 'constant'
+  | 'empty';
 
 export type TimescopeYProjectionWire = {
   domainId: string;

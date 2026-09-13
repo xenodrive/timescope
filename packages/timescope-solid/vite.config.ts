@@ -1,7 +1,7 @@
 /// <reference types="vitest/config" />
-import { playwright } from '@vitest/browser-playwright'
-import { defineConfig } from 'vite'
-import solid from 'vite-plugin-solid'
+import { playwright } from '@vitest/browser-playwright';
+import { defineConfig } from 'vite';
+import solid from 'vite-plugin-solid';
 
 export default defineConfig({
   root: './playground',
@@ -16,4 +16,4 @@ export default defineConfig({
       headless: true,
     },
   },
-})
+});

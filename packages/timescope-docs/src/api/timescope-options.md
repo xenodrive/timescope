@@ -8,18 +8,18 @@ titleTemplate: Timescope API
 
 ## Options
 
-| Key         | Type                                                 | Behavior                                             |
-| ----------- | ---------------------------------------------------- | ---------------------------------------------------- |
-| `style`     | `{ width?, height?, background? }`                   | Sets canvas size and background.                     |
-| `padding`   | `number[]`                                           | Sets canvas padding as `[top, right, bottom, left]`. |
-| `indicator` | `boolean`                                            | Shows the cursor indicator. Default: `true`.         |
-| `showFps`   | `boolean`                                            | Shows the FPS overlay.                               |
-| `renderThread` | `'worker' \| 'main'` | Selects the render engine's thread when mounting. Default: `'worker'`. |
-| `sources`   | `Record<string, TimescopeSourceInput>`               | Defines data sources.                                |
-| `domains`   | `Record<string, TimescopeDomainOptions>`             | Defines shared value domains.                        |
-| `series`    | `Record<string, TimescopeSeriesInput>`               | Defines series.                                      |
-| `tracks`    | `Record<string, { height?, symmetric?, timeAxis? }>` | Defines track layout.                                |
-| `selection` | `boolean \| { resizable?, color?, invert?, range? }` | Configures range selection.                          |
+| Key            | Type                                                 | Behavior                                                               |
+| -------------- | ---------------------------------------------------- | ---------------------------------------------------------------------- |
+| `style`        | `{ width?, height?, background? }`                   | Sets canvas size and background.                                       |
+| `padding`      | `number[]`                                           | Sets canvas padding as `[top, right, bottom, left]`.                   |
+| `indicator`    | `boolean`                                            | Shows the cursor indicator. Default: `true`.                           |
+| `showFps`      | `boolean`                                            | Shows the FPS overlay.                                                 |
+| `renderThread` | `'worker' \| 'main'`                                 | Selects the render engine's thread when mounting. Default: `'worker'`. |
+| `sources`      | `Record<string, TimescopeSourceInput>`               | Defines data sources.                                                  |
+| `domains`      | `Record<string, TimescopeDomainOptions>`             | Defines shared value domains.                                          |
+| `series`       | `Record<string, TimescopeSeriesInput>`               | Defines series.                                                        |
+| `tracks`       | `Record<string, { height?, symmetric?, timeAxis? }>` | Defines track layout.                                                  |
+| `selection`    | `boolean \| { resizable?, color?, invert?, range? }` | Configures range selection.                                            |
 
 ## Rendering Thread
 
@@ -288,15 +288,15 @@ Mark style values may be callbacks receiving `{ times, values, data, resolution 
 
 ### Time Axis
 
-| Key          | Type                                                       | Behavior                                                    |
-| ------------ | ---------------------------------------------------------- | ----------------------------------------------------------- |
-| `axis`       | `false \| { color? }`                                      | Hides or styles the axis line.                              |
-| `ticks`      | `false \| { color? }`                                      | Hides or styles tick lines.                                 |
-| `labels`     | `false \| { color?, fontWeight?, fontSize?, fontFamily? }` | Hides or styles labels.                                     |
-| `relative`   | `boolean`                                                  | Formats time relative to zero.                              |
-| `timeFormat` | `TimeFormatFunc \| TimeFormatLabeler`                      | Formats time-axis labels.                                   |
-| `timeUnit`   | `'s' \| 'ms' \| 'us' \| 'ns'`                              | Sets the numeric time unit used for labels. Default: `'s'`. |
-| `timeZone`   | `string` | Sets the time zone for absolute-time labels and tick boundaries. Default: `'local'`. |
+| Key          | Type                                                       | Behavior                                                                             |
+| ------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `axis`       | `false \| { color? }`                                      | Hides or styles the axis line.                                                       |
+| `ticks`      | `false \| { color? }`                                      | Hides or styles tick lines.                                                          |
+| `labels`     | `false \| { color?, fontWeight?, fontSize?, fontFamily? }` | Hides or styles labels.                                                              |
+| `relative`   | `boolean`                                                  | Formats time relative to zero.                                                       |
+| `timeFormat` | `TimeFormatFunc \| TimeFormatLabeler`                      | Formats time-axis labels.                                                            |
+| `timeUnit`   | `'s' \| 'ms' \| 'us' \| 'ns'`                              | Sets the numeric time unit used for labels. Default: `'s'`.                          |
+| `timeZone`   | `string`                                                   | Sets the time zone for absolute-time labels and tick boundaries. Default: `'local'`. |
 
 `TimeFormatFunc` receives `{ time, unit, level, digits, stride? }` and returns `string | undefined`. `TimeFormatLabeler` provides optional formatters for year, month, quarter, date, minutes, and seconds.
 
@@ -327,17 +327,17 @@ Selection is resizable by default. Shift-drag creates a range.
 
 ## Domains
 
-| Key                | Type                                                                    | Behavior                                                            |
-| ------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `scale`            | `'linear' \| 'linear-symmetric' \| 'log'`                               | Sets the value scale.                                               |
-| `axis`             | `boolean \| 'left' \| 'right' \| TimescopeYAxisOptions`                 | Shows and configures a value axis.                                  |
-| `animation`        | `boolean`                                                               | Animates range changes. Default: `true`.                            |
-| `range`            | `TimescopeNumberLike \| [min?, max?] \| { expand?, shrink?, default? }` | Sets or configures the value range.                                 |
-| `expand`           | `boolean`                                                               | Allows the range to expand for observed values. Default: `false`.   |
-| `shrink`           | `boolean`                                                               | Allows the range to contract. Default: `true`.                      |
-| `floatingGap`      | `number`                                                                | Sets the pixel gap below a same-sign floating range. Default: `20`. |
-| `unit`             | `string`                                                                | Sets the tooltip and value-axis unit.                               |
-| `digits`           | `number`                                                                | Sets decimal places in tooltips and value axes.                     |
+| Key           | Type                                                                    | Behavior                                                            |
+| ------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `scale`       | `'linear' \| 'linear-symmetric' \| 'log'`                               | Sets the value scale.                                               |
+| `axis`        | `boolean \| 'left' \| 'right' \| TimescopeYAxisOptions`                 | Shows and configures a value axis.                                  |
+| `animation`   | `boolean`                                                               | Animates range changes. Default: `true`.                            |
+| `range`       | `TimescopeNumberLike \| [min?, max?] \| { expand?, shrink?, default? }` | Sets or configures the value range.                                 |
+| `expand`      | `boolean`                                                               | Allows the range to expand for observed values. Default: `false`.   |
+| `shrink`      | `boolean`                                                               | Allows the range to contract. Default: `true`.                      |
+| `floatingGap` | `number`                                                                | Sets the pixel gap below a same-sign floating range. Default: `20`. |
+| `unit`        | `string`                                                                | Sets the tooltip and value-axis unit.                               |
+| `digits`      | `number`                                                                | Sets decimal places in tooltips and value axes.                     |
 
 An unbounded range follows visible values. A single numeric range value means `[0, value]`.
 

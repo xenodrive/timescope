@@ -1,6 +1,6 @@
 import { includeIgnoreFile } from '@eslint/compat';
 import eslint from '@eslint/js';
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import prettier from 'eslint-config-prettier';
 import solid from 'eslint-plugin-solid/configs/recommended';
 import { defineConfig } from 'eslint/config';
 import { join } from 'node:path';
@@ -12,7 +12,7 @@ export default defineConfig(
   includeIgnoreFile(ignorePath),
   eslint.configs.recommended,
   tseslint.configs.recommended,
-  eslintPluginPrettierRecommended,
+  prettier,
   solid,
   {
     rules: {

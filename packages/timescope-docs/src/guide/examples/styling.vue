@@ -9,10 +9,10 @@ title: Styling
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from "vue";
+import { onBeforeUnmount, onMounted } from 'vue';
 
 // #region code
-import { Timescope } from "timescope";
+import { Timescope } from 'timescope';
 
 // #region docs-ignore
 onMounted(() => {
@@ -32,10 +32,10 @@ onMounted(() => {
   ];
 
   const timescope = new Timescope({
-    target: "#example-styling",
+    target: '#example-styling',
     style: {
-      height: "280px",
-      background: "#0f172a",
+      height: '280px',
+      background: '#0f172a',
     },
     time: 0,
     zoom: 5,
@@ -45,41 +45,41 @@ onMounted(() => {
     series: {
       temperature: {
         data: {
-          source: "samples",
-          domain: { unit: "°C" },
+          source: 'samples',
+          domain: { unit: '°C' },
         },
         chart: {
           links: [
             {
-              draw: "area",
-              using: ["min@time", "max@time"],
+              draw: 'area',
+              using: ['min@time', 'max@time'],
               style: {
-                fillColor: "#38bdf8",
+                fillColor: '#38bdf8',
                 fillOpacity: 0.16,
               },
             },
             {
-              draw: "line",
-              using: "value",
+              draw: 'line',
+              using: 'value',
               style: {
                 lineWidth: 2,
-                lineColor: "#60a5fa",
+                lineColor: '#60a5fa',
               },
             },
           ],
           marks: [
             {
-              draw: "circle",
-              using: "value",
+              draw: 'circle',
+              using: 'value',
               style: {
                 size: 6,
-                fillColor: "#38bdf8",
+                fillColor: '#38bdf8',
               },
             },
           ],
         },
         tooltip: true,
-        track: "main",
+        track: 'main',
       },
     },
     tracks: {
@@ -87,11 +87,11 @@ onMounted(() => {
         timeAxis: {
           relative: true,
           labels: {
-            color: "#94a3b8",
-            fontSize: "12px",
+            color: '#94a3b8',
+            fontSize: '12px',
           },
           ticks: {
-            color: "#334155",
+            color: '#334155',
           },
         },
       },

@@ -1,29 +1,29 @@
-export type WarpSize = { width: number; height: number; ratio: number }
+export type WarpSize = { width: number; height: number; ratio: number };
 export type WarpMessage =
   | { type: 'init'; canvas: OffscreenCanvas; size: WarpSize; running: boolean }
   | { type: 'resize'; size: WarpSize }
-  | { type: 'running'; running: boolean }
+  | { type: 'running'; running: boolean };
 
-export type WarpReply = { type: 'ready' } | { type: 'error' }
+export type WarpReply = { type: 'ready' } | { type: 'error' };
 
 // This module is only executed inside a dedicated worker.
 const scope = self as unknown as {
-  onmessage: ((event: MessageEvent<WarpMessage>) => void) | null
-  postMessage(message: WarpReply): void
-  requestAnimationFrame(callback: FrameRequestCallback): number
-  cancelAnimationFrame(handle: number): void
-}
+  onmessage: ((event: MessageEvent<WarpMessage>) => void) | null;
+  postMessage(message: WarpReply): void;
+  requestAnimationFrame(callback: FrameRequestCallback): number;
+  cancelAnimationFrame(handle: number): void;
+};
 
-const flightSpeed = 40
-const routeAmplitude = [35, 14, 28, 12]
-const routeFrequency = [0.02, 0.04, 0.02, 0.03]
+const flightSpeed = 40;
+const routeAmplitude = [35, 14, 28, 12];
+const routeFrequency = [0.02, 0.04, 0.02, 0.03];
 
 // Convert constant distance along the curve into its longitudinal increment.
 function travelRate(z: number) {
-  const slope = routeAmplitude.map((amplitude, i) =>
-    amplitude * routeFrequency[i] * Math.cos(z * routeFrequency[i] + (i === 2 ? 0.8 : 0)),
-  )
-  return flightSpeed / Math.hypot(slope[0] + slope[1], slope[2] + slope[3], 1)
+  const slope = routeAmplitude.map(
+    (amplitude, i) => amplitude * routeFrequency[i] * Math.cos(z * routeFrequency[i] + (i === 2 ? 0.8 : 0)),
+  );
+  return flightSpeed / Math.hypot(slope[0] + slope[1], slope[2] + slope[3], 1);
 }
 
 // Fly through a stationary 3D star field along a winding tunnel.
@@ -110,7 +110,7 @@ void main() {
   brightness = smoothstep(0.5, 3.0, head.z) * (1.0 - smoothstep(100.0, 140.0, z - travel))
     * (distantLight + (1.3 - distantLight) * depthLight) * (0.25 + seed.y * 0.7);
 }
-`
+`;
 
 const fragmentSource = `
 precision mediump float;
@@ -132,142 +132,155 @@ void main() {
   vec3 light = mix(color, vec3(1.0), max(core * 0.5, pointCore * 0.9));
   gl_FragColor = vec4(light, (glow * tail + pointCore + pointHalo) * brightness);
 }
-`
+`;
 
 function createRenderer(surface: OffscreenCanvas) {
-  const context = surface.getContext('webgl', { alpha: true, antialias: false, depth: false })
-  if (!context) throw new Error('WebGL is unavailable')
-  const gl = context
-  const shaders: WebGLShader[] = []
-  const program = gl.createProgram()
-  const buffer = gl.createBuffer()
-  let frame = 0
-  let lost = false
-  let ready = false
-  let travel = 0
-  let previous = 0
-  let starCount = 0
+  const context = surface.getContext('webgl', { alpha: true, antialias: false, depth: false });
+  if (!context) throw new Error('WebGL is unavailable');
+  const gl = context;
+  const shaders: WebGLShader[] = [];
+  const program = gl.createProgram();
+  const buffer = gl.createBuffer();
+  let frame = 0;
+  let lost = false;
+  let ready = false;
+  let travel = 0;
+  let previous = 0;
+  let starCount = 0;
 
   const stop = () => {
-    scope.cancelAnimationFrame(frame)
-    frame = 0
-    previous = 0
-  }
-  if (!program || !buffer) throw new Error('WebGL allocation failed')
+    scope.cancelAnimationFrame(frame);
+    frame = 0;
+    previous = 0;
+  };
+  if (!program || !buffer) throw new Error('WebGL allocation failed');
 
-  for (const [type, source] of [[gl.VERTEX_SHADER, vertexSource], [gl.FRAGMENT_SHADER, fragmentSource]] as const) {
-    const shader = gl.createShader(type)
-    if (!shader) throw new Error('Shader allocation failed')
-    shaders.push(shader)
-    gl.shaderSource(shader, source)
-    gl.compileShader(shader)
+  for (const [type, source] of [
+    [gl.VERTEX_SHADER, vertexSource],
+    [gl.FRAGMENT_SHADER, fragmentSource],
+  ] as const) {
+    const shader = gl.createShader(type);
+    if (!shader) throw new Error('Shader allocation failed');
+    shaders.push(shader);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      throw new Error(gl.getShaderInfoLog(shader) || 'Shader compilation failed')
+      throw new Error(gl.getShaderInfoLog(shader) || 'Shader compilation failed');
     }
-    gl.attachShader(program, shader)
+    gl.attachShader(program, shader);
   }
-  gl.linkProgram(program)
+  gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    throw new Error(gl.getProgramInfoLog(program) || 'Shader linking failed')
+    throw new Error(gl.getProgramInfoLog(program) || 'Shader linking failed');
   }
-  shaders.forEach(shader => {
-    gl.detachShader(program, shader)
-    gl.deleteShader(shader)
-  })
-  gl.useProgram(program)
+  shaders.forEach((shader) => {
+    gl.detachShader(program, shader);
+    gl.deleteShader(shader);
+  });
+  gl.useProgram(program);
 
-  const stars = 1200
-  const segments = 8
-  const verticesPerStar = segments * 6
-  const corners = [[0, -1], [1, -1], [0, 1], [0, 1], [1, -1], [1, 1]]
-  const data = new Float32Array(stars * verticesPerStar * 5)
-  let offset = 0
+  const stars = 1200;
+  const segments = 8;
+  const verticesPerStar = segments * 6;
+  const corners = [
+    [0, -1],
+    [1, -1],
+    [0, 1],
+    [0, 1],
+    [1, -1],
+    [1, 1],
+  ];
+  const data = new Float32Array(stars * verticesPerStar * 5);
+  let offset = 0;
   for (let i = 0; i < stars; i++) {
-    const seed = [Math.random(), Math.random(), Math.random()]
+    const seed = [Math.random(), Math.random(), Math.random()];
     for (let segment = 0; segment < segments; segment++) {
       for (const [along, across] of corners) {
-        data.set([...seed, (segment + along) / segments, across], offset)
-        offset += 5
+        data.set([...seed, (segment + along) / segments, across], offset);
+        offset += 5;
       }
     }
   }
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-  gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW)
-  for (const [name, size, offset] of [['seed', 3, 0], ['corner', 2, 12]] as const) {
-    const location = gl.getAttribLocation(program, name)
-    gl.enableVertexAttribArray(location)
-    gl.vertexAttribPointer(location, size, gl.FLOAT, false, 20, offset)
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+  for (const [name, size, offset] of [
+    ['seed', 3, 0],
+    ['corner', 2, 12],
+  ] as const) {
+    const location = gl.getAttribLocation(program, name);
+    gl.enableVertexAttribArray(location);
+    gl.vertexAttribPointer(location, size, gl.FLOAT, false, 20, offset);
   }
-  const resolution = gl.getUniformLocation(program, 'resolution')
-  const origin = gl.getUniformLocation(program, 'origin')
-  const travelUniform = gl.getUniformLocation(program, 'travel')
-  gl.uniform4fv(gl.getUniformLocation(program, 'routeAmplitude'), routeAmplitude)
-  gl.uniform4fv(gl.getUniformLocation(program, 'routeFrequency'), routeFrequency)
-  gl.enable(gl.BLEND)
-  gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
-  gl.clearColor(0, 0, 0, 0)
+  const resolution = gl.getUniformLocation(program, 'resolution');
+  const origin = gl.getUniformLocation(program, 'origin');
+  const travelUniform = gl.getUniformLocation(program, 'travel');
+  gl.uniform4fv(gl.getUniformLocation(program, 'routeAmplitude'), routeAmplitude);
+  gl.uniform4fv(gl.getUniformLocation(program, 'routeFrequency'), routeFrequency);
+  gl.enable(gl.BLEND);
+  gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.clearColor(0, 0, 0, 0);
 
   const resize = ({ width, height, ratio }: WarpSize) => {
-    if (lost) return
-    if (!width || !height) return
-    surface.width = Math.max(1, Math.round(width * ratio))
-    surface.height = Math.max(1, Math.round(height * ratio))
-    starCount = width < 640 ? 540 : stars
-    gl.viewport(0, 0, surface.width, surface.height)
+    if (lost) return;
+    if (!width || !height) return;
+    surface.width = Math.max(1, Math.round(width * ratio));
+    surface.height = Math.max(1, Math.round(height * ratio));
+    starCount = width < 640 ? 540 : stars;
+    gl.viewport(0, 0, surface.width, surface.height);
     // CSS pixels keep the streak widths consistent across displays.
-    gl.uniform2f(resolution, width, height)
-    gl.uniform2f(origin, width / 2, height / 2)
-  }
+    gl.uniform2f(resolution, width, height);
+    gl.uniform2f(origin, width / 2, height / 2);
+  };
   const draw = (now: number) => {
     if (previous) {
-      const delta = Math.min((now - previous) / 1000, 0.05)
-      const midpoint = travel + travelRate(travel) * delta * 0.5
-      travel += travelRate(midpoint) * delta
+      const delta = Math.min((now - previous) / 1000, 0.05);
+      const midpoint = travel + travelRate(travel) * delta * 0.5;
+      travel += travelRate(midpoint) * delta;
     }
-    previous = now
-    gl.clear(gl.COLOR_BUFFER_BIT)
-    gl.uniform1f(travelUniform, travel)
-    gl.drawArrays(gl.TRIANGLES, 0, starCount * verticesPerStar)
+    previous = now;
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.uniform1f(travelUniform, travel);
+    gl.drawArrays(gl.TRIANGLES, 0, starCount * verticesPerStar);
     if (!ready) {
-      ready = true
-      scope.postMessage({ type: 'ready' })
+      ready = true;
+      scope.postMessage({ type: 'ready' });
     }
-    frame = scope.requestAnimationFrame(draw)
-  }
+    frame = scope.requestAnimationFrame(draw);
+  };
   const setRunning = (running: boolean) => {
     if (!running || lost) {
-      stop()
+      stop();
     } else if (!frame) {
-      frame = scope.requestAnimationFrame(draw)
+      frame = scope.requestAnimationFrame(draw);
     }
-  }
+  };
   const contextLost = () => {
-    lost = true
-    stop()
-    scope.postMessage({ type: 'error' })
-  }
-  surface.addEventListener('webglcontextlost', contextLost)
-  return { resize, setRunning }
+    lost = true;
+    stop();
+    scope.postMessage({ type: 'error' });
+  };
+  surface.addEventListener('webglcontextlost', contextLost);
+  return { resize, setRunning };
 }
 
-let renderer: ReturnType<typeof createRenderer> | undefined
+let renderer: ReturnType<typeof createRenderer> | undefined;
 scope.onmessage = ({ data }) => {
   try {
     switch (data.type) {
       case 'init':
-        renderer = createRenderer(data.canvas)
-        renderer.resize(data.size)
-        renderer.setRunning(data.running)
-        break
+        renderer = createRenderer(data.canvas);
+        renderer.resize(data.size);
+        renderer.setRunning(data.running);
+        break;
       case 'resize':
-        renderer?.resize(data.size)
-        break
+        renderer?.resize(data.size);
+        break;
       case 'running':
-        renderer?.setRunning(data.running)
-        break
+        renderer?.setRunning(data.running);
+        break;
     }
   } catch {
-    renderer?.setRunning(false)
-    scope.postMessage({ type: 'error' })
+    renderer?.setRunning(false);
+    scope.postMessage({ type: 'error' });
   }
-}
+};

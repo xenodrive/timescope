@@ -25,7 +25,8 @@ function createGetter(key: string) {
 export type TimescopeValueLike = NumberLike | null;
 
 export type TimescopeDataRowInput = (
-  { time: TimeLike<never>; times?: never } | { time?: never; times: Record<string, TimeLike<never>> }
+  | { time: TimeLike<never>; times?: never }
+  | { time?: never; times: Record<string, TimeLike<never>> }
 ) &
   ({ value: TimescopeValueLike; values?: never } | { value?: never; values: Record<string, TimescopeValueLike> }) & {
     data?: unknown;

@@ -9,7 +9,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsdown",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint ./src",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "typecheck": "vue-tsc --noEmit"
   },
   "main": "./src/index.ts",
   "exports": {
@@ -18,13 +22,20 @@
     }
   },
   "devDependencies": {
+    "@eslint/compat": "^2.1.1",
     "@kikuchan/calendar": "^0.1.0-alpha.0",
     "@kikuchan/decimal": "^0.1.0-alpha.10",
     "@vitejs/plugin-vue": "^6.0.8",
-    "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/eslint-config-typescript": "^14.9.0",
+    "eslint": "^9.39.0",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-vue": "^10.10.0",
     "jiti": "^2.7.0",
+    "prettier": "^3.9.6",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "tsdown": "^0.23.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70.0",
     "unplugin-dts": "1.1.0",
     "unplugin-vue": "^7.2.0",
     "vue": "^3.5.42",

@@ -1,6 +1,7 @@
 ---
 titleTemplate: Timescope API
 ---
+
 # Calendar
 
 <script setup lang="ts">
@@ -79,12 +80,12 @@ Component methods other than `weekday()` also accept a value to set that compone
 ```typescript
 const date = new Calendar(2024, 6, 15);
 
-date.year();                     // 2024n
-date.month(12).day(31);           // New Calendar for December 31
-date.year();                     // Still 2024n
+date.year(); // 2024n
+date.month(12).day(31); // New Calendar for December 31
+date.year(); // Still 2024n
 date.year$(2025).seconds$('0.5'); // Modify date in place
 
-date.epoch('0');  // New Calendar at the Unix epoch
+date.epoch('0'); // New Calendar at the Unix epoch
 date.epoch$('0'); // Modify date in place
 ```
 
@@ -127,11 +128,11 @@ For day, month, and year operations, `step` can be a `number`, `bigint`, or an a
 const date = Calendar.fromComponents({ year: 2024, month: 6, day: 17, hour: 10, minutes: 30, zone: 'utc' }).utc();
 
 date.alignToDay().format('YYYY-MM-DD hh:mm:ss'); // '2024-06-17 00:00:00'
-date.alignToDay([1, 15]).format('YYYY-MM-DD');    // '2024-06-15'
-date.nextDay([1, 15]).format('YYYY-MM-DD');       // '2024-07-01'
-date.alignToMonth(3).format('YYYY-MM-DD');       // '2024-04-01'
-date.nextMonth(3).format('YYYY-MM-DD');          // '2024-07-01'
-date.alignToSecond(300);                        // Align to a 5-minute interval
+date.alignToDay([1, 15]).format('YYYY-MM-DD'); // '2024-06-15'
+date.nextDay([1, 15]).format('YYYY-MM-DD'); // '2024-07-01'
+date.alignToMonth(3).format('YYYY-MM-DD'); // '2024-04-01'
+date.nextMonth(3).format('YYYY-MM-DD'); // '2024-07-01'
+date.alignToSecond(300); // Align to a 5-minute interval
 ```
 
 ## Formatting and Parsing
@@ -141,26 +142,26 @@ Use `format(fmt)` to produce a string and `Calendar.parse(value, format?, inputZ
 ```typescript
 const date = Calendar.fromEpoch('12.3456').utc();
 date.format('YYYY-MM-DD hh:mm:ss.SSSSSS'); // '1970-01-01 00:00:12.345600'
-date.format('IY-MM-DD[T]hh:mm:ss.S*Z');    // '1970-01-01T00:00:12.3456Z'
+date.format('IY-MM-DD[T]hh:mm:ss.S*Z'); // '1970-01-01T00:00:12.3456Z'
 
 const parsed = Calendar.parse('2024-06-15 12:30:45.123', 'YYYY-MM-DD hh:mm:ss.SSS', 'utc').utc();
 parsed.seconds().toString(); // '45.123'
 ```
 
-| Token | Parsing | Formatting |
-| --- | --- | --- |
-| `Y` / `y`, repeated n times | Optional `+` / `-`, followed by one or more digits | At least n digits, excluding the sign; negative sign only |
-| `IY` | Same as `Y` | Four digits for years 0–9999; otherwise a sign and at least six digits |
-| `G`, repeated n times | Positive era year with a `BC` prefix or `AD` suffix | At least n digits, with a `BC` prefix or `AD` suffix |
-| `g`, repeated n times | Positive era year with an optional `BC` prefix | At least n digits; `BC` prefix only for years before AD 1 |
-| `MM` / `M` | 1–2 digit month | Two digits / no padding |
-| `DD` | 1–2 digit day | Two digits |
-| `hh` / `h` | 1–2 digit hour (24-hour clock) | Two digits / no padding |
-| `mm` | 1–2 digit minute | Two digits |
-| `ss` | 1–2 digit whole second | Two digits |
-| `S`, repeated n times | 1–n fractional digits | Exactly n digits, zero-padded or truncated |
-| `S*` | One or more fractional digits, with no upper limit | All fractional digits without trailing zeros; `0` for integer seconds |
-| `Z` | `Z`, `±HH:mm`, or `±HHmm` | `Z` for zero offset; otherwise `±HH:mm` |
+| Token                       | Parsing                                             | Formatting                                                             |
+| --------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------- |
+| `Y` / `y`, repeated n times | Optional `+` / `-`, followed by one or more digits  | At least n digits, excluding the sign; negative sign only              |
+| `IY`                        | Same as `Y`                                         | Four digits for years 0–9999; otherwise a sign and at least six digits |
+| `G`, repeated n times       | Positive era year with a `BC` prefix or `AD` suffix | At least n digits, with a `BC` prefix or `AD` suffix                   |
+| `g`, repeated n times       | Positive era year with an optional `BC` prefix      | At least n digits; `BC` prefix only for years before AD 1              |
+| `MM` / `M`                  | 1–2 digit month                                     | Two digits / no padding                                                |
+| `DD`                        | 1–2 digit day                                       | Two digits                                                             |
+| `hh` / `h`                  | 1–2 digit hour (24-hour clock)                      | Two digits / no padding                                                |
+| `mm`                        | 1–2 digit minute                                    | Two digits                                                             |
+| `ss`                        | 1–2 digit whole second                              | Two digits                                                             |
+| `S`, repeated n times       | 1–n fractional digits                               | Exactly n digits, zero-padded or truncated                             |
+| `S*`                        | One or more fractional digits, with no upper limit  | All fractional digits without trailing zeros; `0` for integer seconds  |
+| `Z`                         | `Z`, `±HH:mm`, or `±HHmm`                           | `Z` for zero offset; otherwise `±HH:mm`                                |
 
 Year widths never truncate: `YY` formats year 2026 as `2026`. All year widths accept shorter inputs, and `YYYY` and `yyyy` are aliases.
 The decimal point is literal: `.S*` requires at least one fractional digit when parsing.

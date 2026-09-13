@@ -2,8 +2,8 @@ import type { TimescopeChunk } from '#src/core/chunk';
 import { Decimal } from '#src/core/decimal';
 import { IntervalTree } from '#src/core/interval';
 import type { TimescopeRange } from '#src/core/range';
-import type { TimescopeDataRow } from '#src/main/TimescopeData';
 import { TimescopeStaticValueIndex } from '#src/main/reducers/TimescopeStaticValueIndex';
+import type { TimescopeDataRow } from '#src/main/TimescopeData';
 
 type IndexedRow = { ordinal: number; row: TimescopeDataRow };
 const aggregateSuffixes = ['first', 'last', 'min', 'max', 'p50', 'p90', 'p95'] as const;

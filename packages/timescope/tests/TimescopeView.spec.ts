@@ -1,6 +1,6 @@
 import { Decimal } from '#src/core/decimal';
-import { TimescopeDataSourceBase } from '#src/main/TimescopeDataSource';
 import type { TimescopeDataRow } from '#src/main/TimescopeData';
+import { TimescopeDataSourceBase } from '#src/main/TimescopeDataSource';
 import { TimescopeViewRegistry, type TimescopeViewState } from '#src/main/TimescopeView';
 import { describe, expect, it, vi } from 'vitest';
 

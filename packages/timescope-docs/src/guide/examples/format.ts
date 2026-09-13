@@ -39,11 +39,11 @@ export function loadWaveFile(data: Uint8Array) {
     if (!chunk) return false;
   } while (chunk.id !== 'data');
 
-  const samples: { time: Decimal, data: number[] }[] = [];
+  const samples: { time: Decimal; data: number[] }[] = [];
   for (let t = 0; !chunk.r.eof(); t++) {
     const data: number[] = [];
     for (let ch = 0; ch < channels; ch++) {
-      data.push(bits === 16 ? (chunk.r.readInt16le() / 32768) : ((chunk.r.readUint8() - 128) / 128));
+      data.push(bits === 16 ? chunk.r.readInt16le() / 32768 : (chunk.r.readUint8() - 128) / 128);
     }
     const time = Decimal(t).div(rate);
 

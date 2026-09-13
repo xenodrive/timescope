@@ -1,7 +1,7 @@
 import { createChunk } from '#src/core/chunk';
 import { Decimal } from '#src/core/decimal';
-import { createDataSource, TimescopeDataSourceBase, type TimescopeDataSource } from '#src/main/TimescopeDataSource';
 import { TimescopeChunkStore } from '#src/main/TimescopeChunkStore';
+import { createDataSource, TimescopeDataSourceBase, type TimescopeDataSource } from '#src/main/TimescopeDataSource';
 import { describe, expect, it, vi } from 'vitest';
 
 function chunk(start: number, end: number, resolution: number, id = `${start}:${end}:${resolution}`) {

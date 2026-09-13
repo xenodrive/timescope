@@ -8,8 +8,9 @@
     "test": "tsc --noEmit && vitest run",
     "build": "tsdown",
     "watch": "tsdown -w",
-    "lint": "eslint ./src",
-    "format": "prettier --check .",
+    "lint": "oxlint ./src",
+    "format": "oxfmt --check .",
+    "format:fix": "oxfmt --write .",
     "type:check": "tsc --noEmit"
   },
   "types": "./src/index.ts",
@@ -25,7 +26,11 @@
   },
   "devDependencies": {
     "@kikuchan/calendar": "^0.1.0-alpha.0",
-    "@kikuchan/decimal": "^0.1.0-alpha.10"
+    "@kikuchan/decimal": "^0.1.0-alpha.10",
+    "oxfmt": "^0.67.0",
+    "oxlint": "^1.82.0",
+    "tsdown": "^0.23.0",
+    "typescript": "^7.0.2"
   },
   "peerDependencies": {
     "@kikuchan/calendar": "^0.1.0-alpha.0",

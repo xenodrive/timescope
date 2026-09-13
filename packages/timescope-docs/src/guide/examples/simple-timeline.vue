@@ -9,17 +9,17 @@ title: Simple Timeline
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from "vue";
+import { onBeforeUnmount, onMounted } from 'vue';
 
 // #region code
-import { Timescope } from "timescope";
+import { Timescope } from 'timescope';
 
 // #region docs-ignore
 onMounted(() => {
   // #endregion docs-ignore
 
   const timescope = new Timescope({
-    target: "#example-simple",
+    target: '#example-simple',
   });
   // #endregion code
 

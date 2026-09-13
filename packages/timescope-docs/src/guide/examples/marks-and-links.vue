@@ -3,8 +3,8 @@
 </template>
 
 <script setup lang="ts">
-import { Timescope, TimescopeChartLink, TimescopeChartMark } from "timescope";
-import { computed, onBeforeUnmount, onMounted, watch } from "vue";
+import { Timescope, TimescopeChartLink, TimescopeChartMark } from 'timescope';
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 
 const props = withDefaults(
   defineProps<{
@@ -12,8 +12,8 @@ const props = withDefaults(
     marks?: TimescopeChartMark<any>[];
   }>(),
   {
-    links: () => [{ draw: "line" }],
-    marks: () => [{ draw: "star", style: { size: 20 } }],
+    links: () => [{ draw: 'line' }],
+    marks: () => [{ draw: 'star', style: { size: 20 } }],
   },
 );
 
@@ -31,21 +31,21 @@ const series = computed(() => ({
   series: {
     telemetry: {
       data: {
-        source: "samples",
+        source: 'samples',
       },
       chart: {
         links: props.links,
         marks: props.marks,
       },
       tooltip: false,
-      track: "main",
+      track: 'main',
     },
   },
 }));
 
 const options = computed(() => ({
   style: {
-    height: "240px",
+    height: '240px',
   },
   sources: { samples },
   ...series.value,
@@ -67,7 +67,7 @@ onMounted(() => {
     ...options.value,
     time: 0,
     zoom: 6,
-    target: "#example-chart-marks-links-view",
+    target: '#example-chart-marks-links-view',
   });
 
   watch(

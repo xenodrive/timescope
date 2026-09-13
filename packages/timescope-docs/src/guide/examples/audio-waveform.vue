@@ -6,36 +6,27 @@ title: Audio Waveform Visualization
   <!-- #region html -->
   <div>
     <div id="example-audio-waveform"></div>
-    <audio
-      id="example-audio-player"
-      src="/timescope/audio.wav"
-      controls
-      style="width: 100%"
-    />
+    <audio id="example-audio-player" src="/timescope/audio.wav" controls style="width: 100%" />
   </div>
   <!-- #endregion html -->
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from "vue";
+import { onBeforeUnmount, onMounted } from 'vue';
 
 // #region code
-import { Timescope } from "timescope";
+import { Timescope } from 'timescope';
 
 // #region docs-ignore
 onMounted(() => {
   // #endregion docs-ignore
 
-  const player = document.getElementById(
-    "example-audio-player",
-  ) as HTMLAudioElement;
+  const player = document.getElementById('example-audio-player') as HTMLAudioElement;
 
   const audioContext = new AudioContext();
 
   async function decodeAudio(response: Response) {
-    const audio = await audioContext.decodeAudioData(
-      await response.arrayBuffer(),
-    );
+    const audio = await audioContext.decodeAudioData(await response.arrayBuffer());
     const left = audio.getChannelData(0);
     const right = audio.numberOfChannels > 1 ? audio.getChannelData(1) : left;
     return Array.from({ length: audio.length }, (_, index) => ({
@@ -45,8 +36,8 @@ onMounted(() => {
   }
 
   const timescope = new Timescope({
-    target: "#example-audio-waveform",
-    style: { height: "320px" },
+    target: '#example-audio-waveform',
+    style: { height: '320px' },
     time: 0,
     timeRange: [0, 0],
     zoom: 8,
@@ -54,13 +45,13 @@ onMounted(() => {
       waveform: {
         url: player.src,
         decoder: decodeAudio,
-        reducer: "min-max-avg",
+        reducer: 'min-max-avg',
       },
     },
     series: {
       waveformL: {
         data: {
-          source: "waveform",
+          source: 'waveform',
           domain: { range: [-1, 1] },
         },
         chart: {
@@ -68,26 +59,26 @@ onMounted(() => {
             resolution.lt(0.00001)
               ? []
               : [
-                  { draw: "line", using: "waveformL#avg" },
+                  { draw: 'line', using: 'waveformL#avg' },
                   {
-                    draw: "area",
-                    using: ["waveformL#min", "waveformL#max"],
+                    draw: 'area',
+                    using: ['waveformL#min', 'waveformL#max'],
                   },
                 ],
           marks: ({ resolution }) =>
             resolution.lt(0.00001)
               ? [
-                  { draw: "line", using: ["waveformL#avg", "#zero"] },
-                  { draw: "circle", using: "waveformL#avg" },
+                  { draw: 'line', using: ['waveformL#avg', '#zero'] },
+                  { draw: 'circle', using: 'waveformL#avg' },
                 ]
               : [],
         },
-        track: "waveformL",
+        track: 'waveformL',
         tooltip: false,
       },
       waveformR: {
         data: {
-          source: "waveform",
+          source: 'waveform',
           domain: { range: [-1, 1] },
         },
         chart: {
@@ -95,21 +86,21 @@ onMounted(() => {
             resolution.lt(0.00001)
               ? []
               : [
-                  { draw: "line", using: "waveformR#avg" },
+                  { draw: 'line', using: 'waveformR#avg' },
                   {
-                    draw: "area",
-                    using: ["waveformR#min", "waveformR#max"],
+                    draw: 'area',
+                    using: ['waveformR#min', 'waveformR#max'],
                   },
                 ],
           marks: ({ resolution }) =>
             resolution.lt(0.00001)
               ? [
-                  { draw: "line", using: ["waveformR#avg", "#zero"] },
-                  { draw: "circle", using: "waveformR#avg" },
+                  { draw: 'line', using: ['waveformR#avg', '#zero'] },
+                  { draw: 'circle', using: 'waveformR#avg' },
                 ]
               : [],
         },
-        track: "waveformR",
+        track: 'waveformR',
         tooltip: false,
       },
     },
@@ -126,7 +117,7 @@ onMounted(() => {
   });
 
   let playing = false;
-  let frameLatch: ReturnType<Timescope["latchFrame"]> | null = null;
+  let frameLatch: ReturnType<Timescope['latchFrame']> | null = null;
   let animationFrame: number | null = null;
 
   async function update() {
@@ -165,7 +156,7 @@ onMounted(() => {
     }
   }
 
-  timescope.on("timechanging", (e) => {
+  timescope.on('timechanging', (e) => {
     if (!playing) {
       player.currentTime = e.value?.number() ?? 0;
     }
@@ -175,10 +166,10 @@ onMounted(() => {
     timescope.setTimeRange([0, player.duration]);
   }
 
-  player.addEventListener("play", onPlay);
-  player.addEventListener("pause", onPause);
-  player.addEventListener("seeking", onSeeking);
-  player.addEventListener("durationchange", onDurationChange);
+  player.addEventListener('play', onPlay);
+  player.addEventListener('pause', onPause);
+  player.addEventListener('seeking', onSeeking);
+  player.addEventListener('durationchange', onDurationChange);
 
   // #endregion code
 
@@ -186,10 +177,10 @@ onMounted(() => {
     playing = false;
     frameLatch?.abort();
     if (animationFrame != null) cancelAnimationFrame(animationFrame);
-    player.removeEventListener("play", onPlay);
-    player.removeEventListener("pause", onPause);
-    player.removeEventListener("seeking", onSeeking);
-    player.removeEventListener("durationchange", onDurationChange);
+    player.removeEventListener('play', onPlay);
+    player.removeEventListener('pause', onPause);
+    player.removeEventListener('seeking', onSeeking);
+    player.removeEventListener('durationchange', onDurationChange);
     void audioContext.close();
     timescope.dispose();
   });

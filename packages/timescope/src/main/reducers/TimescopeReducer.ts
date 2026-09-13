@@ -1,10 +1,10 @@
 import type { TimescopeChunk } from '#src/core/chunk';
 import type { Decimal } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
-import type { TimescopeDataRow } from '#src/main/TimescopeData';
-import type { TimescopeReducer as ReducerOptions, TimescopePercentilesReducer } from '#src/main/TimescopeDataSource';
 import { TimescopeAggregateSeriesIndex } from '#src/main/reducers/TimescopeAggregateSeriesIndex';
 import { TimescopeStaticSeriesIndex } from '#src/main/reducers/TimescopeStaticSeriesIndex';
+import type { TimescopeDataRow } from '#src/main/TimescopeData';
+import type { TimescopeReducer as ReducerOptions, TimescopePercentilesReducer } from '#src/main/TimescopeDataSource';
 
 /** A snapshot's reduction strategy and its query/update index. */
 export class TimescopeReducer {

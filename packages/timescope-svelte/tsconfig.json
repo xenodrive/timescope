@@ -18,6 +18,7 @@
     //"declarationMap": true,
     "emitDeclarationOnly": true,
     "declarationDir": "./dist",
+    "rootDir": "./src",
     //"stripInternal": true,
     "forceConsistentCasingInFileNames": true /* Ensure that casing is correct in imports. */,
 

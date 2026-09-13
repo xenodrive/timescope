@@ -1,5 +1,5 @@
-import type { TimescopeCommittableMessageSync } from '#src/core/TimescopeCommittable';
 import { Decimal } from '#src/core/decimal';
+import type { TimescopeCommittableMessageSync } from '#src/core/TimescopeCommittable';
 import { TimescopeViewport } from '#src/renderer/TimescopeViewport';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

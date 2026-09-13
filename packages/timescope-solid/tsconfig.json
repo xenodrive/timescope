@@ -8,7 +8,8 @@
     "paths": {
       "~/*": ["./src/*"]
     },
-    "types": ["node"],
+    "types": ["node", "rolldown-plugin-inline-worker"],
+    "allowImportingTsExtensions": true,
     "allowJs": true,
     "strict": true,
     "strictNullChecks": true,
@@ -18,5 +19,4 @@
     "isolatedModules": true
   },
   "include": ["./src/**/*"]
-
 }

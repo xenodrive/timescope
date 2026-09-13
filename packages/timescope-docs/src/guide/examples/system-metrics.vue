@@ -9,10 +9,10 @@ title: System Metrics Monitoring
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from "vue";
+import { onBeforeUnmount, onMounted } from 'vue';
 
 // #region code
-import { Timescope } from "timescope";
+import { Timescope } from 'timescope';
 
 // #region docs-ignore
 onMounted(() => {
@@ -44,8 +44,8 @@ onMounted(() => {
   }
 
   const timescope = new Timescope({
-    target: "#example-system-metrics",
-    style: { height: "400px" },
+    target: '#example-system-metrics',
+    style: { height: '400px' },
     time: 300,
     timeRange: [0, 600],
     zoom: 1.5,
@@ -57,64 +57,64 @@ onMounted(() => {
     },
     series: {
       cpu: {
-        data: { source: "cpu", name: "CPU", color: "#ef4444" },
+        data: { source: 'cpu', name: 'CPU', color: '#ef4444' },
         chart: {
           links: [
             {
-              draw: "area",
-              using: ["value", "#zero"],
+              draw: 'area',
+              using: ['value', '#zero'],
               style: { fillOpacity: 0.2 },
             },
-            { draw: "line", using: "value", style: { lineWidth: 2 } },
+            { draw: 'line', using: 'value', style: { lineWidth: 2 } },
           ],
-          marks: [{ draw: "circle", using: "value", style: { size: 3 } }],
+          marks: [{ draw: 'circle', using: 'value', style: { size: 3 } }],
         },
-        track: "cpu",
+        track: 'cpu',
       },
       memory: {
-        data: { source: "memory", name: "Memory", color: "#3b82f6" },
+        data: { source: 'memory', name: 'Memory', color: '#3b82f6' },
         chart: {
           links: [
             {
-              draw: "area",
-              using: ["value", "#zero"],
+              draw: 'area',
+              using: ['value', '#zero'],
               style: { fillOpacity: 0.2 },
             },
-            { draw: "line", using: "value", style: { lineWidth: 2 } },
+            { draw: 'line', using: 'value', style: { lineWidth: 2 } },
           ],
-          marks: [{ draw: "circle", using: "value", style: { size: 3 } }],
+          marks: [{ draw: 'circle', using: 'value', style: { size: 3 } }],
         },
-        track: "memory",
+        track: 'memory',
       },
       network: {
-        data: { source: "network", name: "Network", color: "#10b981" },
+        data: { source: 'network', name: 'Network', color: '#10b981' },
         chart: {
           links: [
             {
-              draw: "area",
-              using: ["value", "#zero"],
+              draw: 'area',
+              using: ['value', '#zero'],
               style: { fillOpacity: 0.2 },
             },
-            { draw: "line", using: "value", style: { lineWidth: 2 } },
+            { draw: 'line', using: 'value', style: { lineWidth: 2 } },
           ],
-          marks: [{ draw: "circle", using: "value", style: { size: 3 } }],
+          marks: [{ draw: 'circle', using: 'value', style: { size: 3 } }],
         },
-        track: "network",
+        track: 'network',
       },
       disk: {
-        data: { source: "disk", name: "Disk", color: "#f59e0b" },
+        data: { source: 'disk', name: 'Disk', color: '#f59e0b' },
         chart: {
           links: [
             {
-              draw: "area",
-              using: ["value", "#zero"],
+              draw: 'area',
+              using: ['value', '#zero'],
               style: { fillOpacity: 0.2 },
             },
-            { draw: "line", using: "value", style: { lineWidth: 2 } },
+            { draw: 'line', using: 'value', style: { lineWidth: 2 } },
           ],
-          marks: [{ draw: "circle", using: "value", style: { size: 3 } }],
+          marks: [{ draw: 'circle', using: 'value', style: { size: 3 } }],
         },
-        track: "disk",
+        track: 'disk',
       },
     },
     tracks: {

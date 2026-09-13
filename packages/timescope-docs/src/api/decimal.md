@@ -1,6 +1,7 @@
 ---
 titleTemplate: Timescope API
 ---
+
 # Decimal
 
 <script setup lang="ts">
@@ -28,7 +29,7 @@ import { Decimal } from 'timescope';
 
 const d1 = Decimal(10);
 const d2 = Decimal('10.5');
-const d3 = Decimal(null);  // Returns null
+const d3 = Decimal(null); // Returns null
 ```
 
 ## Arithmetic Operations
@@ -47,11 +48,11 @@ const d3 = Decimal(null);  // Returns null
 const a = Decimal(10);
 const b = Decimal(3);
 
-a.add(b)      // 13
-a.sub(b)      // 7
-a.mul(b)      // 30
-a.div(b, 2)   // 3.33 (2 decimal places)
-a.mod(b)      // 1
+a.add(b); // 13
+a.sub(b); // 7
+a.mul(b); // 30
+a.div(b, 2); // 3.33 (2 decimal places)
+a.mod(b); // 1
 ```
 
 ## Comparison
@@ -70,10 +71,10 @@ a.mod(b)      // 1
 const a = Decimal(10);
 const b = Decimal(5);
 
-a.gt(b)   // true
-a.le(b)   // false
-a.eq(10)  // true
-a.cmp(b)  // 1
+a.gt(b); // true
+a.le(b); // false
+a.eq(10); // true
+a.cmp(b); // 1
 ```
 
 ## Rounding
@@ -88,10 +89,10 @@ a.cmp(b)  // 1
 ```typescript
 const d = Decimal('3.14159');
 
-d.round(2)  // 3.14
-d.floor(2)  // 3.14
-d.ceil(2)   // 3.15
-d.trunc(2)  // 3.14
+d.round(2); // 3.14
+d.floor(2); // 3.14
+d.ceil(2); // 3.15
+d.trunc(2); // 3.14
 ```
 
 ## Conversion
@@ -106,10 +107,10 @@ d.trunc(2)  // 3.14
 ```typescript
 const d = Decimal('3.14159');
 
-d.toString()    // '3.14159'
-d.toFixed(2)    // '3.14'
-d.number()      // 3.14159
-d.integer()     // 3n
+d.toString(); // '3.14159'
+d.toFixed(2); // '3.14'
+d.number(); // 3.14159
+d.integer(); // 3n
 ```
 
 ## Advanced
@@ -124,20 +125,20 @@ d.integer()     // 3n
 ```typescript
 const d = Decimal(16);
 
-d.pow(2)       // 256
-d.sqrt()       // 4
-d.root(4)      // 2
-d.log(2)       // 4
+d.pow(2); // 256
+d.sqrt(); // 4
+d.root(4); // 2
+d.log(2); // 4
 ```
 
 ## Utilities
 
 ```typescript
-Decimal.isDecimal(v)      // Check if value is Decimal
-Decimal.pow10(n)          // 10^n as Decimal
-Decimal.min(...values)    // Minimum value
-Decimal.max(...values)    // Maximum value
-Decimal.minmax(...values) // [min, max]
+Decimal.isDecimal(v); // Check if value is Decimal
+Decimal.pow10(n); // 10^n as Decimal
+Decimal.min(...values); // Minimum value
+Decimal.max(...values); // Maximum value
+Decimal.minmax(...values); // [min, max]
 ```
 
 ## Examples
@@ -149,10 +150,10 @@ const a = Decimal('0.1');
 const b = Decimal('0.2');
 
 // Decimal arithmetic
-a.add(b).eq('0.3')  // true
+a.add(b).eq('0.3'); // true
 
 // JavaScript floating-point arithmetic
-0.1 + 0.2 === 0.3   // false
+0.1 + 0.2 === 0.3; // false
 ```
 
 ## See Also

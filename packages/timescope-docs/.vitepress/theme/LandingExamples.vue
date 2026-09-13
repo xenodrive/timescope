@@ -1,8 +1,5 @@
 <template>
-  <section
-    class="landing-section landing-examples"
-    aria-labelledby="landing-examples-title"
-  >
+  <section class="landing-section landing-examples" aria-labelledby="landing-examples-title">
     <h2 id="landing-examples-title" class="visually-hidden">Examples</h2>
 
     <div class="landing-example-grid">
@@ -15,9 +12,7 @@
             <p>A precise time picker with map-like pan and zoom.</p>
           </div>
         </header>
-        <div
-          class="landing-card-body landing-example-body landing-example-body--timepicker"
-        >
+        <div class="landing-card-body landing-example-body landing-example-body--timepicker">
           <div class="landing-timepicker-frame">
             <SimpleTimeline />
           </div>

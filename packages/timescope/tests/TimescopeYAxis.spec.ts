@@ -1,6 +1,6 @@
 import { Decimal } from '#src/core/decimal';
-import { TimescopeDomain } from '#src/main/TimescopeDomain';
 import { TimescopeYAxis } from '#src/main/loaders/TimescopeYAxis';
+import { TimescopeDomain } from '#src/main/TimescopeDomain';
 import { describe, expect, it } from 'vitest';
 
 describe('TimescopeYAxis', () => {

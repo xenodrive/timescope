@@ -73,7 +73,7 @@
     showFps,
     renderThread,
     fonts,
-  } = $props<TimescopeProps>();
+  }: TimescopeProps = $props();
 
   const dispatch = createEventDispatcher<TimescopeEvents>();
 

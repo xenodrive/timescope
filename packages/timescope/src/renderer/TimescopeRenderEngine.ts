@@ -536,7 +536,8 @@ export class TimescopeRenderEngine {
     const commands: RenderEngineCommands = {
       init: ({ canvas: theCanvas }: RendererInitOptions) => {
         canvas = theCanvas;
-        ctx = canvas?.getContext('2d');
+        // TS6 widens the return type when calling getContext on the canvas union.
+        ctx = canvas.getContext('2d') as TimescopeRenderingContext['ctx'] | null;
       },
 
       fonts: async (fonts?: TimescopeFont[]) => {

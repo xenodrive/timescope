@@ -24,12 +24,7 @@
 .VPHome .VPHero {
   --vp-c-text-2: #a9c2ce;
   --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(
-    115deg,
-    #7ce7ff 0%,
-    #38c2e4 45%,
-    #26a7c6 100%
-  );
+  --vp-home-hero-name-background: linear-gradient(115deg, #7ce7ff 0%, #38c2e4 45%, #26a7c6 100%);
   --vp-button-brand-border: rgba(103, 232, 249, 0.4);
   --vp-button-brand-text: #f4fcff;
   --vp-button-brand-bg: #0f9dc4;
@@ -64,8 +59,7 @@
   background:
     radial-gradient(ellipse at var(--warp-x) var(--warp-y), transparent 8%, #02060c55 75%),
     radial-gradient(ellipse at 0% 85%, #123349 0%, transparent 48%),
-    radial-gradient(ellipse at 90% 15%, #101b31 0%, transparent 50%),
-    #02060c;
+    radial-gradient(ellipse at 90% 15%, #101b31 0%, transparent 50%), #02060c;
 }
 
 .warp-ready .warp-background {
@@ -297,9 +291,7 @@
 
 @media (min-width: 960px) {
   .VPHero {
-    padding-top: calc(
-      var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 20px
-    ) !important;
+    padding-top: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 20px) !important;
     padding-bottom: 24px !important;
   }
 

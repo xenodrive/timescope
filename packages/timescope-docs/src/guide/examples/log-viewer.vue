@@ -9,10 +9,10 @@ title: Log Viewer
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from "vue";
+import { onBeforeUnmount, onMounted } from 'vue';
 
 // #region code
-import { Timescope } from "timescope";
+import { Timescope } from 'timescope';
 
 // #region docs-ignore
 onMounted(() => {
@@ -52,9 +52,7 @@ onMounted(() => {
 
   while (windowStart < maxTime) {
     const windowEnd = windowStart + windowSize;
-    const count = allLogTimes.filter(
-      (t) => t >= windowStart && t < windowEnd,
-    ).length;
+    const count = allLogTimes.filter((t) => t >= windowStart && t < windowEnd).length;
 
     densityData.push({
       time: windowStart + windowSize / 2,
@@ -64,8 +62,8 @@ onMounted(() => {
   }
 
   const timescope = new Timescope({
-    target: "#example-log-viewer",
-    style: { height: "280px" },
+    target: '#example-log-viewer',
+    style: { height: '280px' },
     time: 100,
     zoom: 1,
     sources: {
@@ -78,73 +76,65 @@ onMounted(() => {
     series: {
       errors: {
         data: {
-          source: "errors",
+          source: 'errors',
           domain: { range: [0, 5] },
-          color: "#ef4444",
+          color: '#ef4444',
         },
         chart: {
-          marks: [
-            { draw: "minus", using: "value", style: { size: 20, angle: 90 } },
-          ],
+          marks: [{ draw: 'minus', using: 'value', style: { size: 20, angle: 90 } }],
         },
-        tooltip: { format: ({ time }) => "+" + time.toFixed(0) + " s" },
-        track: "logs",
+        tooltip: { format: ({ time }) => '+' + time.toFixed(0) + ' s' },
+        track: 'logs',
       },
       warnings: {
         data: {
-          source: "warnings",
+          source: 'warnings',
           domain: { range: [0, 5] },
-          color: "#f59e0b",
+          color: '#f59e0b',
         },
         chart: {
-          marks: [
-            { draw: "minus", using: "value", style: { size: 20, angle: 90 } },
-          ],
+          marks: [{ draw: 'minus', using: 'value', style: { size: 20, angle: 90 } }],
         },
-        tooltip: { format: ({ time }) => "+" + time.toFixed(0) + " s" },
-        track: "logs",
+        tooltip: { format: ({ time }) => '+' + time.toFixed(0) + ' s' },
+        track: 'logs',
       },
       info: {
-        data: { source: "info", domain: { range: [0, 5] }, color: "#3b82f6" },
+        data: { source: 'info', domain: { range: [0, 5] }, color: '#3b82f6' },
         chart: {
-          marks: [
-            { draw: "minus", using: "value", style: { size: 20, angle: 90 } },
-          ],
+          marks: [{ draw: 'minus', using: 'value', style: { size: 20, angle: 90 } }],
         },
-        tooltip: { format: ({ time }) => "+" + time.toFixed(0) + " s" },
-        track: "logs",
+        tooltip: { format: ({ time }) => '+' + time.toFixed(0) + ' s' },
+        track: 'logs',
       },
       debug: {
         data: {
-          source: "debug",
+          source: 'debug',
           domain: { range: [0, 5] },
-          color: "#6b7280",
+          color: '#6b7280',
         },
         chart: {
-          marks: [
-            { draw: "minus", using: "value", style: { size: 20, angle: 90 } },
-          ],
+          marks: [{ draw: 'minus', using: 'value', style: { size: 20, angle: 90 } }],
         },
-        tooltip: { format: ({ time }) => "+" + time.toFixed(0) + " s" },
-        track: "logs",
+        tooltip: { format: ({ time }) => '+' + time.toFixed(0) + ' s' },
+        track: 'logs',
       },
       eventDensity: {
-        data: { source: "density" },
+        data: { source: 'density' },
         chart: {
           links: [
             {
-              draw: "step-area",
-              using: ["value", "#zero"],
-              style: { fillColor: "#8b5cf6", fillOpacity: 0.2 },
+              draw: 'step-area',
+              using: ['value', '#zero'],
+              style: { fillColor: '#8b5cf6', fillOpacity: 0.2 },
             },
             {
-              draw: "step",
-              using: "value",
-              style: { lineColor: "#8b5cf6", lineWidth: 1.5 },
+              draw: 'step',
+              using: 'value',
+              style: { lineColor: '#8b5cf6', lineWidth: 1.5 },
             },
           ],
         },
-        track: "density",
+        track: 'density',
       },
     },
     tracks: {

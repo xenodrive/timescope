@@ -1,7 +1,6 @@
 import { includeIgnoreFile } from '@eslint/compat';
-import prettierConfig from '@vue/eslint-config-prettier';
-//import prettierConfig from 'eslint-config-prettier/flat';
 import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript';
+import prettierConfig from 'eslint-config-prettier';
 import pluginVue from 'eslint-plugin-vue';
 import { fileURLToPath } from 'node:url';
 

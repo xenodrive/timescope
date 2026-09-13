@@ -17,7 +17,9 @@ export type LinkGeometryKind =
 
 export type LinkGeometryRole = 'zero' | 'top' | 'bottom';
 export type LinkGeometryCoordinate =
-  Decimal | { value: Decimal; number: number } | { value: Decimal; role: LinkGeometryRole };
+  | Decimal
+  | { value: Decimal; number: number }
+  | { value: Decimal; role: LinkGeometryRole };
 
 export type LinkGeometrySource = {
   length: number;

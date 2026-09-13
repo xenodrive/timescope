@@ -10,8 +10,12 @@
       </thead>
       <tbody>
         <tr v-for="(item, index) in items" :key="index">
-          <td><code>{{ item.name }}</code></td>
-          <td><code class="type">{{ item.type }}</code></td>
+          <td>
+            <code>{{ item.name }}</code>
+          </td>
+          <td>
+            <code class="type">{{ item.type }}</code>
+          </td>
           <td>{{ item.description }}</td>
         </tr>
       </tbody>

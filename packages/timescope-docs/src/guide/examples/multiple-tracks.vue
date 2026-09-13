@@ -9,18 +9,18 @@ title: Multiple Tracks
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from "vue";
+import { onBeforeUnmount, onMounted } from 'vue';
 
 // #region code
-import { Timescope } from "timescope";
+import { Timescope } from 'timescope';
 
 // #region docs-ignore
 onMounted(() => {
   // #endregion docs-ignore
 
   const timescope = new Timescope({
-    target: "#example-multi-tracks",
-    style: { height: "360px" },
+    target: '#example-multi-tracks',
+    style: { height: '360px' },
     time: 6,
     zoom: 5,
     sources: {
@@ -64,43 +64,43 @@ onMounted(() => {
     series: {
       temperature: {
         data: {
-          source: "temperature",
-          name: "Temperature",
-          domain: { unit: "°C", axis: "left" },
-          color: "#fb923c",
+          source: 'temperature',
+          name: 'Temperature',
+          domain: { unit: '°C', axis: 'left' },
+          color: '#fb923c',
         },
-        chart: "linespoints:filled",
-        track: "conditions",
+        chart: 'linespoints:filled',
+        track: 'conditions',
       },
       wind: {
         data: {
-          source: "windSpeed",
-          name: "Wind",
-          domain: { unit: "m/s", axis: "right" },
-          color: "#0ea5e9",
+          source: 'windSpeed',
+          name: 'Wind',
+          domain: { unit: 'm/s', axis: 'right' },
+          color: '#0ea5e9',
         },
-        chart: "lines",
-        track: "conditions",
+        chart: 'lines',
+        track: 'conditions',
       },
       rainfall: {
         data: {
-          source: "rainfall",
-          name: "Rain",
-          domain: { unit: "mm", axis: "left" },
-          color: "#22c55e",
+          source: 'rainfall',
+          name: 'Rain',
+          domain: { unit: 'mm', axis: 'left' },
+          color: '#22c55e',
         },
-        chart: "bars:filled",
-        track: "precip",
+        chart: 'bars:filled',
+        track: 'precip',
       },
       stormRisk: {
         data: {
-          source: "stormRisk",
-          name: "Storm chance",
-          domain: { digits: 0, unit: "%", axis: "right" },
-          color: "#a855f7",
+          source: 'stormRisk',
+          name: 'Storm chance',
+          domain: { digits: 0, unit: '%', axis: 'right' },
+          color: '#a855f7',
         },
-        chart: "linespoints",
-        track: "precip",
+        chart: 'linespoints',
+        track: 'precip',
       },
     },
     tracks: {

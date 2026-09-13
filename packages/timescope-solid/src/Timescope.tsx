@@ -1,3 +1,4 @@
+import type { Decimal } from '@kikuchan/decimal';
 import { createEffect, onCleanup, untrack } from 'solid-js';
 import {
   Timescope,
@@ -11,7 +12,6 @@ import {
   TimescopeSeriesInput,
   TimescopeSourceInput,
 } from 'timescope';
-import type { Decimal } from '@kikuchan/decimal';
 
 type TimescopeProps<
   Sources extends Record<string, TimescopeSourceInput>,

@@ -11,18 +11,18 @@ title: Log Scale
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from "vue";
+import { onBeforeUnmount, onMounted } from 'vue';
 
 // #region code
-import { Timescope } from "timescope";
+import { Timescope } from 'timescope';
 
 // #region docs-ignore
 onMounted(() => {
   // #endregion docs-ignore
 
   const timescope = new Timescope({
-    target: "#timescope-example-log-scale",
-    style: { height: "220px" },
+    target: '#timescope-example-log-scale',
+    style: { height: '220px' },
     time: 2,
     zoom: 6,
     sources: {
@@ -37,12 +37,12 @@ onMounted(() => {
     series: {
       growth: {
         data: {
-          source: "samples",
-          domain: { scale: "log", range: [undefined, undefined], axis: true },
-          color: "#f59e0b",
+          source: 'samples',
+          domain: { scale: 'log', range: [undefined, undefined], axis: true },
+          color: '#f59e0b',
         },
-        chart: "curvespoints",
-        track: "main",
+        chart: 'curvespoints',
+        track: 'main',
       },
     },
     tracks: {
@@ -54,17 +54,17 @@ onMounted(() => {
     },
   });
 
-  const button = document.querySelector("#timescope-example-log-scale button");
+  const button = document.querySelector('#timescope-example-log-scale button');
 
   let logscale = true;
-  button?.addEventListener("click", () => {
+  button?.addEventListener('click', () => {
     logscale = !logscale;
     timescope.updateOptions({
       series: {
         growth: {
           data: {
             domain: {
-              scale: logscale ? "log" : "linear",
+              scale: logscale ? 'log' : 'linear',
               range: [undefined, undefined],
             },
           },

@@ -1,8 +1,8 @@
-import type { TimescopeViewportSnapshot } from '#src/core/TimescopeState';
 import { createChunkList, type TimescopeChunk } from '#src/core/chunk';
 import { Decimal, type DecimalLike } from '#src/core/decimal';
 import { TimescopeObservable, type Un } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
+import type { TimescopeViewportSnapshot } from '#src/core/TimescopeState';
 import type { TimescopeDataResolution, TimescopeResolutionResolver, TimescopeResolutionSnap } from '#src/core/zoom';
 import { getConstraintedResolution } from '#src/core/zoom';
 import type { TimescopeChunkStore, TimescopeChunkStoreEntry } from '#src/main/TimescopeChunkStore';
@@ -60,7 +60,7 @@ type NormalizedRequest = {
 type ClassifiedChunk<T> = Omit<TimescopeViewTile<T>, 'role' | 'visibleRanges'>;
 
 const classifications = new WeakMap<object, ClassifiedChunk<TimescopeViewPoint>>();
-const resolutionResolverIds = new WeakMap<Function, number>();
+const resolutionResolverIds = new WeakMap<Extract<TimescopeResolutionResolver, (...args: any[]) => unknown>, number>();
 let nextResolutionResolverId = 1;
 
 function isDataResolutionOptions(value: TimescopeDataResolution): value is {

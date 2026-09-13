@@ -9,10 +9,10 @@ title: Financial Chart
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from "vue";
+import { onBeforeUnmount, onMounted } from 'vue';
 
 // #region code
-import { Decimal, Timescope, type TimescopeResolutionContext } from "timescope";
+import { Decimal, Timescope, type TimescopeResolutionContext } from 'timescope';
 
 const DAY = 86400;
 const CANDLE_SPACING = 5;
@@ -20,37 +20,34 @@ const CHUNK_SIZE = 960;
 const MA_CONTEXT = 20;
 
 const intervals = [
-  { interval: "1s", seconds: 1 },
-  { interval: "1m", seconds: 60 },
-  { interval: "3m", seconds: 180 },
-  { interval: "5m", seconds: 300 },
-  { interval: "15m", seconds: 900 },
-  { interval: "30m", seconds: 1800 },
-  { interval: "1h", seconds: 3600 },
-  { interval: "2h", seconds: 7200 },
-  { interval: "4h", seconds: 14400 },
-  { interval: "6h", seconds: 21600 },
-  { interval: "8h", seconds: 28800 },
-  { interval: "12h", seconds: 43200 },
-  { interval: "1d", seconds: DAY },
-  { interval: "3d", seconds: 3 * DAY },
-  { interval: "1w", seconds: 7 * DAY },
+  { interval: '1s', seconds: 1 },
+  { interval: '1m', seconds: 60 },
+  { interval: '3m', seconds: 180 },
+  { interval: '5m', seconds: 300 },
+  { interval: '15m', seconds: 900 },
+  { interval: '30m', seconds: 1800 },
+  { interval: '1h', seconds: 3600 },
+  { interval: '2h', seconds: 7200 },
+  { interval: '4h', seconds: 14400 },
+  { interval: '6h', seconds: 21600 },
+  { interval: '8h', seconds: 28800 },
+  { interval: '12h', seconds: 43200 },
+  { interval: '1d', seconds: DAY },
+  { interval: '3d', seconds: 3 * DAY },
+  { interval: '1w', seconds: 7 * DAY },
   // Binance months are calendar-based. Thirty days is used only for Timescope's fixed zoom resolution.
-  { interval: "1M", seconds: 30 * DAY },
+  { interval: '1M', seconds: 30 * DAY },
 ] as const;
 
 const resolutions = intervals.map(({ seconds }) => Decimal(seconds));
-const viewResolutions = resolutions.map((resolution) =>
-  resolution.div(CANDLE_SPACING),
-);
+const viewResolutions = resolutions.map((resolution) => resolution.div(CANDLE_SPACING));
 const candleResolution = {
-  resolve: ({ resolution }: TimescopeResolutionContext) =>
-    resolution.mul(CANDLE_SPACING),
-  snap: "ceil",
+  resolve: ({ resolution }: TimescopeResolutionContext) => resolution.mul(CANDLE_SPACING),
+  snap: 'ceil',
 } as const;
-const priceFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
+const priceFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
@@ -67,16 +64,12 @@ type BinanceKline = [
 
 function intervalFor(resolution: Decimal) {
   const index = resolutions.findIndex((value) => value.eq(resolution));
-  if (index < 0)
-    throw new RangeError(`Unsupported Binance resolution: ${resolution}`);
+  if (index < 0) throw new RangeError(`Unsupported Binance resolution: ${resolution}`);
   return intervals[index];
 }
 
 function candleSize(resolution: Decimal, intervalSeconds: number) {
-  return Math.max(
-    1,
-    Math.min(8, (intervalSeconds / resolution.number()) * 0.72),
-  );
+  return Math.max(1, Math.min(8, (intervalSeconds / resolution.number()) * 0.72));
 }
 
 function movingAverage(klines: BinanceKline[], index: number, period: number) {
@@ -96,24 +89,20 @@ onMounted(() => {
   const now = Math.floor(Date.now() / 1000);
 
   const timescope = new Timescope({
-    target: "#example-financial-chart",
-    style: { height: "280px" },
+    target: '#example-financial-chart',
+    style: { height: '280px' },
     time: now - (365 * DAY) / 2,
-    timeRange: ["2017-08-17T00:00:00Z", null],
+    timeRange: ['2017-08-17T00:00:00Z', null],
     zoom: -15,
-    zoomRange: [
-      -Math.log2(viewResolutions.at(-1)!.number()),
-      -Math.log2(viewResolutions[0].number()),
-    ],
-    selection: { color: "rgba(14, 118, 149, 0.16)" },
+    zoomRange: [-Math.log2(viewResolutions.at(-1)!.number()), -Math.log2(viewResolutions[0].number())],
+    selection: { color: 'rgba(14, 118, 149, 0.16)' },
     sources: {
       market: {
         chunkSize: CHUNK_SIZE,
         resolutions,
         loader: async (chunk, api) => {
           const config = intervalFor(chunk.resolution);
-          const contextSeconds =
-            config.interval === "1M" ? 32 * DAY : config.seconds;
+          const contextSeconds = config.interval === '1M' ? 32 * DAY : config.seconds;
           const startTime = Math.max(
             0,
             chunk.range[0]!.sub(contextSeconds * MA_CONTEXT)
@@ -121,53 +110,44 @@ onMounted(() => {
               .floor()
               .number(),
           );
-          const endTime = Math.min(
-            Date.now(),
-            chunk.range[1]!.add(contextSeconds).mul(1000).ceil().number() - 1,
-          );
+          const endTime = Math.min(Date.now(), chunk.range[1]!.add(contextSeconds).mul(1000).ceil().number() - 1);
 
           if (endTime < startTime) return [];
 
           const params = new URLSearchParams({
-            symbol: "BTCUSDT",
+            symbol: 'BTCUSDT',
             interval: config.interval,
             startTime: String(startTime),
             endTime: String(endTime),
-            limit: "1000",
+            limit: '1000',
           });
 
           try {
-            const response = await fetch(
-              `https://data-api.binance.vision/api/v3/klines?${params}`,
-            );
+            const response = await fetch(`https://data-api.binance.vision/api/v3/klines?${params}`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const klines = (await response.json()) as BinanceKline[];
 
             if (endTime >= Date.now() - contextSeconds * 1000) {
-              api.expiresIn(
-                Math.max(5000, Math.min(60000, config.seconds * 1000)),
-              );
+              api.expiresIn(Math.max(5000, Math.min(60000, config.seconds * 1000)));
             }
 
-            return klines.map(
-              ([openTime, open, high, low, close, volume], index) => ({
-                time: openTime / 1000,
-                values: {
-                  open,
-                  high,
-                  low,
-                  close,
-                  volume,
-                  ma5: movingAverage(klines, index, 5),
-                  ma20: movingAverage(klines, index, 20),
-                },
-                data: { intervalSeconds: config.seconds },
-              }),
-            );
+            return klines.map(([openTime, open, high, low, close, volume], index) => ({
+              time: openTime / 1000,
+              values: {
+                open,
+                high,
+                low,
+                close,
+                volume,
+                ma5: movingAverage(klines, index, 5),
+                ma20: movingAverage(klines, index, 20),
+              },
+              data: { intervalSeconds: config.seconds },
+            }));
           } catch (error) {
             api.expiresIn(30000);
-            console.warn("Failed to load Binance market data", error);
+            console.warn('Failed to load Binance market data', error);
             return [];
           }
         },
@@ -176,40 +156,36 @@ onMounted(() => {
     domains: {
       price: {
         range: { shrink: true, expand: true, default: [undefined, undefined] },
-        unit: "USDT",
+        unit: 'USDT',
         digits: 2,
       },
-      volume: { range: [0, undefined], unit: "BTC", digits: 2 },
+      volume: { range: [0, undefined], unit: 'BTC', digits: 2 },
     },
     series: {
       price: {
         data: {
-          source: "market",
-          name: "BTC / USDT",
-          instantaneous: { using: "close" },
-          domain: "price",
+          source: 'market',
+          name: 'BTC / USDT',
+          instantaneous: { using: 'close' },
+          domain: 'price',
           resolution: candleResolution,
         },
         chart: {
           marks: [
             {
-              draw: "section",
-              using: ["high", "low"],
+              draw: 'section',
+              using: ['high', 'low'],
               style: {
-                size: ({ resolution, data }) =>
-                  candleSize(resolution, data.intervalSeconds),
-                lineColor: ({ values }) =>
-                  values.close!.ge(values.open!) ? "#10b981" : "#ef4444",
+                size: ({ resolution, data }) => candleSize(resolution, data.intervalSeconds),
+                lineColor: ({ values }) => (values.close!.ge(values.open!) ? '#10b981' : '#ef4444'),
                 lineWidth: 1,
               },
             },
             {
-              draw: "bar",
-              using: ["open", "close"],
+              draw: 'bar',
+              using: ['open', 'close'],
               style: ({ resolution, data, values }) => {
-                const color = values.close!.ge(values.open!)
-                  ? "#10b981"
-                  : "#ef4444";
+                const color = values.close!.ge(values.open!) ? '#10b981' : '#ef4444';
                 return {
                   size: candleSize(resolution, data.intervalSeconds),
                   lineColor: color,
@@ -220,40 +196,37 @@ onMounted(() => {
           ],
           links: [
             {
-              draw: "line",
-              using: "ma5",
-              style: { lineColor: "#3b82f6", lineWidth: 1.5 },
+              draw: 'line',
+              using: 'ma5',
+              style: { lineColor: '#3b82f6', lineWidth: 1.5 },
             },
             {
-              draw: "line",
-              using: "ma20",
-              style: { lineColor: "#f59e0b", lineWidth: 1.5 },
+              draw: 'line',
+              using: 'ma20',
+              style: { lineColor: '#f59e0b', lineWidth: 1.5 },
             },
           ],
         },
         tooltip: {
-          format: ({ value }) =>
-            value ? priceFormatter.format(value.number()) : "—",
+          format: ({ value }) => (value ? priceFormatter.format(value.number()) : '—'),
         },
-        track: "price",
+        track: 'price',
       },
       volume: {
         data: {
-          source: "market",
-          name: "Volume",
-          domain: "volume",
+          source: 'market',
+          name: 'Volume',
+          domain: 'volume',
           resolution: candleResolution,
         },
         chart: {
           marks: [
             {
-              draw: "bar",
-              using: ["volume", "#zero"],
+              draw: 'bar',
+              using: ['volume', '#zero'],
               style: ({ resolution, data, values }) => ({
                 size: candleSize(resolution, data.intervalSeconds),
-                fillColor: values.close!.ge(values.open!)
-                  ? "#10b981"
-                  : "#ef4444",
+                fillColor: values.close!.ge(values.open!) ? '#10b981' : '#ef4444',
                 fillOpacity: 0.55,
                 lineWidth: 0,
               }),
@@ -261,7 +234,7 @@ onMounted(() => {
           ],
         },
         tooltip: false,
-        track: "volume",
+        track: 'volume',
       },
     },
     tracks: {
@@ -270,7 +243,7 @@ onMounted(() => {
     },
   });
 
-  timescope.on("load", () => {
+  timescope.on('load', () => {
     timescope.fitTo([now - 365 * DAY, now], { animation: false });
   });
 

@@ -1,8 +1,8 @@
 import type { TimescopeStateOptions } from '#src/core/TimescopeState';
+import type { TimescopeTimeAxisOptions } from '#src/main/loaders/TimescopeTimeAxis';
 import type { TimescopeOptionsSeries, TimescopeSeriesInput } from '#src/main/TimescopeDataSeries';
 import type { TimescopeOptionsSources, TimescopeSourceInput } from '#src/main/TimescopeDataSource';
 import type { TimescopeDomainOptions } from '#src/main/TimescopeDomain';
-import type { TimescopeTimeAxisOptions } from '#src/main/loaders/TimescopeTimeAxis';
 import type { TimescopeFont, TimescopeOptionsSelection } from '#src/renderer/types';
 
 type TimescopeStyle = { width?: string; height?: string; background?: string };
@@ -70,9 +70,9 @@ export function createDefineTimescopeSeries(wrapper?: (opts: object) => object) 
     const Track extends string = 'default',
   >(
     opts: TimescopeOptionsSeries<Sources, Series, Track>,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // oxlint-disable-next-line no-unused-vars
     sources?: TimescopeOptionsSources<Sources>,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // oxlint-disable-next-line no-unused-vars
     tracks?: TimescopeOptionsTracks<Track>,
   ) {
     return (wrapper ? wrapper(opts) : opts) as typeof opts;

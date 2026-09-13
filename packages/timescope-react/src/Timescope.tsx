@@ -1,3 +1,4 @@
+import type { Decimal } from '@kikuchan/decimal';
 import type { ForwardedRef } from 'react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
@@ -11,7 +12,6 @@ import {
   type TimescopeSeriesInput,
   type TimescopeSourceInput,
 } from 'timescope';
-import type { Decimal } from '@kikuchan/decimal';
 
 type TimescopeProps<
   Sources extends Record<string, TimescopeSourceInput>,
@@ -228,7 +228,10 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
   }, [props.selection]);
 
   useEffect(() => {
-    timescopeRef.current?.updateOptions({ showFps: props.showFps, renderThread: props.renderThread } as TimescopeOptions);
+    timescopeRef.current?.updateOptions({
+      showFps: props.showFps,
+      renderThread: props.renderThread,
+    } as TimescopeOptions);
   }, [props.showFps, props.renderThread]);
 
   const containerRef = useCallback((element: HTMLDivElement | null) => {

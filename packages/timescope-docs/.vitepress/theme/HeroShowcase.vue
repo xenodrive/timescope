@@ -1,8 +1,5 @@
 <template>
-  <section
-    class="landing-section landing-primary-example"
-    aria-labelledby="financial-chart-title"
-  >
+  <section class="landing-section landing-primary-example" aria-labelledby="financial-chart-title">
     <article class="landing-card landing-card--primary">
       <header class="landing-card-header">
         <div>
@@ -11,13 +8,7 @@
           </h2>
           <p>
             BTC / USDT <span aria-hidden="true">·</span>
-            <a
-              href="https://data.binance.vision/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Data source: Binance
-            </a>
+            <a href="https://data.binance.vision/" target="_blank" rel="noopener noreferrer"> Data source: Binance </a>
           </p>
         </div>
       </header>
@@ -29,5 +20,5 @@
 </template>
 
 <script setup lang="ts">
-import FinancialChart from "@/guide/examples/financial-chart.vue";
+import FinancialChart from '@/guide/examples/financial-chart.vue';
 </script>

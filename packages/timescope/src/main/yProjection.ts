@@ -1,7 +1,12 @@
 import { Decimal } from '#src/core/decimal';
 
 export type YProjectionMode =
-  'zero-inclusive' | 'floating-positive' | 'floating-negative' | 'zero-only' | 'constant' | 'empty';
+  | 'zero-inclusive'
+  | 'floating-positive'
+  | 'floating-negative'
+  | 'zero-only'
+  | 'constant'
+  | 'empty';
 
 export type YProjectionScale = 'linear' | 'log' | 'linear-symmetric' | undefined;
 export type YProjectionFamily = 'linear' | 'log';

@@ -12,23 +12,23 @@ title: Time Zones
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from "vue";
+import { onBeforeUnmount, onMounted } from 'vue';
 
 // #region code
-import { Timescope } from "timescope";
+import { Timescope } from 'timescope';
 
 // #region docs-ignore
 onMounted(() => {
   // #endregion docs-ignore
 
   const timescope = new Timescope({
-    target: "#example-timezones",
-    style: { height: "240px" },
+    target: '#example-timezones',
+    style: { height: '240px' },
     zoom: -5,
     tracks: {
-      utc: { timeAxis: { timeZone: "utc" } },
-      tokyo: { timeAxis: { timeZone: "Asia/Tokyo" } },
-      newYork: { timeAxis: { timeZone: "America/New_York" } },
+      utc: { timeAxis: { timeZone: 'utc' } },
+      tokyo: { timeAxis: { timeZone: 'Asia/Tokyo' } },
+      newYork: { timeAxis: { timeZone: 'America/New_York' } },
     },
   });
   // #endregion code

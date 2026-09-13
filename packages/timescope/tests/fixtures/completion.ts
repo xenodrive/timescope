@@ -1,5 +1,4 @@
 import { describe, it } from 'vitest';
-
 import { createDataSource, defineTimescopeSeries, defineTimescopeSources } from '../../src/index';
 
 const defaultSource = defineTimescopeSources({

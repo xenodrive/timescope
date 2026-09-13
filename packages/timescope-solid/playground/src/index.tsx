@@ -1,4 +1,4 @@
-import { render } from 'solid-js/web'
-import { App } from './App'
+import { render } from 'solid-js/web';
+import { App } from './App';
 
-render(() => <App />, document.querySelector('#app')!)
+render(() => <App />, document.querySelector('#app')!);
