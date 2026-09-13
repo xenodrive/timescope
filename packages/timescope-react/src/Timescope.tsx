@@ -68,6 +68,7 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
   const timescopeRef = useRef<Timescope | null>(null);
   const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
   const initialPropsRef = useRef({
+    renderThread: props.renderThread,
     time: props.time,
     timeRange: props.timeRange,
     zoom: props.zoom,
@@ -127,7 +128,7 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
   useEffect(() => {
     const initialProps = initialPropsRef.current;
     const instance = new Timescope({
-      renderThread: props.renderThread,
+      renderThread: initialProps.renderThread,
       time: initialProps.time ?? null,
       timeRange: initialProps.timeRange,
       zoom: initialProps.zoom ?? 0,

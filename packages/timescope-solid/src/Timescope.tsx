@@ -64,7 +64,7 @@ function TimescopeComponent<
   Track extends string,
 >(props: TimescopeProps<Sources, Series, Track>) {
   const timescope = new Timescope({
-    renderThread: props.renderThread,
+    renderThread: untrack(() => props.renderThread),
     time: untrack(() => props.time ?? null),
     timeRange: untrack(() => props.timeRange),
     zoom: untrack(() => props.zoom ?? 0),

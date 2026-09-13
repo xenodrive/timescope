@@ -9,7 +9,7 @@ export type TimescopeDataLoadOptions = {
   loadMissing?: boolean;
 };
 
-export interface TimescopeDataLoader<D = any, O = any> extends TimescopeObservable {
+export interface TimescopeDataLoader<D = any, _O = any> extends TimescopeObservable {
   loadData(
     range: TimescopeRange<Decimal>,
     resolution: Decimal,
