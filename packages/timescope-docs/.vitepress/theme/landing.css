@@ -36,7 +36,7 @@
 @media (min-width: 960px) {
   .VPHome .VPHero .container {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 240px;
+    grid-template-columns: minmax(0, 1fr) 30%;
     align-items: center;
     gap: 32px;
   }
@@ -50,7 +50,7 @@
   .VPHome .VPHero .image {
     grid-column: 2;
     grid-row: 1;
-    justify-self: end;
+    justify-self: center;
     width: 240px;
     margin: 0;
   }
