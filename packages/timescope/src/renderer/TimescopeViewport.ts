@@ -16,7 +16,7 @@ class Kinetic {
 
   constructor(
     private decay = 0.005,
-    private minVelocity = 0.05,
+    private minVelocity = 0,
     private delay = 100,
   ) {}
 
@@ -47,7 +47,7 @@ class Kinetic {
     const velocity = Math.sqrt(dx * dx + dy * dy) / dt;
     this.distance_ = velocity / this.decay;
     this.angle_ = Math.atan2(dy, dx);
-    return true;
+    return velocity >= this.minVelocity;
   }
 
   getDistance(): number {
@@ -103,6 +103,8 @@ export class TimescopeViewport extends TimescopeObservable<TimescopeViewportEven
   };
 
   #kinetic = new Kinetic();
+  // Zoom is logarithmic (one unit doubles the scale), rather than measured in pixels.
+  #zoomKinetic = new Kinetic(0.005, 0.0001);
 
   constructor(opts: TimescopeViewportOptions = {}) {
     super();
@@ -376,6 +378,8 @@ export class TimescopeViewport extends TimescopeObservable<TimescopeViewportEven
       return;
     }
     this.#timezoom.zoom.begin(this.#timezoom.zoom.current);
+    this.#zoomKinetic.begin();
+    this.#zoomKinetic.update(this.#timezoom.zoom.current.number(), 0);
   }
 
   pinchUpdate(p: number, q: number) {
@@ -392,6 +396,7 @@ export class TimescopeViewport extends TimescopeObservable<TimescopeViewportEven
         .abs();
       const z = this.z(r);
       this.#timezoom.zoom.update(z);
+      this.#zoomKinetic.update(z.number(), 0);
     }
   }
 
@@ -400,6 +405,18 @@ export class TimescopeViewport extends TimescopeObservable<TimescopeViewportEven
     if (!this.#state.pinch) return;
 
     this.#state.pinch = null;
+
+    if (this.#zoomKinetic.end()) {
+      const delta = this.#zoomKinetic.getDistance() * Math.cos(this.#zoomKinetic.getAngle());
+      const zoom = this.#timezoom.zoom;
+      let target = zoom.current.add(delta);
+      const [lower, upper] = zoom.domain;
+      if (lower !== undefined && target.lt(lower)) target = lower;
+      if (upper !== undefined && target.gt(upper)) target = upper;
+
+      zoom.commit({ value: target, animation: 'out', tangent: 3 });
+      return;
+    }
 
     this.#timezoom.zoom.commit({
       animation: 'linear',
