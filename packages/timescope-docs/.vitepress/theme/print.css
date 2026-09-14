@@ -1,0 +1,262 @@
+/* A4 poster layout. Canvas remains live; no print-specific rendering work. */
+@page timescope-overview {
+  size: A4 portrait;
+  margin: 10mm;
+}
+@media print {
+  html:has(.VPHome),
+  body:has(.VPHome) {
+    page: timescope-overview;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+  body:has(.VPHome) {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  body:has(.VPHome) .VPNav,
+  body:has(.VPHome) .VPLocalNav,
+  body:has(.VPHome) .VPSkipLink,
+  body:has(.VPHome) .VPFooter {
+    display: none !important;
+  }
+  body:has(.VPHome) .VPContent {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .VPHome {
+    display: flex;
+    flex-direction: column;
+    width: 190mm;
+    min-height: 276mm;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  /* The empty Markdown container follows the footer; don't let its auto
+     margins consume the space reserved for the bottom of the poster. */
+  .VPHome > .vp-doc {
+    margin: 0 !important;
+  }
+
+  /* Logo/title on the left, description/installation on the right. */
+  .VPHome .VPHomeHero {
+    margin: 0 !important;
+    padding: 0 0 3mm !important;
+    background: #fff !important;
+    color: #173c53 !important;
+  }
+  .VPHome .VPHero .container {
+    display: grid !important;
+    grid-template-columns: 22mm 78mm minmax(0, 1fr);
+    gap: 3mm;
+    align-items: center;
+    max-width: none;
+  }
+  .VPHome .VPHero .container::before {
+    content: '';
+    grid-column: 3;
+    grid-row: 1 / 3;
+    align-self: stretch;
+    justify-self: start;
+    border-left: 1px solid #b5cad8;
+  }
+  .VPHome .VPHero .main {
+    display: contents !important;
+  }
+  .VPHome .VPHero .heading {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    display: block !important;
+    width: 100% !important;
+    max-width: none;
+    margin: 0;
+    text-align: left;
+  }
+  .VPHome .VPHomeHero .name {
+    display: block !important;
+    margin-left: 0 !important;
+    text-align: left !important;
+    font-size: 36pt !important;
+    line-height: 1.1 !important;
+    color: #087fa2 !important;
+    -webkit-text-fill-color: #087fa2 !important;
+    background: none !important;
+  }
+  .VPHome .VPHomeHero .text {
+    display: block !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    text-align: left !important;
+    margin-top: 1.5mm;
+    font-size: 11pt !important;
+    font-weight: 500 !important;
+    line-height: 1.25 !important;
+    color: #173c53 !important;
+    white-space: normal;
+  }
+  .VPHome .VPHomeHero .tagline {
+    grid-column: 3;
+    grid-row: 1;
+    margin: 0 !important;
+    padding: 0 0 0 4mm !important;
+    text-align: left !important;
+    color: #173c53 !important;
+    font-size: 9.5pt !important;
+    line-height: 1.3 !important;
+    font-weight: 500;
+    white-space: normal;
+  }
+  .VPHome .VPHomeHero .image {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    flex: none !important;
+    display: flex;
+    margin: 0 !important;
+    width: 22mm;
+    min-width: 22mm;
+  }
+  .VPHome .VPHomeHero .image-container {
+    width: 20mm !important;
+    height: 20mm !important;
+    transform: none !important;
+  }
+  .VPHome .VPHomeHero .VPImage.image-src {
+    max-width: 20mm !important;
+    max-height: 20mm !important;
+  }
+  .VPHome .warp-background,
+  .VPHome .VPHomeHero .actions {
+    display: none !important;
+  }
+  .landing-install {
+    justify-content: flex-start;
+    grid-column: 3;
+    grid-row: 2;
+    align-self: start;
+    margin: 0 0 0 4mm;
+  }
+  .landing-install-command {
+    gap: 3mm;
+    padding: 0.8mm 2.5mm;
+    font-size: 8pt;
+    line-height: 1.4;
+    border-radius: 1.5mm;
+    background: #f0f7fa;
+    border-color: #c7dce5;
+  }
+  .landing-install-command code {
+    color: #174b5c;
+    font-size: 8pt;
+  }
+  .landing-install-command button {
+    display: none;
+  }
+
+  /* Four framed examples. */
+  .landing-section {
+    width: 100%;
+    max-width: none;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .landing-examples {
+    padding-top: 7mm;
+    padding-bottom: 0;
+  }
+  .landing-example-list {
+    display: grid;
+    gap: 2mm;
+    border: 0;
+  }
+  .landing-example-row {
+    grid-template-columns: 34mm minmax(0, 1fr);
+    gap: 3mm;
+    padding: 1.5mm 3mm;
+    border: 1px solid #cfe4fa;
+    border-radius: 2.5mm;
+    background: linear-gradient(110deg, #f8fbff, #fff 35%);
+  }
+  .landing-example-caption h3 {
+    margin-bottom: 1mm;
+    font-size: 11pt;
+  }
+  .landing-example-caption p {
+    font-size: 8pt;
+    line-height: 1.4;
+  }
+  .landing-demo {
+    border: 0;
+    border-radius: 0;
+  }
+  .landing-demo canvas {
+    /* Keep the bitmap proportional as its print box changes. */
+    object-fit: contain !important;
+    object-position: center !important;
+  }
+  .landing-demo--stock {
+    height: 145px;
+  }
+
+  /* Preserve the three vertical feature pairs at every screen width. */
+  .landing-features {
+    padding-top: 4mm;
+    padding-bottom: 0;
+  }
+  .landing-feature-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-flow: column;
+    grid-template-rows: repeat(2, auto);
+    gap: 2mm;
+  }
+  .landing-feature {
+    padding: 2.5mm 2.5mm 2mm;
+  }
+  .landing-feature h3 {
+    font-size: 10pt;
+    line-height: 1.3;
+    gap: 2mm;
+  }
+  .landing-feature-icon {
+    width: 7mm;
+    height: 7mm;
+  }
+  .landing-feature-icon svg {
+    width: 4.5mm;
+    height: 4.5mm;
+  }
+  .landing-feature > p {
+    margin: 1.5mm 0 2mm;
+    font-size: 8pt;
+    line-height: 1.35;
+  }
+  .landing-feature-diagram {
+    width: 100%;
+    max-width: none;
+    height: 18mm;
+  }
+  .landing-print-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1mm;
+    margin-top: auto;
+    padding-top: 4mm;
+    font-size: 7pt;
+    line-height: 1.4;
+    color: #607c88;
+    break-inside: avoid;
+  }
+  .landing-print-footer a {
+    display: inline-flex;
+    align-items: center;
+    gap: 1.5mm;
+    font-family: var(--landing-mono);
+    color: #174b5c;
+    white-space: nowrap;
+  }
+  .landing-print-footer svg {
+    width: 4mm;
+    height: 4mm;
+  }
+}

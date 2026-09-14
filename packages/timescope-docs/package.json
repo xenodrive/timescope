@@ -15,6 +15,8 @@
   },
   "devDependencies": {
     "@braintree/sanitize-url": "^7.1.2",
+    "@iconify-icons/mdi": "^2.0.0",
+    "@iconify/vue": "^5.0.1",
     "@kikuchan/binary-reader": "0.1.0-alpha.8",
     "@kikuchan/decimal": "0.1.0-alpha.10",
     "dayjs": "^1.11.23",

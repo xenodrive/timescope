@@ -6,7 +6,7 @@ layout: home
 hero:
   name: Timescope
   text: Canvas for Time-Series Visualization
-  tagline: Pan, zoom, and select precise moments on an infinite time axis
+  tagline: An embeddable JavaScript / TypeScript library for time-based visualization.
   image:
     src: /logo.svg
     alt: Timescope

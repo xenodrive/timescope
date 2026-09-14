@@ -1,0 +1,348 @@
+/* Landing content. Shared Hero and navigation styles live in style.css. */
+.VPHome {
+  --landing-font: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --landing-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --landing-logo-font: var(--landing-font);
+  font-family: var(--landing-font);
+  color: #263b49;
+  background: #fff;
+}
+.VPHome .VPHero .container {
+  max-width: 1056px;
+}
+.VPHome .VPHomeHero .text {
+  font-weight: 600;
+}
+.VPHome .VPHomeHero .tagline {
+  font-weight: 400;
+  white-space: normal;
+  max-width: 620px;
+}
+
+/* Installation */
+.landing-install {
+  display: flex;
+  margin: 12px 0 0;
+}
+.VPHome .VPHero .actions {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+}
+.VPHome .VPHero .action {
+  padding: 0;
+}
+@media (min-width: 960px) {
+  .VPHome .VPHero .container {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    align-items: center;
+    gap: 32px;
+  }
+  .VPHome .VPHero .main {
+    grid-column: 1;
+    grid-row: 1;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+  .VPHome .VPHero .image {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    width: 240px;
+    margin: 0;
+  }
+  .VPHome .VPHero .image-container {
+    transform: none !important;
+  }
+  .VPHome .VPHero .heading {
+    width: 100%;
+    max-width: none;
+  }
+  .VPHome .VPHomeHero .text {
+    max-width: none;
+    font-size: clamp(26px, 3vw, 36px) !important;
+    line-height: 1.25 !important;
+    white-space: nowrap;
+  }
+}
+.landing-install-command {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 5px 12px;
+  border: 1px solid #297393;
+  border-radius: 8px;
+  background: #062b40;
+}
+.landing-install-command code {
+  font-family: var(--landing-mono);
+  font-size: 14px;
+  color: #eefaff;
+}
+.landing-install-prompt {
+  color: #7aa0ae;
+  font-family: var(--landing-mono);
+}
+.landing-install-command button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: #83afbf;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.landing-install-command button:hover {
+  background: #ffffff18;
+}
+.landing-install-command button:focus-visible {
+  outline: 2px solid #69d4ed;
+  outline-offset: 3px;
+}
+
+/* Live examples */
+.landing-examples {
+  padding-top: 24px;
+  padding-bottom: 30px;
+}
+.landing-example-list {
+  border-top: 1px solid #dce7ec;
+}
+.landing-example-row {
+  display: grid;
+  grid-template-columns: 195px minmax(0, 1fr);
+  align-items: center;
+  gap: 28px;
+  padding: 14px 0;
+  border-bottom: 1px solid #dce7ec;
+  break-inside: avoid;
+}
+.landing-example-caption h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+  color: #116d87;
+  font-size: 19px;
+  line-height: 1.3;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+}
+.landing-example-caption h3 > svg {
+  width: 23px;
+  height: 23px;
+  flex: none;
+  color: #0a9ed1;
+}
+.landing-example-caption a:hover {
+  color: #0c9abc;
+}
+.landing-example-caption p {
+  max-width: 190px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #6c7c86;
+}
+.landing-demo {
+  position: relative;
+  min-width: 0;
+  height: 96px;
+  border: 1px solid #e3ecef;
+  border-radius: 8px;
+  background: #fff;
+}
+.landing-demo-live {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.landing-demo--picker {
+  height: 36px;
+}
+.landing-demo--stock {
+  height: 190px;
+}
+.landing-demo-error {
+  position: absolute;
+  inset: 24px 12px auto;
+  color: #8d5347;
+  font-size: 12px;
+}
+
+/* Feature pairs: navigation/animation, era/scale, composition/loading. */
+.landing-features {
+  padding-top: 28px;
+  padding-bottom: 24px;
+}
+.landing-feature-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(2, auto);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.landing-feature {
+  display: flex;
+  flex-direction: column;
+  padding: 23px 20px 14px;
+  border: 1px solid #cfe4fa;
+  border-radius: 12px;
+  background: linear-gradient(150deg, var(--panel-tint, #edf7ff), #fff 65%);
+  break-inside: avoid;
+}
+.landing-feature h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #17566a;
+  font-size: 17px;
+  line-height: 1.4;
+  letter-spacing: -0.025em;
+  font-weight: 600;
+}
+.landing-feature > p {
+  margin: 9px 0 18px;
+  color: #697c87;
+  font-size: 11px;
+  line-height: 1.75;
+}
+.landing-feature-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--panel-icon, linear-gradient(135deg, #65b7ff, #2583ff));
+  box-shadow: inset 0 0 0 1px #ffffff30;
+}
+.landing-feature-icon svg {
+  width: 23px;
+  height: 23px;
+}
+.landing-feature--precision {
+  --panel-tint: #f3ebff;
+  --panel-icon: linear-gradient(135deg, #c397ff, #8651ff);
+}
+.landing-feature--views {
+  --panel-tint: #fff6df;
+  --panel-icon: linear-gradient(135deg, #48dfa1, #00af75);
+}
+.landing-feature--chunks {
+  --panel-tint: #eaf5ff;
+  --panel-icon: linear-gradient(135deg, #5fd5f1, #119cc9);
+}
+.landing-feature--era {
+  --panel-tint: #e6faf1;
+  --panel-icon: linear-gradient(135deg, #ffc146, #ff8309);
+}
+.landing-feature--worker {
+  --panel-tint: #f0ecff;
+  --panel-icon: linear-gradient(135deg, #a29cfa, #6861d9);
+}
+.landing-feature-diagram {
+  width: 100%;
+  height: auto;
+  margin-top: auto;
+  overflow: visible;
+}
+.landing-feature-diagram text {
+  fill: #607c88;
+  font-family: var(--landing-font);
+  font-size: 11px;
+}
+.landing-feature-diagram .diagram-strong {
+  fill: #24576a;
+  font-weight: 600;
+}
+.diagram-axis {
+  stroke: #a3bac3;
+  stroke-width: 1.2;
+}
+.diagram-ticks {
+  stroke: #b1c6cd;
+  stroke-width: 1;
+}
+.diagram-cursor {
+  stroke: #dc8574;
+  stroke-width: 1.4;
+}
+.diagram-dashed {
+  stroke: #82b0bf;
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+.landing-print-footer {
+  display: none;
+}
+
+@media (max-width: 959px) {
+  .landing-install {
+    justify-content: center;
+  }
+  .landing-example-row {
+    grid-template-columns: 145px minmax(0, 1fr);
+    gap: 18px;
+  }
+  .landing-example-caption h3 {
+    font-size: 17px;
+  }
+  .landing-feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row;
+    grid-template-rows: none;
+  }
+}
+@media (max-width: 639px) {
+  .VPHome .VPHero .actions {
+    gap: 8px;
+  }
+  .landing-install {
+    flex-basis: 100%;
+  }
+  .VPHome .VPHomeHero .text {
+    white-space: normal;
+  }
+  .VPHome .VPHomeHero .tagline {
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+  }
+  .landing-install-command {
+    width: auto;
+    gap: 10px;
+  }
+  .landing-install-command button {
+    margin-left: auto;
+  }
+  .landing-install-command code {
+    font-size: 13px;
+  }
+  .landing-examples {
+    padding-top: 32px;
+  }
+  .landing-example-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 22px 0;
+  }
+  .landing-example-caption p {
+    max-width: none;
+    font-size: 11px;
+  }
+  .landing-feature-grid {
+    grid-template-columns: 1fr;
+  }
+  .landing-feature {
+    padding: 22px;
+  }
+  .landing-feature-diagram {
+    max-width: 340px;
+    align-self: center;
+  }
+}
