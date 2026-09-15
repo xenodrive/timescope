@@ -32,13 +32,11 @@ export function rebaseYProjectionData(data: TimescopeProjectionData, target: Tim
   if (source.domainEpoch === target.domainEpoch && source.revision === target.revision) return false;
 
   const rebase = createYProjectionRebase(source, target);
-  const collapsed =
-    target.mode === 'constant' ? (target.floating < 0 ? -0.5 : 0.5) : target.mode === 'zero-only' ? 0 : null;
   if ('y' in data.data) {
     const values = data.data.y as Float64Array;
     for (let i = 0; i < values.length; i++) {
       if (!Number.isFinite(values[i])) continue;
-      values[i] = rebase ? values[i] * rebase.scale + rebase.offset : (collapsed ?? NaN);
+      values[i] = rebase ? values[i] * rebase.scale + rebase.offset : NaN;
     }
   }
 
@@ -48,7 +46,7 @@ export function rebaseYProjectionData(data: TimescopeProjectionData, target: Tim
         for (const key of ['y1', 'y2'] as const) {
           const value = mark.point[key];
           if (typeof value !== 'number' || !Number.isFinite(value)) continue;
-          mark.point[key] = rebase ? value * rebase.scale + rebase.offset : (collapsed ?? NaN);
+          mark.point[key] = rebase ? value * rebase.scale + rebase.offset : NaN;
         }
       }
     }

@@ -205,10 +205,6 @@ export class TimescopeDomain extends TimescopeObservable {
         else if (!expandUpper) lower = upper;
         else [lower, upper] = [upper, lower];
       }
-      if (lower.eq(upper) && previousExtent) {
-        if (expandLower && previousExtent[0].lt(lower)) lower = previousExtent[0];
-        if (expandUpper && previousExtent[1].gt(upper)) upper = previousExtent[1];
-      }
       next = [lower, upper];
     }
 
@@ -259,7 +255,12 @@ export class TimescopeDomain extends TimescopeObservable {
   }
 
   #updateProjection() {
-    const projection = createYProjection(this.dataRange, this.scale, this.floatingGap);
+    const projection = createYProjection(
+      this.dataRange,
+      this.scale,
+      this.floatingGap,
+      this.#projectionSnapshot?.projection.basis,
+    );
     const basis = projection.basis;
     const family = projection.scale === 'log' ? 'log' : 'linear';
 

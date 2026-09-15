@@ -75,10 +75,10 @@ describe('scale changes across drawing layers', () => {
     expect(data.data.y[0]).toBeNaN();
   });
 
-  it('collapses finite values for a zero-only target', () => {
+  it('preserves value differences when the display target is zero-only', () => {
     const source = projection(1, 1, 0);
     const target = {
-      ...projection(2, 0, 0),
+      ...projection(2, 1, 0),
       mode: 'zero-only' as const,
       extent: [0, 0] as [number, number],
       floating: 0,
@@ -90,6 +90,6 @@ describe('scale changes across drawing layers', () => {
     } satisfies TimescopeSeriesTooltipData;
 
     rebaseYProjectionData(data, target);
-    expect([...data.data.y]).toEqual([0, 0]);
+    expect([...data.data.y]).toEqual([0.25, 0.75]);
   });
 });

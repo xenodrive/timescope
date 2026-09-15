@@ -67,6 +67,7 @@ export function createYProjection(
   effectiveExtent: [Decimal, Decimal] | null,
   scale: YProjectionScale,
   gap = 20,
+  previousBasis?: YProjectionBasis | null,
 ): YProjection {
   const resolvedScale = scale ?? 'linear';
   if (!effectiveExtent) return emptyProjection(resolvedScale, gap);
@@ -78,37 +79,24 @@ export function createYProjection(
     return emptyProjection(resolvedScale, gap);
   }
 
-  if (lower.isZero() && upper.isZero()) {
-    const project = (value: Decimal | null | undefined) => (resolvedScale !== 'log' && value?.isZero() ? ZERO : null);
+  if (lower.eq(upper) && (resolvedScale !== 'linear-symmetric' || lower.isZero())) {
+    const family = resolvedScale === 'log' ? 'log' : 'linear';
+    const origin = family === 'log' ? lower.log(10) : lower;
+    // A constant display has zero screen scale, not a singular data basis.
+    // Keep value differences available for interrupted and expanding transitions.
+    const span = previousBasis?.family === family && !previousBasis.span.isZero() ? previousBasis.span : Decimal(1);
+    const project = (value: Decimal | null | undefined) => {
+      if (!value || (family === 'log' && !value.isPositive())) return null;
+      return (family === 'log' ? value.log(10) : value).sub(origin).div(span);
+    };
     return {
-      mode: 'zero-only',
+      mode: lower.isZero() ? 'zero-only' : 'constant',
       scale: resolvedScale,
       extent: [0, 0],
       gap,
-      floating: 0,
-      numericZero: 0,
-      basis: { family: resolvedScale === 'log' ? 'log' : 'linear', origin: ZERO, span: ZERO },
-      project,
-      normalize: (value) => project(value)?.number() ?? NaN,
-    };
-  }
-
-  if (lower.eq(upper)) {
-    const family = resolvedScale === 'log' ? 'log' : 'linear';
-    const origin = family === 'log' ? lower.log(10) : lower;
-    const normalized = lower.isNegative() ? -0.5 : 0.5;
-    const project = (value: Decimal | null | undefined) => {
-      if (!value || (family === 'log' && !value.isPositive())) return null;
-      return value.eq(lower) ? Decimal(normalized) : null;
-    };
-    return {
-      mode: 'constant',
-      scale: resolvedScale,
-      extent: [normalized, normalized],
-      gap,
-      floating: lower.isPositive() ? gap : -gap,
-      numericZero: null,
-      basis: { family, origin, span: ZERO },
+      floating: lower.isZero() ? 0 : lower.isPositive() ? gap : -gap,
+      numericZero: lower.isZero() ? 0 : null,
+      basis: { family, origin, span },
       project,
       normalize: (value) => project(value)?.number() ?? NaN,
     };

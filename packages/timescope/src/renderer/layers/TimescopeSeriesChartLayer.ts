@@ -34,11 +34,7 @@ export function createLinkProjectionRebase(
 ) {
   if (from.domainId !== to.domainId || from.domainEpoch !== to.domainEpoch) return null;
   if (from.revision === to.revision) return { scale: 1, offset: 0 };
-  const rebase = createYProjectionRebase(from, to);
-  if (rebase) return rebase;
-  if (to.mode === 'zero-only') return { scale: 0, offset: 0 };
-  if (to.mode === 'constant') return { scale: 0, offset: to.floating < 0 ? -0.5 : 0.5 };
-  return null;
+  return createYProjectionRebase(from, to);
 }
 
 export type CompiledLinkPath = {

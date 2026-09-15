@@ -37,21 +37,5 @@ Run `pnpm test` from `packages/timescope`. This runs the type checker and all
 - Test both publication and cancellation in async scenarios. Finish or dispose
   pending work even if an assertion fails.
 
-## Behavior awaiting a specification decision
-
-The following historical expectations were removed rather than promoted to
-contracts. Decide the intended behavior before adding replacement expectations:
-
-- Marks composite alpha against the background, while links handle fill opacity
-  differently. What differences, if any, should users observe?
-- A shrinking automatic domain retains previous bounds when new data has a
-  single value. What should a constant range show, and should that depend on
-  viewing history?
-- Reusing old link geometry when a new projection is constant currently collapses
-  it to a line. Define the intended transition before requiring that shape.
-- Pixel-to-time conversion rounds to the resolution's decimal precision. The
-  coordinate tests require pixel round-trips, but do not prescribe whether every
-  fractional-pixel timestamp must survive an exact Decimal round-trip.
-
 Performance measurements belong in benchmarks; do not retain an implementation
 strategy solely because an old test asserted its allocation or traversal count.

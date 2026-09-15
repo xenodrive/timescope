@@ -230,6 +230,12 @@ Mark style values may be callbacks receiving `{ times, values, data, resolution 
 | `fillOpacity` | `number`  |
 | `fillPost`    | `boolean` |
 
+Marks shade their fill against the configured background before applying
+`fillOpacity`. Over an opaque background this hides links behind the marks, as in
+`linespoints`. Set mark `fillOpacity` explicitly to allow the underlying chart to
+show through. Links use normal alpha compositing so overlapping series remain
+visible; their color alpha is multiplied by `fillOpacity`.
+
 ### Geometry
 
 | Key       | Type                                            | Behavior                                                 |
@@ -340,6 +346,17 @@ Selection is resizable by default. Shift-drag creates a range.
 | `digits`      | `number`                                                                | Sets decimal places in tooltips and value axes.                     |
 
 An unbounded range follows visible values. A single numeric range value means `[0, value]`.
+
+With `shrink: true`, an automatic range follows constant data to `[v, v]` as well.
+Nonzero constants are centered in the domain's available drawing region, while
+zero lies on the shared zero axis. `linear-symmetric` retains its zero-based
+scaling for nonzero constants. Constant ranges have a single value tick.
+
+Within a linear or logarithmic scale, transitions into and out of constant data
+animate the screen transform. An update during a transition continues from the
+current display, and the final display does not depend on earlier ranges.
+`animation: false` applies the final display immediately. Fixed bounds and
+`shrink: false` continue to constrain the range.
 
 ## See Also
 

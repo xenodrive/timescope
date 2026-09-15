@@ -122,12 +122,15 @@ export class TimescopeTrack extends TimescopeObservable {
         const span = max - min;
         return { scale: -H / span, offset: this.bottom + (H * min) / span, floating: 0 };
       }
-      case 'floating-positive':
       case 'constant': {
-        if (projection.mode === 'constant' && projection.floating < 0) {
+        if (projection.floating < 0) {
           const gap = Math.min(projection.gap, Math.max(0, this.bottom - zero - 1));
-          return { scale: zero + gap - this.bottom, offset: zero + gap, floating: -gap };
+          return { scale: 0, offset: (zero + gap + this.bottom) / 2, floating: -gap };
         }
+        const gap = Math.min(projection.gap, Math.max(0, zero - this.top - 1));
+        return { scale: 0, offset: (this.top + zero - gap) / 2, floating: gap };
+      }
+      case 'floating-positive': {
         const gap = Math.min(projection.gap, Math.max(0, zero - this.top - 1));
         const nearZero = zero - gap;
         const floating = { scale: this.top - nearZero, offset: nearZero, floating: gap };
@@ -234,6 +237,11 @@ export class TimescopeTrack extends TimescopeObservable {
       const existing = this.#states.get(domainId);
       const reset = rebases.has(domainId) && !rebases.get(domainId);
       const state = !reset && existing ? existing : this.#createState(projection);
+      if (reset && existing) {
+        existing.scale.dispose();
+        existing.offset.dispose();
+        existing.fade.dispose();
+      }
       const target = this.#targetAffine(projection, min, max, targetZero);
       const targetFade = target.floating;
       const rebase = rebases.get(domainId);
@@ -255,7 +263,13 @@ export class TimescopeTrack extends TimescopeObservable {
     }
 
     for (const domainId of this.#states.keys()) {
-      if (!activeDomains.has(domainId)) this.#states.delete(domainId);
+      if (!activeDomains.has(domainId)) {
+        const state = this.#states.get(domainId)!;
+        state.scale.dispose();
+        state.offset.dispose();
+        state.fade.dispose();
+        this.#states.delete(domainId);
+      }
     }
     this.changed();
   }
