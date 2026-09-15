@@ -86,7 +86,9 @@ export class TimescopeDataCache<V extends DataLike = any> extends TimescopeObser
     const { time } = timescope.timeAxis.value;
 
     if (this.#instantWidth) {
-      const cursorTime = timescope.timeAxis.cursor.time;
+      const cursorTime = timescope.timeAxis.editing
+        ? timescope.timeAxis.cursor.time
+        : timescope.timeAxis.committing.time;
       const t = cursorTime ?? timescope.timeAxis.now;
       const currentResolution = timescope.timeAxis.current.resolution;
       const resolution = this.#instantResolution ?? currentResolution;
@@ -95,7 +97,7 @@ export class TimescopeDataCache<V extends DataLike = any> extends TimescopeObser
 
       this.#update(cursorTime, instantRange, instantRange[0], resolution, {
         fallbackResolution: currentResolution,
-        loadMissing: !timescope.timeAxis.editing && !timescope.timeAxis.animating,
+        loadMissing: !timescope.timeAxis.editing,
       });
     } else if (this.#immediate) {
       const current = timescope.timeAxis.current;
