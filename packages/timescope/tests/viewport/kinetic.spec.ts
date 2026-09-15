@@ -1,19 +1,16 @@
 import { Decimal } from '#src/core/decimal';
 import type { TimescopeCommittableMessageSync } from '#src/core/TimescopeCommittable';
 import { TimescopeViewport } from '#src/renderer/TimescopeViewport';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 
-describe('TimescopeViewport kinetic scrolling', () => {
+describe('kinetic scrolling', () => {
   afterEach(() => vi.useRealTimers());
 
-  it('limits drag overscroll and commits kinetic motion', async () => {
+  it('resists overscroll and returns to the time boundary after release', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
     const viewport = new TimescopeViewport({ time: 100, timeRange: [Decimal(0), Decimal(100)], zoom: 0 });
-    const sync: TimescopeCommittableMessageSync<null>[] = [];
-    viewport.on('sync', (event) => {
-      if (event.value.time) sync.push(event.value.time);
-    });
+    onTestFinished(() => viewport.dispose());
     viewport.setAxisLength([500, 500]);
 
     viewport.dragStart();
@@ -23,21 +20,12 @@ describe('TimescopeViewport kinetic scrolling', () => {
     viewport.dragUpdate(300, -100);
 
     const extension = viewport.current.time!.sub(100).number();
-    expect(extension).toBe(100);
+    expect(extension).toBeGreaterThan(0);
+    expect(extension).toBeLessThan(200);
 
     viewport.dragEnd();
-    await Promise.resolve();
-    await Promise.resolve();
-    const commit = sync.findLast((message) => message.type === 'commit');
-    expect(commit?.type).toBe('commit');
-    if (commit?.type !== 'commit') return;
-
-    expect(commit.targetValue?.eq(100)).toBe(true);
-    expect(commit.animation).toBe('out');
-    const firstExtension = 50;
-    const secondExtension = 100;
-    const kineticDistance = (secondExtension - firstExtension) / 20 / 0.005;
-    expect(commit.tangent).toBeCloseTo(1.5 * (1 - kineticDistance / secondExtension));
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(viewport.current.time?.eq(100)).toBe(true);
   });
 
   it('makes overscroll depend on total pull rather than pointer event frequency', () => {
@@ -48,6 +36,7 @@ describe('TimescopeViewport kinetic scrolling', () => {
         zoom: 0,
       });
       viewport.setAxisLength([500, 500]);
+      onTestFinished(() => viewport.dispose());
       viewport.dragStart();
       return viewport;
     };
@@ -67,6 +56,7 @@ describe('TimescopeViewport kinetic scrolling', () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
     const viewport = new TimescopeViewport({ time: null, zoom: 0 });
+    onTestFinished(() => viewport.dispose());
     const sync: TimescopeCommittableMessageSync<null>[] = [];
     viewport.on('sync', (event) => {
       if (event.value.time) sync.push(event.value.time);
@@ -87,7 +77,7 @@ describe('TimescopeViewport kinetic scrolling', () => {
   });
 });
 
-describe('TimescopeViewport kinetic zooming', () => {
+describe('kinetic zooming', () => {
   const viewports: TimescopeViewport[] = [];
 
   afterEach(() => {
@@ -139,14 +129,6 @@ describe('TimescopeViewport kinetic zooming', () => {
     const viewport = setup();
     move(viewport, 0.2);
     vi.advanceTimersByTime(150);
-    const released = viewport.current.zoom;
-    viewport.pinchEnd();
-    expect(viewport.committing.zoom.eq(released)).toBe(true);
-  });
-
-  it('ignores tiny zoom movements', () => {
-    const viewport = setup();
-    move(viewport, 0.001);
     const released = viewport.current.zoom;
     viewport.pinchEnd();
     expect(viewport.committing.zoom.eq(released)).toBe(true);

@@ -1,7 +1,7 @@
 import { TimescopeState } from '#src/core/TimescopeState';
 import { describe, expect, it, vi } from 'vitest';
 
-describe('TimescopeState targets', () => {
+describe('viewport targets', () => {
   it('resolves a time target without changing the committable', () => {
     const state = new TimescopeState({ time: 0 });
     const changing = vi.fn();

@@ -52,7 +52,7 @@ function track(keys: string[], symmetric = false) {
   return new TimescopeTrack({ id: 'main', oy: 0, height: 200, seriesKeys: keys, symmetric });
 }
 
-describe('TimescopeTrack Y projection', () => {
+describe('track scale presentation', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
@@ -132,7 +132,6 @@ describe('TimescopeTrack Y projection', () => {
     expect(value.y0).toBeCloseTo(value.bottom);
     expect(value.yForDomain('a', 0)).toBeCloseTo(value.bottom - 20);
     expect(value.yForDomain('a', 1)).toBeCloseTo(value.top);
-    expect(value.yForDomain('a', 0)).toBeCloseTo(value.bottom - 20);
     expect(value.fadeForDomain('a')).toBe(20);
   });
 
@@ -146,7 +145,6 @@ describe('TimescopeTrack Y projection', () => {
 
     expect(value.y0).toBeCloseTo(value.bottom);
     expect(value.yForDomain('a', 0)).toBeCloseTo(value.y0 - 20);
-    expect(value.yForDomain('a', 0)).toBeCloseTo(value.y0 - 20);
     expect(value.fadeForDomain('a')).toBe(20);
   });
 
@@ -157,7 +155,6 @@ describe('TimescopeTrack Y projection', () => {
     finishAnimations();
     expect(value.y0).toBeCloseTo(value.top);
     expect(value.yForDomain('a', -1)).toBeCloseTo(value.bottom);
-    expect(value.yForDomain('a', 0)).toBeCloseTo(value.top + 20);
     expect(value.yForDomain('a', 0)).toBeCloseTo(value.top + 20);
     expect(value.fadeForDomain('a')).toBe(-20);
   });
@@ -254,7 +251,6 @@ describe('TimescopeTrack Y projection', () => {
 
     const next = { ...active, domainEpoch: 2, revision: 2 };
     value.adjustScale(context({ a: next }), new Map([['a', null]]));
-    expect(value.projectionForDomain('a')).toBe(next);
     expect(Number.isFinite(value.yForDomain('a', 0.5))).toBe(true);
   });
 });

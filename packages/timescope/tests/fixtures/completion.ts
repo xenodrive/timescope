@@ -1,5 +1,4 @@
-import { describe, it } from 'vitest';
-import { createDataSource, defineTimescopeSeries, defineTimescopeSources } from '../../src/index';
+import { createDataSource, defineTimescopeSeries, defineTimescopeSources } from '#src/index';
 
 const defaultSource = defineTimescopeSources({
   test: { data: [] as { time: number; value: number }[] },
@@ -216,7 +215,3 @@ export const test7 = defineTimescopeSeries(
   },
   chunkedSources,
 );
-
-describe('completion fixtures', () => {
-  it('loads', () => {});
-});

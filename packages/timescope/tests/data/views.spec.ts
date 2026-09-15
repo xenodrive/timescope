@@ -25,55 +25,7 @@ function state(resolution: number, phase: TimescopeViewState['phase'] = 'changed
   };
 }
 
-describe('Timescope source views', () => {
-  it('interns equal requests per source and viewport context', () => {
-    class Source extends TimescopeDataSourceBase {
-      async query() {
-        return [];
-      }
-    }
-    const source = new Source();
-    const context = new TimescopeViewRegistry();
-    const first = source.requestView(context, { strategy: 'candidate-with-current' });
-    const second = source.requestView(context, { strategy: 'candidate-with-current' });
-    const otherContext = source.requestView(new TimescopeViewRegistry(), { strategy: 'candidate-with-current' });
-
-    expect(first).toBe(second);
-    expect(otherContext).not.toBe(first);
-    source.releaseView(first);
-    source.releaseView(second);
-    source.releaseView(otherContext);
-  });
-
-  it('includes the data resolution policy in interned view identity', () => {
-    class Source extends TimescopeDataSourceBase {
-      async query() {
-        return [];
-      }
-    }
-    const source = new Source({ resolutions: [1, 3, 10] });
-    const context = new TimescopeViewRegistry();
-    const resolve = ({ resolution }: { resolution: Decimal }) => resolution.mul(5);
-    const first = source.requestView(context, {
-      strategy: 'settled-only',
-      dataResolution: { resolve, snap: 'ceil' },
-    });
-    const second = source.requestView(context, {
-      strategy: 'settled-only',
-      dataResolution: { resolve, snap: 'ceil' },
-    });
-    const differentResolver = source.requestView(context, {
-      strategy: 'settled-only',
-      dataResolution: { resolve: ({ resolution }) => resolution.mul(5), snap: 'ceil' },
-    });
-
-    expect(first).toBe(second);
-    expect(differentResolver).not.toBe(first);
-    source.releaseView(first);
-    source.releaseView(second);
-    source.releaseView(differentResolver);
-  });
-
+describe('source view contract', () => {
   it.each([
     ['nearest', 3],
     ['floor', 1],

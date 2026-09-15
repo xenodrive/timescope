@@ -2,7 +2,7 @@ import { Decimal } from '#src/core/decimal';
 import { TimescopeStaticValueIndex } from '#src/main/reducers/TimescopeStaticValueIndex';
 import { describe, expect, it } from 'vitest';
 
-describe('TimescopeStaticValueIndex', () => {
+describe('range statistics', () => {
   it('computes exact range statistics and R-7 percentiles', () => {
     const index = new TimescopeStaticValueIndex(Array.from({ length: 100 }, (_, value) => Decimal(value + 1)));
     const aggregate = index.aggregate(0, 100);

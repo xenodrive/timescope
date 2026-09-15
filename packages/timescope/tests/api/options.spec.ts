@@ -1,7 +1,7 @@
 import { mergeOptions } from '#src/core/options';
 import { describe, expect, it } from 'vitest';
 
-describe('mergeOptions', () => {
+describe('option merging', () => {
   it('preserves class instances while recursively merging option objects', () => {
     class Source {
       query() {}

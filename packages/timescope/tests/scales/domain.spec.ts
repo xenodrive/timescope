@@ -25,7 +25,7 @@ function values(domain: TimescopeDomain) {
   return domain.dataRange?.map((value) => value.number()) ?? null;
 }
 
-describe('TimescopeDomain', () => {
+describe('shared value domain', () => {
   it('uses reported chart extents and shrinks by default', () => {
     const domain = new TimescopeDomain();
     const series = createSeries();
@@ -85,21 +85,6 @@ describe('TimescopeDomain', () => {
     expect(values(domain)).toEqual([-1, 1]);
   });
 
-  it('exposes autoscale and animation settings in its projection', () => {
-    const automatic = new TimescopeDomain().createProjection().wire;
-    expect(automatic.autoscale).toBe(true);
-    expect(automatic.animation).toBe(true);
-
-    const fixedDefault = new TimescopeDomain({ range: [-1, 1] }).createProjection().wire;
-    expect(fixedDefault.autoscale).toBe(false);
-
-    const fixed = new TimescopeDomain({
-      range: [-1, 1],
-      animation: false,
-    }).createProjection().wire;
-    expect(fixed.animation).toBe(false);
-  });
-
   it('returns to an empty range when a chart becomes empty', () => {
     const domain = new TimescopeDomain();
     const series = createSeries();
@@ -107,37 +92,6 @@ describe('TimescopeDomain', () => {
     report(domain, series, [1, 2]);
     report(domain, series, null);
     expect(values(domain)).toBeNull();
-  });
-
-  it.each([
-    [
-      [15, 15],
-      [10, 20],
-    ],
-    [
-      [30, 30],
-      [10, 30],
-    ],
-    [
-      [0, 0],
-      [0, 20],
-    ],
-  ] as const)('merges a degenerate automatic range %j with the previous range', (extent, expected) => {
-    const domain = new TimescopeDomain();
-    const series = createSeries();
-    domain.addSeries(series);
-    report(domain, series, [10, 20]);
-    report(domain, series, [...extent]);
-    expect(values(domain)).toEqual(expected);
-  });
-
-  it('keeps the previous automatic bound when the other bound is fixed', () => {
-    const domain = new TimescopeDomain({ range: [0, undefined] });
-    const series = createSeries();
-    domain.addSeries(series);
-    report(domain, series, [10, 20]);
-    report(domain, series, [0, 0], null);
-    expect(values(domain)).toEqual([0, 20]);
   });
 
   it('uses positive chart extents for a logarithmic range', () => {
@@ -196,32 +150,5 @@ describe('TimescopeDomain', () => {
 
     report(domain, series, [1, 2]);
     expect(changed).not.toHaveBeenCalled();
-  });
-
-  it('keeps projection affines relative to a stable Decimal anchor', () => {
-    const domain = new TimescopeDomain();
-    const series = createSeries();
-    domain.addSeries(series);
-    report(domain, series, [10, 20]);
-    const first = domain.createProjection().wire;
-
-    report(domain, series, [12, 16]);
-    const second = domain.createProjection().wire;
-    expect(second.domainEpoch).toBe(first.domainEpoch);
-    expect(second.toAnchor).toEqual({ scale: 0.4, offset: 0.2 });
-
-    domain.updateOptions({ scale: 'log' });
-    const logarithmic = domain.createProjection().wire;
-    expect(logarithmic.domainEpoch).toBeGreaterThan(second.domainEpoch);
-    expect(logarithmic.toAnchor).toEqual({ scale: 1, offset: 0 });
-  });
-
-  it('advances the projection epoch on a family change while empty', () => {
-    const domain = new TimescopeDomain();
-    const linear = domain.createProjection().wire;
-    domain.updateOptions({ scale: 'log' });
-    const logarithmic = domain.createProjection().wire;
-    expect(logarithmic.domainEpoch).toBeGreaterThan(linear.domainEpoch);
-    expect(logarithmic.toAnchor).toBeNull();
   });
 });

@@ -1,8 +1,7 @@
 import { readFileSync } from 'node:fs';
-import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { API, type Project, type Snapshot } from 'typescript/unstable/sync';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import '../src/main/options';
 
 type CompletionCase = {
   marker: string;
@@ -10,7 +9,7 @@ type CompletionCase = {
   exclude: string[];
 };
 
-const completionFilePath = path.join(process.cwd(), 'tests', 'fixtures', 'completion.ts');
+const completionFilePath = fileURLToPath(new URL('../fixtures/completion.ts', import.meta.url));
 
 const completionCases: CompletionCase[] = [
   {
@@ -95,18 +94,16 @@ describe('typescript completions', () => {
     api.close();
   });
 
-  it('provides expected completions for using', () => {
+  it.each(completionCases)('provides source-specific using completions: $marker', (testCase) => {
     const text = readFileSync(completionFilePath, 'utf8');
-    for (const testCase of completionCases) {
-      const position = findMarkerPosition(text, testCase.marker);
-      const completion = project.checker.getCompletionsAtPosition(completionFilePath, position);
-      const entries = completion?.entries.map((entry) => entry.name) ?? [];
-      for (const value of testCase.include) {
-        expect(entries, testCase.marker).toContain(value);
-      }
-      for (const value of testCase.exclude) {
-        expect(entries, testCase.marker).not.toContain(value);
-      }
+    const position = findMarkerPosition(text, testCase.marker);
+    const completion = project.checker.getCompletionsAtPosition(completionFilePath, position);
+    const entries = completion?.entries.map((entry) => entry.name) ?? [];
+    for (const value of testCase.include) {
+      expect(entries, testCase.marker).toContain(value);
+    }
+    for (const value of testCase.exclude) {
+      expect(entries, testCase.marker).not.toContain(value);
     }
   });
 });

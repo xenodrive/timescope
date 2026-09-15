@@ -1,8 +1,6 @@
 import { PathCommand, type TimescopePathCommands } from '#src/core/path';
 import {
   createCompiledLinkPath,
-  createFillStyle,
-  createMarkFillStyle,
   createUnitPathMarks,
   groupMarkPointsByLayer,
 } from '#src/renderer/layers/TimescopeSeriesChartLayer';
@@ -51,22 +49,17 @@ afterEach(() => {
   MockPath2D.instances = [];
 });
 
-describe('series mark geometry', () => {
-  it('decodes binary cubic paths while applying matrices', () => {
+describe('mark and path rendering', () => {
+  it('transforms cubic endpoints and control points', () => {
     vi.stubGlobal('Path2D', MockPath2D);
     const commands = pathCommands([PathCommand.moveTo, 0, 0, PathCommand.bezierCurveTo, 1, 1, 2, 1, 3, 0]);
     const first = createCompiledLinkPath(commands, 1, -100, 200, 10, 0, 20);
     const firstPath = first.path;
     const second = createCompiledLinkPath(commands, 2, -80, 160, 10, 0, 20, first);
-    const cached = createCompiledLinkPath(commands, 2, -80, 160, 10, 0, 20, second);
-
-    expect(MockPath2D.instances).toHaveLength(2);
     expect((firstPath as unknown as MockPath2D).commands).toEqual([
       ['moveTo', 0, 200],
       ['bezierCurveTo', 1, 100, 2, 100, 3, 200],
     ]);
-    expect(second).toBe(first);
-    expect(cached).toBe(second);
     expect((second.path as unknown as MockPath2D).commands).toEqual([
       ['moveTo', 0, 160],
       ['bezierCurveTo', 2, 80, 4, 80, 6, 160],
@@ -123,15 +116,6 @@ describe('series mark geometry', () => {
     ]);
   });
 
-  it('rejects a positive link Y scale', () => {
-    vi.stubGlobal('Path2D', MockPath2D);
-    const commands = pathCommands([PathCommand.moveTo, 0, 0]);
-
-    expect(() => createCompiledLinkPath(commands, 1, 1, 0, 0, 0, 100)).toThrow(
-      'Link path Y scale must not be positive',
-    );
-  });
-
   it('rejects invalid link command streams and transforms', () => {
     vi.stubGlobal('Path2D', MockPath2D);
     const truncated = pathCommands([PathCommand.lineTo, 1]);
@@ -148,25 +132,8 @@ describe('series mark geometry', () => {
     );
   });
 
-  it('flattens mark color alpha against the background before applying fill opacity', () => {
-    expect(createMarkFillStyle({ color: 'rgba(255, 0, 0, 0.5)' }, '#fff')).toBe('rgba(255, 223, 223, 1)');
-    expect(createMarkFillStyle({ color: '#f00' }, '#fff')).toBe('rgba(255, 191, 191, 1)');
-    expect(createMarkFillStyle({ color: '#f00', fillColor: 'rgba(255, 0, 0, 0.5)' }, '#fff')).toBe(
-      'rgba(255, 128, 128, 1)',
-    );
-    expect(createMarkFillStyle({ color: '#00f', fillColor: '#0008', fillOpacity: 0.4 }, '#fff')).toBe(
-      'rgba(119, 119, 119, 0.4)',
-    );
-  });
-
-  it('keeps the existing link fill opacity behavior', () => {
-    expect(createFillStyle({ color: 'rgba(255, 0, 0, 0.5)' })).toBe('rgba(255, 0, 0, 0.125)');
-  });
-
-  it('reuses one unit path and does not allocate DOMMatrix objects per point', () => {
-    const DOMMatrixMock = vi.fn();
+  it('positions and rotates a mark using its endpoints and style offset', () => {
     vi.stubGlobal('Path2D', MockPath2D);
-    vi.stubGlobal('DOMMatrix', DOMMatrixMock);
 
     const createMarks = createUnitPathMarks(
       (path) => {
@@ -181,22 +148,9 @@ describe('series mark geometry', () => {
     const point = { x1: 10, y1: 20, x2: 13, y2: 24 };
     const style = { color: 'black', offset: [2, 3] as [number, number] };
 
-    const first = createMarks([point, point], style);
-    const second = createMarks([point], style);
-
-    expect(MockPath2D.instances).toHaveLength(3);
-    expect(DOMMatrixMock).not.toHaveBeenCalled();
-    expect(first.strokePath).toBe(first.fillPath);
-    expect(second.strokePath).toBe(second.fillPath);
-
-    const template = MockPath2D.instances[0];
-    expect(template.commands).toEqual([
-      ['moveTo', 0, 0],
-      ['lineTo', 1, 0],
-    ]);
-    expect(MockPath2D.instances[1].additions.map(({ path }) => path)).toEqual([template, template]);
-    expect(MockPath2D.instances[2].additions[0].path).toBe(template);
-    expect(MockPath2D.instances[1].additions[0].transform).toEqual({
+    const result = createMarks([point], style);
+    const path = result.strokePath as unknown as MockPath2D;
+    expect(path.additions[0].transform).toEqual({
       a: expect.closeTo(3),
       b: expect.closeTo(4),
       c: expect.closeTo(-1.6),

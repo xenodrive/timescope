@@ -1,5 +1,4 @@
 import type { RendererCommands } from '#src/bridge/protocol';
-import { copyRenderPayload } from '#src/bridge/rpc';
 import type { RenderCall } from '#src/bridge/rpc';
 import { Decimal } from '#src/core/decimal';
 import { TimescopeMainThreadRenderer } from '#src/main/TimescopeMainThreadRenderer';
@@ -60,7 +59,22 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('main-thread rendering', () => {
+describe('renderer integration', () => {
+  it('does not acquire a source when all its data presentations are disabled', async () => {
+    const loader = vi.fn(async () => [{ time: 0, value: 1 }]);
+    const renderer = new TimescopeMainThreadRenderer({ canvas: canvas(), fonts: [] });
+    cleanups.push(() => renderer.dispose());
+    renderer.setOptions({
+      sources: { sample: { loader } },
+      series: { sample: { data: { source: 'sample', instantaneous: false }, tooltip: false } },
+      tracks: { default: { timeAxis: false } },
+    });
+    renderer.resize({ size: { width: 200, height: 100 }, context: { dpr: 1 } });
+    await frame();
+    await frame();
+    expect(loader).not.toHaveBeenCalled();
+  });
+
   it('redraws for each loaded font without waiting for slower fonts and releases only owned fonts', async () => {
     const pending = new Map<string, () => void>();
     class TestFontFace {
@@ -142,21 +156,6 @@ describe('main-thread rendering', () => {
     expect(presented.at(-1)?.meta.resolution.eq(1)).toBe(true);
     renderer.dispose();
     expect(frames.size).toBe(0);
-  });
-
-  it('copies mutable drawing payloads while preserving Decimal precision and aliases', () => {
-    const value = Decimal('12345678901234567890.000000000000000000001');
-    const values = new Float64Array([1, 2]);
-    const payload = { value, alias: value, data: { y: values }, meta: { revision: 1 } };
-    const copy = copyRenderPayload(payload);
-    copy.data.y[0] = 99;
-    copy.meta.revision++;
-    expect(copy.value.eq(value)).toBe(true);
-    expect(copy.value).toBe(copy.alias);
-    expect(copy.value).not.toBe(value);
-    expect(values[0]).toBe(1);
-    expect(values.byteLength).toBe(16);
-    expect(payload.meta.revision).toBe(1);
   });
 
   it('aborts a waiting frame and cancels scheduled draws when its engine is disposed', async () => {

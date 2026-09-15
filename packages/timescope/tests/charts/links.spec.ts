@@ -203,21 +203,6 @@ describe('link geometry', () => {
     );
   });
 
-  it('uses pre-projected numeric coordinates', () => {
-    const rows: TestRow[] = [0, 1].map((offset) => ({
-      x: { time: Decimal(offset) },
-      y: { value: Decimal(offset) },
-    }));
-    expect(
-      compileLinkGeometry({
-        rows,
-        kind: 'line',
-        using: 'value@time',
-        target: { xRange: [Decimal(-100), Decimal(100)] },
-      }),
-    ).toBe('M0 0 L1 1');
-  });
-
   it('clips lines to finite X and Y ranges before Number conversion', () => {
     const huge = Decimal('1e1000');
     const d = compileLinkGeometry({
@@ -227,9 +212,9 @@ describe('link geometry', () => {
       ],
       kind: 'line',
       using: 'value@time',
-      target: { xRange: [Decimal(-1), Decimal(1)] },
+      target: { xRange: [Decimal(-1), Decimal(1)], yRange: [Decimal(-2), Decimal(2)] },
     });
-    expect(d).toBe('M0 -16384 L0 16384');
+    expect(d).toBe('M0 -2 L0 2');
     expect(d).not.toMatch(/NaN|Infinity/);
   });
 

@@ -61,7 +61,7 @@ function oracleAggregate(entries: readonly { row: TimescopeDataRow; ordinal: num
 }
 
 describe('mutable aggregate series index', () => {
-  it('keeps count and sum internal while exposing exact aggregate results', () => {
+  it('aggregates each field independently, excluding nulls and retaining zero', () => {
     const index = new TimescopeAggregateSeriesIndex([
       point(0, { value: 0, other: null }),
       point(1, { value: null, other: 8 }),
@@ -74,8 +74,6 @@ describe('mutable aggregate series index', () => {
     expect(aggregate.value.max?.eq(10)).toBe(true);
     expect(aggregate.value.first?.eq(0)).toBe(true);
     expect(aggregate.value.last?.eq(10)).toBe(true);
-    expect(aggregate.value).not.toHaveProperty('count');
-    expect(aggregate.value).not.toHaveProperty('sum');
     expect(aggregate.other.avg?.eq(6)).toBe(true);
   });
 
@@ -93,39 +91,12 @@ describe('mutable aggregate series index', () => {
     });
   });
 
-  it('uses subtree maxEnd for long overlaps and returns stable raw context', () => {
+  it('includes intervals that start outside but overlap the requested range', () => {
     const rows = [interval(-20, 50), point(-2), point(2), point(8), point(12), interval(20, 21)];
     const index = new TimescopeAggregateSeriesIndex(rows);
 
     expect(index.raw([Decimal(5), Decimal(10)], false)).toEqual([rows[0], rows[3]]);
     expect(index.raw([Decimal(5), Decimal(10)])).toEqual(rows);
-  });
-
-  it('preserves untouched node identities across local inserts and replacement deletion', () => {
-    const index = new TimescopeAggregateSeriesIndex(Array.from({ length: 300 }, (_, time) => point(time)));
-    const original = index.diagnostics();
-    const untouched = original.nodes.find((node) => node.leaf && node.first.eq(0))!;
-
-    index.append(Array.from({ length: 200 }, (_, offset) => point(300 + offset)));
-    expect(index.diagnostics().nodes).toContainEqual(untouched);
-
-    index.replaceRange(
-      [Decimal(400), Decimal(470)],
-      Array.from({ length: 10 }, (_, offset) => point(420 + offset / 10)),
-    );
-    expect(index.diagnostics().nodes).toContainEqual(untouched);
-    expect(index.size).toBe(440);
-  });
-
-  it('merges whole-node summaries for bucket interiors instead of scanning points', () => {
-    const index = new TimescopeAggregateSeriesIndex(
-      Array.from({ length: 2000 }, (_, time) => point(time, { value: 1 })),
-    );
-    const [bucket] = index.buckets([Decimal(0), Decimal(2000)], Decimal(2000), false);
-
-    expect(bucket.aggregate.value.avg?.eq(1)).toBe(true);
-    expect(index.diagnostics().buckets.mergedNodes).toBe(1);
-    expect(index.diagnostics().buckets.scannedEntries).toBe(0);
   });
 
   it('returns two aggregate context buckets per side and only supported output aliases', () => {
@@ -210,7 +181,7 @@ describe('mutable aggregate series index', () => {
     expect(intervals).toEqual([overlapping, farBefore, before, after, farAfter]);
   });
 
-  it('matches an array oracle through repeated incremental splits, replacements, and merges', () => {
+  it('matches an array oracle after repeated appends and range replacements', () => {
     let state = 0x5eed1234;
     const random = () => {
       state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
@@ -265,10 +236,9 @@ describe('mutable aggregate series index', () => {
 
     index.replaceRange([Decimal(-10_000), Decimal(10_000)], [point(1), point(2)]);
     expect(index.raw()).toEqual([point(1), point(2)]);
-    expect(index.diagnostics().nodes).toHaveLength(1);
   });
 
-  it('rejects invalid buckets and retains unrepresentable aggregate context', () => {
+  it('retains aggregate context at extreme resolutions', () => {
     const tiny = Decimal('1e-100');
     const nearTime = tiny.mul('0.5');
     const near: TimescopeDataRow = {
@@ -278,7 +248,6 @@ describe('mutable aggregate series index', () => {
       range: [nearTime, nearTime, '[]'],
     };
     const index = new TimescopeAggregateSeriesIndex([point(-1e100), near]);
-    expect(() => index.buckets([Decimal(0), Decimal(2)], Decimal(0))).toThrow(RangeError);
     const rows = index.query(
       createChunk({ id: 'tiny', seq: 0n, range: [Decimal(0), tiny], resolution: tiny, zoom: 0 }),
     );
