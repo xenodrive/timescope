@@ -97,6 +97,8 @@ export type TimescopeProjectedChartMark = Omit<TimescopeChartMark<false>, 'using
 
 export type TimescopeCompiledChartLink = {
   commands: TimescopePathCommands;
+  /** Stable across transfers while the geometry and its coordinate system are unchanged. */
+  geometryUid?: string;
   draw: TimescopeChartLink<false>['draw'];
   style: StrokeStyle<false> & FillStyle<false>;
 };

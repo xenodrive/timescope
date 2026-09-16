@@ -275,6 +275,16 @@ export class TimescopeView<T extends TimescopeViewPoint> extends TimescopeObserv
     return this.#targetRange ? this.query(this.#targetRange) : [];
   }
 
+  /** Expand to the boundaries of the loaded tiles used by this query. */
+  expandToChunkBounds(range: TimescopeRange<Decimal>): TimescopeRange<Decimal> {
+    let [start, end] = range;
+    for (const tile of this.#tiles(range)) {
+      if (tile.range[0]?.lt(start)) start = tile.range[0];
+      if (tile.range[1]?.gt(end)) end = tile.range[1];
+    }
+    return [start, end];
+  }
+
   query(range: TimescopeRange<Decimal>, options: TimescopeViewQueryOptions = {}): readonly T[] {
     if (options.loadMissing) this.loadTarget();
     const tiles = this.#tiles(range);

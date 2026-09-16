@@ -141,6 +141,18 @@ describe.each(['local', 'worker'] as const)('%s request boundary', (kind) => {
 });
 
 describe('worker buffer ownership', () => {
+  it('keeps retained geometry usable across repeated worker responses', () => {
+    const values = new Float64Array([0, -10, 0, 1, 100, 1]);
+    const response = { data: { links: [{ geometryUid: '1', commands: { values, length: values.length } }] } };
+    for (let index = 0; index < 2; index++) {
+      const received = structuredClone(response, { transfer: dataBuffers(response) });
+      expect(received.data.links[0].commands.values).toEqual(values);
+      expect(values.length).toBe(6);
+      received.data.links[0].commands.values[1] = 99;
+      expect(values[1]).toBe(-10);
+    }
+  });
+
   it('transfers request and response buffers, including aliased drawing views', async () => {
     const channel = new MessageChannel();
     channel.port1.start();

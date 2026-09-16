@@ -40,6 +40,99 @@ function fixture(
 }
 
 describe('chart data', () => {
+  it.each(['line', 'curve', 'area', 'curve-area'] as const)(
+    'keeps the left %s segment when settling releases a retained chunk',
+    async (draw) => {
+      const view = fixture(
+        createDataSource({
+          chunkSize: 256,
+          data: [-3.5, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5].map((time) => ({ time, value: 0.5 })),
+        }),
+        { links: [draw === 'area' || draw === 'curve-area' ? { draw, using: ['value', '#zero'] } : { draw }] },
+      );
+      const resolution = Decimal(1).div(128);
+      const before: [Decimal, Decimal] = [Decimal('-2.2'), Decimal('4.2')];
+      const after: [Decimal, Decimal] = [Decimal('-1.8'), Decimal('4.6')];
+      await view.render(before, resolution);
+      view.registry.update(viewState(after, resolution, { currentRange: before, editing: true, phase: 'changing' }));
+      await view.provider.waitForTarget();
+      const moving = await view.provider.transform(view.series, after, resolution, after[0]);
+      const settled = await view.render(after, resolution);
+      expect(settled.data.links[0].commands).toBe(moving.data.links[0].commands);
+      for (const result of [moving, settled]) {
+        const x = Decimal('-1.7').sub(result.meta.time).div(resolution).number();
+        expect(yAtX(result.data.links[0].commands, x)).toBeCloseTo(0.5);
+      }
+    },
+  );
+
+  it.each(['line', 'curve', 'step'] as const)(
+    'retains %s geometry and its origin while panning inside a chunk',
+    async (draw) => {
+      let color = 'red';
+      const view = fixture(
+        createDataSource({
+          chunkSize: 10,
+          chunkOffset: -3,
+          data: Array.from({ length: 31 }, (_, time) => ({ time: time - 10, value: 0.5 })),
+        }),
+        { links: () => [{ draw, style: { lineDashArray: [3, 2], lineColor: color } }], marks: [{ draw: 'circle' }] },
+      );
+      const first = await view.render([Decimal(-2), Decimal(2)]);
+      color = 'blue';
+      const panned = await view.render([Decimal(-1), Decimal(3)]);
+
+      expect(panned.data.links[0].commands).toBe(first.data.links[0].commands);
+      expect(panned.data.links[0].geometryUid).toBe(first.data.links[0].geometryUid);
+      expect(panned.meta.time.eq(first.meta.time)).toBe(true);
+      expect(panned.data.links[0].style.lineColor).toBe('blue');
+      // Coordinates remain relative to the retained origin, while mark visibility changes.
+      expect(panned.data.marks.map(([mark]) => mark.point.x1)).toEqual([1, 2, 3, 4]);
+      expect(yAtX(panned.data.links[0].commands, -0.5)).toBeCloseTo(0.5);
+      expect(yAtX(panned.data.links[0].commands, 8)).toBeCloseTo(0.5);
+
+      const outside = await view.render([Decimal(8), Decimal(12)]);
+      expect(outside.data.links[0].geometryUid).not.toBe(first.data.links[0].geometryUid);
+      expect(yAtX(outside.data.links[0].commands, 1)).toBeCloseTo(0.5);
+    },
+  );
+
+  it('rebuilds retained geometry for changed data, resolution, and Y projection', async () => {
+    const source = createDataSource({
+      chunkSize: 10,
+      data: Array.from({ length: 11 }, (_, time) => ({ time, value: 0.5 })),
+    });
+    const view = fixture(source, 'lines');
+    const range: [Decimal, Decimal] = [Decimal(1), Decimal(5)];
+    const first = await view.render(range);
+    await source.replace([3, 4], [{ time: 3, value: 0.75 }]);
+    const updated = await view.render(range);
+    expect(updated.data.links[0].geometryUid).not.toBe(first.data.links[0].geometryUid);
+    expect(yAtX(updated.data.links[0].commands, 2)).toBeCloseTo(0.75);
+
+    const zoomed = await view.render(range, Decimal('0.5'));
+    expect(zoomed.data.links[0].geometryUid).not.toBe(updated.data.links[0].geometryUid);
+    expect(yAtX(zoomed.data.links[0].commands, 4)).toBeCloseTo(0.75);
+
+    view.domain.updateOptions({ range: [0, 2] });
+    const rescaled = await view.render(range, Decimal('0.5'));
+    expect(rescaled.data.links[0].geometryUid).not.toBe(zoomed.data.links[0].geometryUid);
+    expect(yAtX(rescaled.data.links[0].commands, 4)).toBeCloseTo(0.375);
+  });
+
+  it('does not include the expanded geometry range in autoscaling', async () => {
+    const view = fixture(
+      createDataSource({
+        chunkSize: 100,
+        data: Array.from({ length: 100 }, (_, time) => ({ time, value: time === 90 ? 1000 : 1 })),
+      }),
+      'lines',
+      new TimescopeDomain(),
+    );
+    await view.render([Decimal(10), Decimal(20)]);
+    expect(view.domain.dataRange?.map(Number)).toEqual([1, 1]);
+  });
+
   it.each(['lines', 'curves'] as const)('%s preserve visible geometry across chunk boundaries', async (chart) => {
     const data = Array.from({ length: 13 }, (_, time) => ({ time: time - 2, value: (time % 4) / 4 }));
     const range: [Decimal, Decimal] = [Decimal(0), Decimal(9)];

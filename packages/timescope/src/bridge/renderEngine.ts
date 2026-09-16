@@ -11,7 +11,7 @@ export function dataBuffers(result: unknown): ArrayBuffer[] {
       data?: {
         x?: Record<string, Float64Array>;
         y?: Record<string, Float64Array> | Float64Array;
-        links?: { commands?: { values?: Float64Array } }[];
+        links?: { geometryUid?: string; commands?: { values?: Float64Array } }[];
       };
     }
   ).data;
@@ -22,7 +22,11 @@ export function dataBuffers(result: unknown): ArrayBuffer[] {
   for (const value of Object.values(data?.x ?? {})) add(value);
   if (data?.y instanceof Float64Array) add(data.y);
   else for (const value of Object.values(data?.y ?? {})) add(value);
-  for (const link of data?.links ?? []) add(link.commands?.values);
+  // Identified geometry is retained by the loader for later pans. Clone those
+  // buffers through postMessage instead of detaching them from the cache.
+  for (const link of data?.links ?? []) {
+    if (link.geometryUid === undefined) add(link.commands?.values);
+  }
   return [...buffers];
 }
 

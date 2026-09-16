@@ -1,5 +1,6 @@
 import { Decimal, isDecimal } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
+import { setUid } from '#src/core/uid';
 import type { TimescopeChartLink, TimescopeChartMark, TimescopeChartType, Using } from '#src/main/chart';
 import {
   compileLinkGeometry,
@@ -124,6 +125,16 @@ const ZERO = Decimal(0);
 const ZERO_COORDINATE = { value: ZERO, role: 'zero' as const };
 const TOP_COORDINATE = { value: ZERO, role: 'top' as const };
 const BOTTOM_COORDINATE = { value: ZERO, role: 'bottom' as const };
+
+type LinkGeometryCache = {
+  range: TimescopeRange<Decimal>;
+  resolution: Decimal;
+  xOrigin: Decimal;
+  rows: readonly TimescopeDataRow[];
+  key: string;
+  projection: TimescopeSeriesChartData['meta']['linkProjection'];
+  geometries: Pick<TimescopeSeriesChartData['data']['links'][number], 'commands' | 'geometryUid'>[];
+};
 
 export function resolveChartLinks(
   chart: TimescopeDataSeries['options']['chart'],
@@ -251,6 +262,7 @@ export class TimescopeSeriesChart<O extends TimescopeSeriesDataLoaderOptions> ex
   #view: TimescopeView<TimescopeDataRow>;
   #releaseView: () => void;
   #targetWaiters = new Set<AbortController>();
+  #linkGeometry?: LinkGeometryCache;
 
   constructor(options: O) {
     super(options);
@@ -305,10 +317,22 @@ export class TimescopeSeriesChart<O extends TimescopeSeriesDataLoaderOptions> ex
     xOrigin: Decimal = range[0],
   ) {
     const resolvedLinks = resolveChartLinks(series.options.chart, resolution);
-    const visibleStart = range[0].sub(xOrigin).divRound(resolution, 18);
-    const visibleEnd = range[1].sub(xOrigin).divRound(resolution, 18);
-    const links = visibleStart.lt(visibleEnd) ? resolvedLinks : [];
-    const rows = this.#view.query(range, { includeOutbound: links.length ? 2 : 0 });
+    const links = range[0].lt(range[1]) ? resolvedLinks : [];
+    const previous = links.length ? this.#linkGeometry : undefined;
+    const availableRange = links.length ? this.#view.expandToChunkBounds(range) : range;
+    // Settling can release previously retained tiles. Keep the query boundaries
+    // within the current tiles so their outbound neighbors are still included.
+    const retainRange =
+      previous &&
+      previous.resolution.eq(resolution) &&
+      previous.range[0].le(range[0]) &&
+      previous.range[1].ge(range[1]) &&
+      availableRange[0].le(previous.range[0]) &&
+      availableRange[1].ge(previous.range[1]);
+    const geometryRange = retainRange ? previous.range : availableRange;
+    if (retainRange) xOrigin = previous.xOrigin;
+    const visibleRows = this.#view.query(range, { includeOutbound: links.length ? 2 : 0 });
+    const rows = links.length ? this.#view.query(geometryRange, { includeOutbound: 2 }) : visibleRows;
     const marks: ResolvedChartMark[][] = [];
     const markRows: TimescopeDataRow[] = [];
     const markProjectedIndices: number[] = [];
@@ -334,17 +358,29 @@ export class TimescopeSeriesChart<O extends TimescopeSeriesDataLoaderOptions> ex
       projectionFields.times.add('_minTime');
       projectionFields.times.add('_maxTime');
     }
-    const extentInputs = links.flatMap((link) => rows.map((row) => ({ row, using: linkUsing(link) })));
+    const extentInputs = links.flatMap((link) => visibleRows.map((row) => ({ row, using: linkUsing(link) })));
     for (let index = 0; index < markRows.length; index++) {
       for (const mark of marks[index]) extentInputs.push({ row: markRows[index], using: mark.using });
     }
     const { extent, positiveExtent } = collectExtent(extentInputs);
     series.domain.reportExtent(series, extent, positiveExtent);
     const { projection, wire: projectionWire } = series.domain.createProjection();
+    const geometryKey = JSON.stringify(links.map((link) => [link.draw, linkUsing(link)]));
+    const reuseGeometry =
+      retainRange &&
+      previous.key === geometryKey &&
+      previous.projection.domainId === projectionWire.domainId &&
+      previous.projection.domainEpoch === projectionWire.domainEpoch &&
+      previous.projection.revision === projectionWire.revision &&
+      previous.rows.length === rows.length &&
+      previous.rows.every((row, index) => row === rows[index]);
     const projectRow = createRowProjector(xOrigin, resolution, projectionFields.times);
-    const projectedXRows = links.length || marks.length ? rows.map(projectRow) : [];
+    // Reused links need no projection work; only the currently visible marks do.
+    const projectedIndices = reuseGeometry ? markProjectedIndices : rows.map((_, index) => index);
+    const projectedXRows = new Array<ReturnType<typeof projectRow>>(rows.length);
     const projectedY = Object.create(null) as Record<string, (LinkGeometryCoordinate | null | undefined)[]>;
-    for (let index = 0; index < rows.length; index++) {
+    for (const index of projectedIndices) {
+      projectedXRows[index] = projectRow(rows[index]);
       const values = rows[index].values;
       for (const key of projectionFields.values) {
         if (!(key in values)) continue;
@@ -368,16 +404,27 @@ export class TimescopeSeriesChart<O extends TimescopeSeriesDataLoaderOptions> ex
         return projectedY[key]?.[index];
       },
     };
-    const compiledLinks = links.flatMap((link) => {
-      const commands = compileLinkGeometry({
-        source,
-        kind: link.draw as LinkGeometryKind,
-        using: linkUsing(link),
-        target: {
-          xRange: [visibleStart, visibleEnd],
-        },
-      });
-      return commands.length ? [{ commands, draw: link.draw, style: link.style ?? {} }] : [];
+    const geometries = reuseGeometry
+      ? previous.geometries
+      : links.map((link) => {
+          const commands = compileLinkGeometry({
+            source,
+            kind: link.draw as LinkGeometryKind,
+            using: linkUsing(link),
+            target: {
+              xRange: geometryRange.map((time) =>
+                time.sub(xOrigin).divRound(resolution, 18),
+              ) as TimescopeRange<Decimal>,
+            },
+          });
+          return { commands, geometryUid: setUid(commands) };
+        });
+    this.#linkGeometry = links.length
+      ? { range: geometryRange, resolution, xOrigin, rows, key: geometryKey, projection: projectionWire, geometries }
+      : undefined;
+    const compiledLinks = links.flatMap((link, index) => {
+      const geometry = geometries[index];
+      return geometry.commands.length ? [{ ...geometry, draw: link.draw, style: link.style ?? {} }] : [];
     });
     const meta = {
       resolution,

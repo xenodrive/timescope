@@ -202,6 +202,7 @@ type LinkOp = {
   strokePath?: Path2D;
   fillPath?: Path2D;
   pathCache: CompiledLinkPath;
+  geometryUid?: string;
   path?: undefined;
   style: StrokeStyle &
     FillStyle &
@@ -824,8 +825,14 @@ export class TimescopeSeriesChartLayer extends TimescopeLayer {
           const link = records.links[linkIndex];
           const style = { color, ...(link.style ?? {}) };
           const previousLink = previous?.linkOps[linkIndex];
+          // Command buffers are cloned across the bridge; use the geometry identity
+          // to retain the Path2D when only the viewport's translation changed.
+          const commands =
+            link.geometryUid !== undefined && link.geometryUid === previousLink?.geometryUid
+              ? previousLink.pathCache.commands
+              : link.commands;
           const compiled = createCompiledLinkPath(
-            link.commands,
+            commands,
             scaleX,
             scaleY,
             offsetY,
@@ -838,6 +845,7 @@ export class TimescopeSeriesChartLayer extends TimescopeLayer {
           plot.linkOps.push({
             draw: link.draw,
             pathCache: compiled,
+            geometryUid: link.geometryUid,
             strokePath: fill ? undefined : compiled.path,
             fillPath: fill ? compiled.path : undefined,
             style: {

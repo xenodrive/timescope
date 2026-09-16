@@ -27,6 +27,7 @@
   "devDependencies": {
     "@kikuchan/calendar": "^0.2.0-alpha.0",
     "@kikuchan/decimal": "^0.2.0-alpha.0",
+    "@napi-rs/canvas": "^1.0.9",
     "oxfmt": "^0.67.0",
     "oxlint": "^1.82.0",
     "tsdown": "^0.23.0",
