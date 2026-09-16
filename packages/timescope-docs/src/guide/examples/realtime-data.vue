@@ -17,7 +17,7 @@ import { createDataSource, Timescope } from 'timescope';
 // #region docs-ignore
 onMounted(() => {
   // #endregion docs-ignore
-  const sampleInterval = 0.25;
+  const sampleInterval = 1 / 60;
   const initialSampleCount = 80;
   const valueAt = (index: number) => 50 + Math.sin(index / 8) * 18 + Math.sin(index / 2.5) * 4;
   const source = createDataSource({
