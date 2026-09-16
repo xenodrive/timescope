@@ -12,6 +12,7 @@ import { Timescope, type TimescopeChartType } from 'timescope';
 
 const $el = useTemplateRef('timescope-ref');
 const chart = defineModel<TimescopeChartType>({ default: 'linespoints' });
+const props = withDefaults(defineProps<{ color?: string }>(), { color: '#0d9488' });
 
 onMounted(() => {
   if (!$el.value) return;
@@ -32,17 +33,18 @@ onMounted(() => {
       temperature: {
         data: {
           source: 'samples',
+          color: props.color,
         },
         chart: chart.value,
       },
     },
   });
 
-  watch(chart, () => {
+  watch([chart, () => props.color], () => {
     timescope.updateOptions({
       series: {
         temperature: {
-          data: { source: 'samples' },
+          data: { source: 'samples', color: props.color },
           chart: chart.value,
         },
       },

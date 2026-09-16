@@ -1,15 +1,21 @@
 <script setup>
 import Example from '@/guide/examples/chart-presets.vue';
+import ChartColorInput from '../../../.vitepress/theme/components/ChartColorInput.vue';
 import { ref } from 'vue';
 
 const chart = ref('linespoints');
+const color = ref('#0d9488');
 </script>
 
 # Chart Presets
 
 ## Example
 
-<select v-model="chart" style="padding: 0 0.5rem; border-radius: 4px;">
+<div class="chart-controls">
+<div class="control-panel">
+<div class="control-grid">
+<label class="control-field">Chart preset
+<select v-model="chart">
   <option>lines</option>
   <option>lines:filled</option>
   <option>curves</option>
@@ -36,8 +42,16 @@ const chart = ref('linespoints');
   <option>bars</option>
   <option>bars:filled</option>
 </select>
+</label>
+<div class="control-field">color
+<ChartColorInput v-model="color" label="Series color" />
+</div>
+</div>
+<p class="control-hint">Choose a color with the picker. Filled presets derive a softer fill from this color; points hide the lines behind them.</p>
+</div>
+</div>
 
-<Example v-model="chart" />
+<Example v-model="chart" :color="color.trim() || '#0d9488'" />
 
 ## Code
 
@@ -56,18 +70,18 @@ const timescope = new Timescope({
   },
   series: {
     temperature: {
-      data: { source: 'samples' },
+      data: { source: 'samples', color: '#0d9488' },
       chart: 'linespoints',
     },
   },
   tracks: { default: { timeAxis: { relative: true } } },
 });
 
-function setChart(chart: TimescopeChartType) {
+function setChart(chart: TimescopeChartType, color: string) {
   timescope.updateOptions({
     series: {
       temperature: {
-        data: { source: 'samples' },
+        data: { source: 'samples', color },
         chart,
       },
     },
@@ -104,3 +118,7 @@ function setChart(chart: TimescopeChartType) {
 | `impulsespoints`           | `line` (using `value`, `#zero`), `circle`          | –                               |
 | `bars`                     | `bar` (using `value`, `#zero`; fill `transparent`) | –                               |
 | `bars:filled`              | `bar` (using `value`, `#zero`)                     | –                               |
+
+<style scoped>
+@import './chart-controls.css';
+</style>

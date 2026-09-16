@@ -1,13 +1,15 @@
 <script setup>
 import Example from '@/guide/examples/marks-and-links.vue';
+import ChartColorInput from '../../../.vitepress/theme/components/ChartColorInput.vue';
 import { ref, computed } from 'vue';
 
 const links = ref([
-  { draw: 'line', color: 'green' },
+  { draw: 'area', color: '#0d9488', fillColor: '', fillOpacity: 1 },
+  { draw: 'area', color: '#8b5cf6', fillColor: '', fillOpacity: 1, using: ['min', 'max'] },
+  { draw: 'line', color: '#0f766e', fillColor: '', fillOpacity: 1 },
 ]);
 const marks = ref([
-  { draw: 'section', color: 'green' },
-  { draw: 'star', color: 'green' },
+  { draw: 'circle', color: '#0d9488', fillColor: '', fillOpacity: 1 },
 ]);
 
 const path = 'M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2 Z';
@@ -33,31 +35,104 @@ const markStyles = {
   path: { ...MARK_PATH_STYLE },
 };
 
-function markColorStyle(draw, color) {
-  if (!color || draw === 'path') return {};
-  if (draw === 'text') return { textColor: color };
-  if (draw === 'icon') return { iconColor: color };
-  if (['cross', 'plus', 'minus', 'line', 'section'].includes(draw)) return { lineColor: color };
-  return { lineColor: color, fillColor: color };
+const controls = computed(() => [
+  { name: 'Marks', kind: 'mark', rows: marks.value, selection: marksSelection.value },
+  { name: 'Links', kind: 'link', rows: links.value, selection: linksSelection.value },
+]);
+
+function hasFill(kind, draw) {
+  return kind === 'link' ? draw.includes('area') : ['circle', 'triangle', 'square', 'star', 'diamond', 'bar', 'path'].includes(draw);
+}
+
+function hasStroke(kind, draw) {
+  return kind === 'link' ? !draw.includes('area') : !['text', 'icon'].includes(draw);
+}
+
+function hasSize(kind, draw) {
+  return kind === 'mark' && draw !== 'line';
+}
+
+function hasAngle(kind, draw) {
+  return kind === 'mark' && ['triangle', 'square', 'diamond', 'star', 'text', 'icon', 'path'].includes(draw);
+}
+
+function setNumber(row, key, value) {
+  row[key] = value === '' ? undefined : Number(value);
+}
+
+const dashPresets = [
+  { name: 'Solid', value: 'solid', dash: [] },
+  { name: 'Dashed', value: 'dashed', dash: [6, 4] },
+  { name: 'Dotted', value: 'dotted', dash: [1, 4] },
+  { name: 'Dash-dot', value: 'dash-dot', dash: [6, 3, 1, 3] },
+  { name: 'Long dash', value: 'long-dash', dash: [12, 6] },
+];
+
+function dashArray(row) {
+  return dashPresets.find(preset => preset.value === row.lineDash)?.dash ?? [];
+}
+
+const usingOptions = ['value', 'min', 'max', '#zero', '#top', '#bottom'];
+
+function usesTwoValues(kind, draw) {
+  return kind === 'link' ? draw.includes('area') : ['line', 'bar', 'section'].includes(draw);
+}
+
+function usingValues(kind, row) {
+  const defaults = kind === 'mark' && usesTwoValues(kind, row.draw) ? ['min', 'max'] : ['value', '#zero'];
+  return [row.using?.[0] ?? defaults[0], row.using?.[1] ?? defaults[1]];
+}
+
+function resolvedUsing(kind, row) {
+  const values = usingValues(kind, row);
+  return usesTwoValues(kind, row.draw) ? values : values[0];
+}
+
+function setUsing(kind, row, index, value) {
+  const values = usingValues(kind, row);
+  values[index] = value;
+  row.using = values;
+}
+
+function autoFillColor(kind, row) {
+  return `color-mix(in srgb, ${row.color.trim() || '#0d9488'} 25%, ${kind === 'mark' ? '#fff' : 'transparent'})`;
+}
+
+function colorStyle(kind, row) {
+  return {
+    color: row.color.trim() || '#0d9488',
+    ...(hasSize(kind, row.draw) && row.size !== undefined ? { size: Math.max(0, Math.min(32, row.size)) } : {}),
+    ...(hasStroke(kind, row.draw) ? {
+      ...(row.lineWidth !== undefined ? { lineWidth: Math.max(0, row.lineWidth) } : {}),
+      ...(row.lineColor ? { lineColor: row.lineColor } : {}),
+      ...(dashArray(row).length ? { lineDashArray: dashArray(row) } : {}),
+    } : {}),
+    ...(hasAngle(kind, row.draw) && row.angle !== undefined ? { angle: row.angle } : {}),
+    ...(hasFill(kind, row.draw) ? {
+      ...(row.fillColor.trim() ? { fillColor: row.fillColor.trim() } : {}),
+      fillOpacity: row.fillOpacity,
+    } : {}),
+  };
 }
 
 const marksFinal = computed(() => {
-  return marks.value.map(({ color, ...mark }) => ({
-    ...mark,
+  return marks.value.map((mark) => ({
+    draw: mark.draw,
+    using: resolvedUsing('mark', mark),
     style: {
       ...(markStyles[mark.draw] ?? {}),
-      ...markColorStyle(mark.draw, color),
+      ...colorStyle('mark', mark),
     },
   }));
 });
 
 const linksFinal = computed(() => {
-  return links.value.map(({ color, ...link }) => ({
-    ...link,
+  return links.value.map((link) => ({
+    draw: link.draw,
+    using: resolvedUsing('link', link),
     style: {
       lineWidth: 2,
-      lineColor: color,
-      ...(link.draw.includes('area') ? { fillColor: color } : {}),
+      ...colorStyle('link', link),
     },
   }));
 });
@@ -176,82 +251,64 @@ function highlightTypeScript(code) {
 
 ## Example
 
-<table>
-  <caption style="text-align: left">marks:</caption>
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>draw</th>
-      <th>color</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr v-for="(mark, idx) in marks">
-      <td>
-        {{ idx }}
-      </td>
-      <td>
-        <select v-model="mark.draw">
-          <optgroup v-for="group in marksSelection" :label="group.name">
-            <option v-for="sel in group.children" :key="sel.draw" :value="sel.draw">{{ sel.draw }}</option>
-          </optgroup>
-        </select>
-      </td>
-      <td>
-        <input type="text" v-model="mark.color" :disabled="mark.draw === 'path'" />
-      </td>
-      <td>
-        <button @click="marks.splice(idx, 1)">-</button>
-      </td>
-    </tr>
-    <tr>
-      <td><button @click="marks.push({ draw: 'star', color: randomColor() })">+</button></td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-  </tbody>
-</table>
-<table>
-  <caption style="text-align: left">links:</caption>
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>draw</th>
-      <th>color</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr v-for="(link, idx) in links">
-      <td>
-        {{ idx }}
-      </td>
-      <td>
-        <select v-model="link.draw">
-          <optgroup v-for="group in linksSelection" :label="group.name">
-            <option v-for="sel in group.children" :key="sel.draw" :value="sel.draw">{{ sel.draw }}</option>
-          </optgroup>
-        </select>
-      </td>
-      <td>
-        <input type="text" v-model="link.color" />
-      </td>
-      <td>
-        <button @click="links.splice(idx, 1)">-</button>
-      </td>
-    </tr>
-    <tr>
-      <td><button @click="links.push({ draw: 'line', color: randomColor() })">+</button></td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-  </tbody>
-</table>
+<div class="fill-playground">
+<div class="chart-preview">
+  <Example v-model="options" :links="linksFinal" :marks="marksFinal" />
+</div>
 
-<Example v-model="options" :links="linksFinal" :marks="marksFinal" />
+<div class="chart-controls">
+  <p class="control-hint">Pick a palette color, or choose Auto at the bottom of the fill palette. A marks an automatic fill. Details opens stroke and drawing options below each row.</p>
+  <section v-for="group in controls" :key="group.kind" class="layer-list">
+    <div class="panel-heading">
+      <strong>{{ group.name }} <span class="count-badge">{{ group.rows.length }}</span></strong>
+      <button type="button" @click="group.rows.push({ draw: group.kind === 'mark' ? 'star' : 'area', color: randomColor(), fillColor: '', fillOpacity: 1 })">+ Add {{ group.kind }}</button>
+    </div>
+    <div v-for="(row, idx) in group.rows" :key="idx" class="compact-layer">
+      <label class="control-field">draw
+          <select v-model="row.draw" :aria-label="`${group.kind} ${idx + 1} draw`">
+            <optgroup v-for="selection in group.selection" :key="selection.name" :label="selection.name">
+              <option v-for="sel in selection.children" :key="sel.draw" :value="sel.draw">{{ sel.draw }}</option>
+            </optgroup>
+          </select>
+      </label>
+      <div class="control-field">color<ChartColorInput v-model="row.color" :label="`${group.kind} ${idx + 1} color`" /></div>
+        <div v-if="hasFill(group.kind, row.draw)" class="control-field inline-fill-color">
+          <span>fillColor</span>
+          <ChartColorInput v-model="row.fillColor" :label="`${group.kind} ${idx + 1} fillColor`" :auto-color="autoFillColor(group.kind, row)" />
+        </div>
+      <span v-else class="no-fill-settings" aria-label="No fill settings">—</span>
+      <label class="control-field">size <output>{{ hasSize(group.kind, row.draw) ? row.size ?? markStyles[row.draw]?.size ?? 20 : '—' }}</output><input class="size-input" type="range" min="0" max="32" step="1" :value="row.size ?? markStyles[row.draw]?.size ?? 20" :disabled="!hasSize(group.kind, row.draw)" :aria-label="`${group.kind} ${idx + 1} size`" @input="setNumber(row, 'size', $event.target.value)" /></label>
+      <label class="control-field">lineDashArray<select class="dash-select" :value="row.lineDash ?? 'solid'" :disabled="!hasStroke(group.kind, row.draw)" :aria-label="`${group.kind} ${idx + 1} lineDashArray`" @change="row.lineDash = $event.target.value"><option v-for="preset in dashPresets" :key="preset.value" :value="preset.value">{{ preset.name }}</option></select></label>
+      <button type="button" class="details-toggle" title="Details" :aria-label="`Details for ${group.kind} ${idx + 1}`" :aria-controls="`${group.kind}-${idx}-details`" :aria-expanded="!!row.expanded" @click="row.expanded = !row.expanded">⋯</button>
+      <button type="button" class="remove-layer" :aria-label="`Remove ${group.kind} ${idx + 1}`" @click="group.rows.splice(idx, 1)">×</button>
+      <div class="inline-using">
+        <span>using</span>
+        <div class="using-selectors">
+        <select :value="usingValues(group.kind, row)[0]" :aria-label="`${group.kind} ${idx + 1} using ${usesTwoValues(group.kind, row.draw) ? 'start' : 'value'}`" @change="setUsing(group.kind, row, 0, $event.target.value)">
+          <option v-for="value in usingOptions" :key="value" :value="value">{{ value }}</option>
+        </select>
+        <template v-if="usesTwoValues(group.kind, row.draw)">
+          <span aria-hidden="true">→</span>
+          <select :value="usingValues(group.kind, row)[1]" :aria-label="`${group.kind} ${idx + 1} using end`" @change="setUsing(group.kind, row, 1, $event.target.value)">
+            <option v-for="value in usingOptions" :key="value" :value="value">{{ value }}</option>
+          </select>
+        </template>
+        </div>
+      </div>
+      <div v-if="row.expanded" :id="`${group.kind}-${idx}-details`" class="layer-details">
+        <template v-if="hasStroke(group.kind, row.draw)">
+          <div class="control-field">lineColor<ChartColorInput :model-value="row.lineColor ?? ''" :label="`${group.kind} ${idx + 1} lineColor`" :auto-color="row.color" @update:model-value="row.lineColor = $event" /></div>
+          <label class="control-field">lineWidth<input class="line-width-input" type="number" min="0" step="0.5" :value="row.lineWidth ?? (group.kind === 'link' ? 2 : markStyles[row.draw]?.lineWidth ?? 1)" :aria-label="`${group.kind} ${idx + 1} lineWidth`" @input="setNumber(row, 'lineWidth', $event.target.value)" /></label>
+        </template>
+        <label v-if="hasFill(group.kind, row.draw)" class="control-field inline-fill-opacity">fillOpacity <output>{{ row.fillOpacity.toFixed(2) }}</output><input v-model.number="row.fillOpacity" type="range" min="0" max="1" step="0.01" :aria-label="`${group.kind} ${idx + 1} fillOpacity`" /></label>
+        <label v-if="hasAngle(group.kind, row.draw)" class="control-field">angle <output>{{ row.angle ?? 0 }}°</output><input class="angle-input" type="range" min="0" max="360" step="1" :value="row.angle ?? 0" :aria-label="`${group.kind} ${idx + 1} angle`" @input="setNumber(row, 'angle', $event.target.value)" /></label>
+        <p v-if="!hasStroke(group.kind, row.draw) && !hasAngle(group.kind, row.draw) && !hasFill(group.kind, row.draw)" class="control-hint">No additional settings for this drawing type.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+</div>
 
 ## Options
 
@@ -259,22 +316,13 @@ function highlightTypeScript(code) {
 
 <style scoped>
 @import url('https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css');
+@import './chart-controls.css';
 
-select {
-  background: transparent;
-  position: relative;
-  border: 1px solid #ccc;
-  padding: 0 0.5rem;
-}
-input {
-  border: 1px solid #ccc;
-  padding: 0 0.5rem;
-}
-button {
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 4px;
-  background: #ccc;
+.chart-preview {
+  padding: 8px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  background: var(--vp-c-bg);
 }
 
 pre {

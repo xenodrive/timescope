@@ -62,6 +62,14 @@ const options = computed(() => ({
 
 const modelValue = defineModel<typeof options.value>();
 
+watch(
+  options,
+  (opts) => {
+    modelValue.value = opts;
+  },
+  { immediate: true },
+);
+
 onMounted(() => {
   const timescope = new Timescope<any>({
     ...options.value,
@@ -71,12 +79,11 @@ onMounted(() => {
   });
 
   watch(
-    options,
+    series,
     (opts) => {
-      if (timescope) timescope.updateOptions(opts);
-      modelValue.value = opts;
+      timescope.updateOptions(opts);
     },
-    { deep: true, immediate: true },
+    { deep: true },
   );
 
   onBeforeUnmount(() => timescope?.dispose());

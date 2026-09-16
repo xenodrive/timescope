@@ -216,9 +216,11 @@ function createStrokeStyle(style: StrokeStyle & DefaultColorStyle) {
 
 export function createFillStyle(style: FillStyle & DefaultColorStyle) {
   const color = style.fillColor ?? style.color ?? 'black';
+  const colorOpacity = style.fillColor === undefined ? 0.25 : 1;
+  const fillOpacity = Math.max(0, Math.min(1, style.fillOpacity ?? 1));
   const rgba = parseColorToRgba(color);
-  if (!rgba) return color;
-  const a = Math.max(0, Math.min(1, rgba.a * (style.fillOpacity ?? 0.25)));
+  if (!rgba) return opacity(color, colorOpacity * fillOpacity);
+  const a = rgba.a * colorOpacity * fillOpacity;
   return `rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${a})`;
 }
 
@@ -226,17 +228,20 @@ const flattenedColorCache = new Map<string, { r: number; g: number; b: number; a
 let colorContext: OffscreenCanvasRenderingContext2D | null | undefined;
 
 export function createMarkFillStyle(style: FillStyle & DefaultColorStyle, background: string) {
-  const color = style.fillColor ?? style.color ?? 'black';
-  const colorOpacity = style.fillColor === undefined ? 0.25 : 1;
+  if (style.fillColor !== undefined) return createFillStyle(style);
+
+  const color = style.color ?? 'black';
+  const colorOpacity = 0.25;
+  const fillOpacity = Math.max(0, Math.min(1, style.fillOpacity ?? 1));
   const cacheKey = `${color}\0${colorOpacity}\0${background}`;
   let rgba = flattenedColorCache.get(cacheKey);
   if (!rgba) {
     rgba = flattenColor(color, background, colorOpacity) ?? undefined;
     if (rgba) flattenedColorCache.set(cacheKey, rgba);
   }
-  if (!rgba) return opacity(color, style.fillOpacity ?? 1);
+  if (!rgba) return opacity(opacity(color, colorOpacity, background), fillOpacity);
 
-  const a = Math.max(0, Math.min(1, rgba.a * (style.fillOpacity ?? 1)));
+  const a = rgba.a * fillOpacity;
   return `rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${a})`;
 }
 

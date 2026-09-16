@@ -328,11 +328,32 @@ In these callbacks, `resolution` is a `Decimal` giving display time units per pi
 | `fillOpacity` | `number`  |
 | `fillPost`    | `boolean` |
 
-Marks shade their fill against the configured background before applying
-`fillOpacity`. Over an opaque background this hides links behind the marks, as in
-`linespoints`. Set mark `fillOpacity` explicitly to allow the underlying chart to
-show through. Links use normal alpha compositing so overlapping series remain
-visible; their color alpha is multiplied by `fillOpacity`.
+When `fillColor` is omitted, a default fill is derived from the series `color`:
+marks composite that color at 25% of its alpha against the configured background,
+while links use that color at 25% of its alpha directly. Over an opaque background,
+the derived mark fill is opaque and hides underlying links, as in `linespoints`.
+Link fills use normal alpha compositing so overlapping series remain visible.
+
+An explicit `fillColor` replaces the derived fill and is used as-is, including its
+alpha, for both marks and links. It is never precomposited against the background.
+
+`fillOpacity` defaults to `1` and multiplies the alpha of the resolved fill for
+both marks and links. Values are clamped to the range `0`–`1`. It controls the
+transparency of the fill, not the strength of the default shading, and does not
+affect strokes.
+
+| Fill settings | Marks | Links |
+| --- | --- | --- |
+| Omitted | Color at 25% alpha precomposited against the background | Color at 25% alpha |
+| `fillOpacity: 0.5` | Derived fill at half its alpha | Color at 12.5% alpha |
+| `fillColor: F` | F, including its alpha | F, including its alpha |
+| `fillColor: F, fillOpacity: 0.5` | F at half its alpha | F at half its alpha |
+| `fillOpacity: 0` or `fillColor: 'transparent'` | Fully transparent fill | Fully transparent fill |
+
+For a translucent fill in the original series color, set `fillColor` to that color
+and use `fillOpacity` to control its transparency. With no `fillColor`, setting
+`fillOpacity: 1` preserves the default shading rather than restoring the original
+color.
 
 ### Geometry
 

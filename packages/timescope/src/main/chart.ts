@@ -24,7 +24,9 @@ export type StrokeStyle<T = false> = {
   lineDashOffset?: MaybeFn<number, T>;
 };
 export type FillStyle<T = false> = {
+  /** Explicit fill color, used as-is instead of the fill derived from the series color. */
   fillColor?: MaybeFn<string, T>;
+  /** Multiplies the resolved fill alpha (0–1). Defaults to 1. */
   fillOpacity?: MaybeFn<number, T>;
   fillPost?: boolean;
 };
