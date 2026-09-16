@@ -7,8 +7,12 @@ import { describe, expect, it } from 'vitest';
 
 async function ticks(start: string, end: string, resolution: number, options: TimescopeTimeAxisOptions) {
   const range: TimescopeRange<Decimal> = [Decimal(Date.parse(start) / 1000), Decimal(Date.parse(end) / 1000)];
-  const center = range[0].add(range[1]).div(2);
   const r = Decimal(resolution);
+  return (await ticksInRange(range, r, options)).filter((tick) => tick.major);
+}
+
+async function ticksInRange(range: TimescopeRange<Decimal>, r: Decimal, options: TimescopeTimeAxisOptions) {
+  const center = range[0].add(range[1]).divExact(2);
   const halfWidth = range[1].sub(range[0]).div(r).div(2).number();
   const context = new TimescopeViewRegistry();
   const axis = new TimescopeTimeAxis({ timeAxis: options, viewContext: context });
@@ -24,13 +28,31 @@ async function ticks(start: string, end: string, resolution: number, options: Ti
     });
     await axis.waitForTarget();
     const result = await axis.loadData(range, r);
-    return result.data.filter((tick) => tick.major);
+    return result.data;
   } finally {
     axis.dispose();
   }
 }
 
 describe('time-axis timezone', () => {
+  it.each(['1e-20', '1', '1e20'])('creates exact relative tick steps at resolution %s', async (resolution) => {
+    const r = Decimal(resolution);
+    const result = await ticksInRange([Decimal(0), r.mul(400)], r, { relative: true });
+    expect(result.length).toBeGreaterThan(1);
+    for (let i = 1; i < result.length; i++) {
+      expect(result[i].time.time.gt(result[i - 1].time.time)).toBe(true);
+    }
+    expect(result.some((tick) => tick.time.time.eq(0))).toBe(true);
+  });
+
+  it('keeps tiny relative ticks at a huge absolute timestamp', async () => {
+    const base = Decimal('1e30');
+    const result = await ticksInRange([base.sub('1e-30'), base.add('2e-18')], Decimal('3e-20'), { relative: true });
+    expect(result).toHaveLength(2);
+    expect(result[0].time.time.eq(base)).toBe(true);
+    expect(result[1].time.time.eq(base.add('1e-18'))).toBe(true);
+  });
+
   it('keeps simultaneous UTC and Tokyo axes independent', async () => {
     const [utc, tokyo] = await Promise.all(
       ['utc', 'Asia/Tokyo'].map((timeZone) =>

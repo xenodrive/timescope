@@ -61,6 +61,17 @@ function oracleAggregate(entries: readonly { row: TimescopeDataRow; ordinal: num
 }
 
 describe('mutable aggregate series index', () => {
+  it.each(['1e30', '-1e30', '1e-80'])('retains a repeating mean relative to a narrow spread around %s', (magnitude) => {
+    const base = Decimal(magnitude);
+    const step = base.abs().mul('1e-40');
+    const rows = [base, base, base.add(step)].map((value, time) => ({ ...point(time), values: { value } }));
+    const index = new TimescopeAggregateSeriesIndex(rows);
+    const average = index.aggregate([Decimal(0), Decimal(3)]).value.avg!;
+    expect(average.sub(base).div(step, 18).number()).toBeCloseTo(1 / 3, 15);
+    expect(average.gt(base)).toBe(true);
+    expect(average.lt(base.add(step))).toBe(true);
+  });
+
   it('aggregates each field independently, excluding nulls and retaining zero', () => {
     const index = new TimescopeAggregateSeriesIndex([
       point(0, { value: 0, other: null }),

@@ -65,9 +65,9 @@ export function createChunkList(
   const results: TimescopeChunk[] = [];
   const offset = chunkOffset ?? Decimal(0);
   const limit = range[1]!.add(chunkDuration);
-  let seq = range[0]!.sub(offset).div(chunkDuration).floor().integer();
+  let seq = range[0]!.sub(offset).divFloor(chunkDuration).integer();
 
-  const end = limit.sub(offset).div(chunkDuration).floor().integer();
+  const end = limit.sub(offset).divFloor(chunkDuration).integer();
 
   let chunkT = offset.add(chunkDuration.mul(seq));
   for (; seq <= end; seq++) {

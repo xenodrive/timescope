@@ -1,4 +1,4 @@
-import { Decimal } from '#src/core/decimal';
+import { Decimal, precisionForSpan } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
 import { TimescopeDataLoaderBase } from '#src/main/loaders/TimescopeDataLoader';
 import type { TimescopeDomain } from '#src/main/TimescopeDomain';
@@ -30,11 +30,13 @@ export class TimescopeYAxis extends TimescopeDataLoaderBase<TimescopeYAxisData, 
       if (lower.eq(upper)) {
         values.push(lower);
       } else if (domain.scale === 'log') {
-        const origin = lower.log(10);
-        const span = upper.log(10).sub(origin);
-        for (let i = 0; i <= 4; i++) values.push(Decimal(10).pow(origin.add(span.mul(i / 4))));
+        // Quarter-interval logarithmic ticks are successive geometric means.
+        // Retain the endpoints exactly and enough digits to distinguish a narrow range.
+        const precision = precisionForSpan(upper, upper.sub(lower));
+        const middle = lower.mul(upper).sqrt(precision);
+        values.push(lower, lower.mul(middle).sqrt(precision), middle, middle.mul(upper).sqrt(precision), upper);
       } else {
-        const step = upper.sub(lower).div(4);
+        const step = upper.sub(lower).divExact(4);
         for (let i = 0; i <= 4; i++) values.push(lower.add(step.mul(i)));
         if (lower.lt(0) && upper.gt(0)) values.push(Decimal(0));
       }

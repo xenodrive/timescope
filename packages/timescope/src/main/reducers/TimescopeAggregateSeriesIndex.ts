@@ -1,5 +1,5 @@
 import type { TimescopeChunk } from '#src/core/chunk';
-import { Decimal } from '#src/core/decimal';
+import { Decimal, precisionForSpan } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
 import type { TimescopeDataRow } from '#src/main/TimescopeData';
 
@@ -159,7 +159,10 @@ function publicAggregate(source: ReadonlyMap<string, MutableValueAggregate>): Ti
     [...source].map(([key, value]) => [
       key,
       {
-        avg: value.count ? value.sum.div(value.count) : null,
+        // Preserve local variation when a large baseline is removed during projection.
+        avg: value.count
+          ? value.sum.divExact(value.count, precisionForSpan(value.min!, value.max!.sub(value.min!)))
+          : null,
         min: value.min,
         max: value.max,
         first: value.first,
@@ -718,7 +721,7 @@ export class TimescopeAggregateSeriesIndex {
     resolution: Decimal,
   ) {
     const add = (entry: Entry, distantKey: Exclude<BucketKey, number>) => {
-      const bucketOffset = entry.row.range[0].sub(start).div(resolution).floor();
+      const bucketOffset = entry.row.range[0].sub(start).divFloor(resolution);
       const numericBucket = bucketOffset.number();
       const bucket = Number.isSafeInteger(numericBucket) ? numericBucket : undefined;
       const bucketStart = start.add(resolution.mul(bucketOffset));
@@ -764,7 +767,7 @@ export class TimescopeAggregateSeriesIndex {
   #bucketNumber(time: Decimal, origin: Decimal, resolution: Decimal, required?: true): number;
   #bucketNumber(time: Decimal, origin: Decimal, resolution: Decimal, required: false): number | undefined;
   #bucketNumber(time: Decimal, origin: Decimal, resolution: Decimal, required = true) {
-    const bucket = time.sub(origin).div(resolution).floor().number();
+    const bucket = time.sub(origin).divFloor(resolution).number();
     if (Number.isSafeInteger(bucket)) return bucket;
     if (required) throw new RangeError('Bucket coordinate exceeds the safe integer range');
   }
@@ -777,7 +780,7 @@ export class TimescopeAggregateSeriesIndex {
       for (const suffix of outputSuffixes) values[`${key}#${suffix}`] = value[suffix];
     }
     if (bucket.count === 1) return { ...bucket.firstRow, values };
-    const midpoint = bucket.range[0].add(bucket.range[1]).div(2);
+    const midpoint = bucket.range[0].add(bucket.range[1]).divExact(2);
     return {
       times: Object.fromEntries(Object.keys(bucket.firstRow.times).map((key) => [key, midpoint])),
       values,

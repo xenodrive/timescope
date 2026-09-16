@@ -168,7 +168,8 @@ function isChartEntryConfigured(value: unknown) {
 
 function createRowProjector(origin: Decimal, resolution: Decimal, fields: ReadonlySet<string>) {
   const project = (time: Decimal): LinkGeometryCoordinate => {
-    const value = time.sub(origin).div(resolution);
+    // Preserve absolute subpixel accuracy even for distant vertices clipped later.
+    const value = time.sub(origin).divRound(resolution, 18);
     return { value, number: value.number() };
   };
   return (row: TimescopeDataRow) => {
@@ -304,8 +305,8 @@ export class TimescopeSeriesChart<O extends TimescopeSeriesDataLoaderOptions> ex
     xOrigin: Decimal = range[0],
   ) {
     const resolvedLinks = resolveChartLinks(series.options.chart, resolution);
-    const visibleStart = range[0].sub(xOrigin).div(resolution);
-    const visibleEnd = range[1].sub(xOrigin).div(resolution);
+    const visibleStart = range[0].sub(xOrigin).divRound(resolution, 18);
+    const visibleEnd = range[1].sub(xOrigin).divRound(resolution, 18);
     const links = visibleStart.lt(visibleEnd) ? resolvedLinks : [];
     const rows = this.#view.query(range, { includeOutbound: links.length ? 2 : 0 });
     const marks: ResolvedChartMark[][] = [];

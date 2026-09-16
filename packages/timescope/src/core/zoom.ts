@@ -25,12 +25,13 @@ const cacheZ2R = new LRUCache<number, Decimal>({
 
 export function zoomFor(resolution: Decimal): number {
   const key = resolution.toString();
-  return cacheR2Z.set(key, cacheR2Z.get(key) ?? -resolution.log(ZOOM_BASE).number());
+  return cacheR2Z.set(key, cacheR2Z.get(key) ?? -resolution.log(ZOOM_BASE, 18).number());
 }
 
 export function resolutionFor(zoom: number): Decimal {
   const key = zoom;
-  return cacheZ2R.set(key, cacheZ2R.get(key) ?? Decimal(ZOOM_BASE).pow(-zoom, BigInt(Math.floor(zoom))));
+  // Resolution needs relative accuracy at every zoom, including zero and negative zooms.
+  return cacheZ2R.set(key, cacheZ2R.get(key) ?? Decimal(ZOOM_BASE).pow(-zoom, 18));
 }
 
 export function createZoomLevels(minZ: number, maxZ: number, step: number = 0.5) {

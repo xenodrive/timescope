@@ -5,8 +5,8 @@
     "check": "svelte-check --tsconfig ./tsconfig.json && vite build"
   },
   "dependencies": {
-    "@kikuchan/calendar": "0.0.1-alpha.4",
-    "@kikuchan/decimal": "0.1.0-alpha.10",
+    "@kikuchan/calendar": "0.2.0-alpha.0",
+    "@kikuchan/decimal": "0.2.0-alpha.0",
     "svelte": "5.56.10"
   },
   "devDependencies": {

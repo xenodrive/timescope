@@ -3,6 +3,15 @@ import { TimescopeStaticValueIndex } from '#src/main/reducers/TimescopeStaticVal
 import { describe, expect, it } from 'vitest';
 
 describe('range statistics', () => {
+  it('keeps percentile interpolation exact below the default approximation precision', () => {
+    const base = Decimal('1e30');
+    const step = Decimal('1e-40');
+    const aggregate = new TimescopeStaticValueIndex([base, base.add(step)]).aggregate(0, 2);
+    expect(aggregate.p50?.sub(base).eq('5e-41')).toBe(true);
+    expect(aggregate.p90?.sub(base).eq('9e-41')).toBe(true);
+    expect(aggregate.p95?.sub(base).eq('9.5e-41')).toBe(true);
+  });
+
   it('computes exact range statistics and R-7 percentiles', () => {
     const index = new TimescopeStaticValueIndex(Array.from({ length: 100 }, (_, value) => Decimal(value + 1)));
     const aggregate = index.aggregate(0, 100);

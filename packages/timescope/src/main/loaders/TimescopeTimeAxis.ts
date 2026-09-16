@@ -1,6 +1,6 @@
 import type { TimescopeChunk } from '#src/core/chunk';
 import { DEFAULT_CHUNK_SIZE } from '#src/core/chunk';
-import { Decimal } from '#src/core/decimal';
+import { Decimal, pow10 } from '#src/core/decimal';
 import { normalizeOptions } from '#src/core/options';
 import type { TimescopeRange } from '#src/core/range';
 import { type TimeUnit } from '#src/core/time';
@@ -112,8 +112,10 @@ function* createLinearTicks(
 
   const chunkSize = Decimal(DEFAULT_CHUNK_SIZE);
   const effectiveResolution = resolution.mul(chunkSize);
-  const exp = effectiveResolution.log(10).round().integer();
-  const baseStep = Decimal(10).pow(exp, -exp);
+  let exp = effectiveResolution.order();
+  // Round log10 to the nearest integer by comparing the mantissa with sqrt(10), exactly.
+  if (effectiveResolution.shift10(-exp).pow(2).ge(10)) exp++;
+  const baseStep = pow10(exp);
   const resolutionThreshold = resolution.mul(Decimal(20));
 
   const divisors: readonly bigint[] = [10n, 5n, 1n];
@@ -121,7 +123,7 @@ function* createLinearTicks(
   let step = baseStep;
   let divisor = 1n;
   for (const candidate of divisors) {
-    const candidateStep = baseStep.div(Decimal(candidate));
+    const candidateStep = baseStep.divExact(candidate);
     if (!candidateStep.lt(resolutionThreshold)) {
       step = candidateStep;
       divisor = candidate;
@@ -133,9 +135,9 @@ function* createLinearTicks(
 
   const divisorDecimal = Decimal(divisor);
   const one = Decimal(1n);
-  let index = range[0]!.div(step).floor().sub(one);
+  let index = range[0]!.divFloor(step).sub(one);
 
-  const digits = Math.max(0, -step.log(10).floor().number());
+  const digits = Math.max(0, -Number(step.order()));
 
   for (let guard = 0; guard < 1_000_000; guard += 1) {
     index = index.add(one);
@@ -377,7 +379,7 @@ function pickSubsecond(threshold: Decimal, maxDuration: Decimal | null, allowFal
 
   let exponent: bigint;
   if (effectiveThreshold.isPositive()) {
-    exponent = effectiveThreshold.log(10).floor().integer();
+    exponent = effectiveThreshold.order();
     if (exponent >= 0n) exponent = -1n;
   } else {
     exponent = -1n;
@@ -386,7 +388,7 @@ function pickSubsecond(threshold: Decimal, maxDuration: Decimal | null, allowFal
   let fallback: { step: Decimal; exponent: bigint; factor: bigint } | null = null;
 
   for (let current = exponent; current < 0n; current += 1n) {
-    const base = Decimal(10).pow(current, -current);
+    const base = pow10(current);
     for (const factor of SUBSECOND_FACTORS) {
       const step = base.mul(Decimal(factor));
       if (!step.lt(upperLimit)) continue;
@@ -473,8 +475,8 @@ function pickYear(threshold: Decimal): Candidate {
     return createYearCandidate(1n);
   }
 
-  const ratio = effectiveThreshold.div(AVERAGE_SECONDS_PER_YEAR);
-  let exponent = ratio.log(10).floor().integer();
+  let exponent = effectiveThreshold.order() - AVERAGE_SECONDS_PER_YEAR.order();
+  if (effectiveThreshold.lt(AVERAGE_SECONDS_PER_YEAR.shift10(exponent))) exponent--;
   if (exponent < 0n) exponent = 0n;
 
   for (let current = exponent; ; current += 1n) {

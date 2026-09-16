@@ -136,6 +136,8 @@ function coordinateRole(value: LinkGeometryCoordinate | null | undefined) {
 }
 
 function precisionFor(sourceSpan: Decimal, clipSpan: Decimal) {
+  // Absolute decimal places for parameters in [0, 1]; significant digits for slopes
+  // and control offsets, whose magnitudes can differ greatly between axes.
   if (sourceSpan.isZero() || clipSpan.isZero()) return MIN_PRECISION;
   const extra = Number(sourceSpan.abs().order() - clipSpan.abs().order());
   return Math.max(
@@ -289,18 +291,18 @@ function clipLine(p0: Point, p1: Point, target: ClipTarget): LineSegment | undef
   };
   if (!dx.isZero()) {
     const bounds = dx.isPositive() ? target.xRange : [target.xRange[1], target.xRange[0]];
-    for (const x of bounds) addCut(x.sub(p0.x).div(dx, precision), { x });
+    for (const x of bounds) addCut(x.sub(p0.x).divRound(dx, precision), { x });
   }
   if (!dy.isZero()) {
     const bounds = dy.isPositive() ? target.yRange : [target.yRange[1], target.yRange[0]];
-    for (const y of bounds) addCut(y.sub(p0.y).div(dy, precision), { y });
+    for (const y of bounds) addCut(y.sub(p0.y).divRound(dy, precision), { y });
   }
   cuts.sort((a, b) => a.t.cmp(b.t));
 
   for (let index = 0; index < cuts.length - 1; index++) {
     const start = cuts[index];
     const end = cuts[index + 1];
-    const middle = pointAt(p0, p1, start.t.add(end.t).div(TWO, precision));
+    const middle = pointAt(p0, p1, start.t.add(end.t).divExact(TWO));
     if (!inside(middle, target)) continue;
     const startPoint = pointAt(p0, p1, start.t);
     const endPoint = pointAt(p0, p1, end.t);
@@ -392,7 +394,7 @@ function splitCubic(segment: CubicSegment, t: Decimal): [CubicSegment, CubicSegm
 function cubicSubsegment(segment: CubicSegment, start: Decimal, end: Decimal, precision: number) {
   if (start.isZero() && end.eq(ONE)) return segment;
   const left = end.eq(ONE) ? segment : splitCubic(segment, end)[0];
-  return start.isZero() ? left : splitCubic(left, start.div(end, precision))[1];
+  return start.isZero() ? left : splitCubic(left, start.divRound(end, precision))[1];
 }
 
 function cubicValue(segment: CubicSegment, axis: 'x' | 'y', t: Decimal) {
@@ -405,17 +407,17 @@ function cubicValue(segment: CubicSegment, axis: 'x' | 'y', t: Decimal) {
 }
 
 function cubicParameterAt(segment: CubicSegment, axis: 'x' | 'y', target: Decimal, precision: number) {
-  if (axis === 'x') return target.sub(segment.p0.x).div(segment.p1.x.sub(segment.p0.x), precision);
+  if (axis === 'x') return target.sub(segment.p0.x).divRound(segment.p1.x.sub(segment.p0.x), precision);
   const increasing = segment.p1.y.ge(segment.p0.y);
   let low = ZERO;
   let high = ONE;
   const iterations = Math.min(16_384, Math.ceil(precision * 3.5));
   for (let iteration = 0; iteration < iterations; iteration++) {
-    const middle = low.add(high).div(TWO, precision);
+    const middle = low.add(high).divRound(TWO, precision);
     if (cubicValue(segment, axis, middle).lt(target) === increasing) low = middle;
     else high = middle;
   }
-  return low.add(high).div(TWO, precision);
+  return low.add(high).divRound(TWO, precision);
 }
 
 function monotoneInterval(
@@ -692,7 +694,7 @@ function emitBoundaryPoints(
       visit({ x: previous.x, y: current.y, ny: current.ny, yRole: current.yRole });
       visit(current);
     } else {
-      const middle = previous.x.add(current.x).div(TWO);
+      const middle = previous.x.add(current.x).divExact(TWO);
       visit({ x: middle, y: previous.y, ny: previous.ny, yRole: previous.yRole });
       visit({ x: middle, y: current.y, ny: current.ny, yRole: current.yRole });
       visit(current);
@@ -701,12 +703,12 @@ function emitBoundaryPoints(
   };
 
   if (neighbors.left && position !== 'start') {
-    const x = position === 'end' ? neighbors.left : neighbors.left.add(first.x).div(TWO);
+    const x = position === 'end' ? neighbors.left : neighbors.left.add(first.x).divExact(TWO);
     if (!x.eq(first.x)) emitExtended({ x, y: first.y, ny: first.ny, yRole: first.yRole });
   }
   for (let index = 0; index < rangeLength(range); index++) emitExtended(pointFromRange(range, index));
   if (neighbors.right && position !== 'end') {
-    const x = position === 'start' ? neighbors.right : last.x.add(neighbors.right).div(TWO);
+    const x = position === 'start' ? neighbors.right : last.x.add(neighbors.right).divExact(TWO);
     if (!x.eq(last.x)) emitExtended({ x, y: last.y, ny: last.ny, yRole: last.yRole });
   }
 }
@@ -752,7 +754,7 @@ function segmentSubsegment(segment: Segment, start: Decimal, end: Decimal, preci
 
 function segmentParameterAtY(segment: Segment, target: Decimal, precision: number) {
   if (segment.kind === 'cubic') return cubicParameterAt(segment, 'y', target, precision);
-  return target.sub(segment.p0.y).div(segment.p1.y.sub(segment.p0.y), precision);
+  return target.sub(segment.p0.y).divRound(segment.p1.y.sub(segment.p0.y), precision);
 }
 
 function forEachClampedSegmentY(
@@ -781,7 +783,7 @@ function forEachClampedSegmentY(
     const end = cuts[index + 1];
     if (!start.lt(end)) continue;
     const clipped = segmentSubsegment(segment, start, end, precision);
-    const middleY = segmentValue(segment, 'y', start.add(end).div(TWO, precision));
+    const middleY = segmentValue(segment, 'y', start.add(end).divExact(TWO));
     if (middleY.lt(range[0]) || middleY.gt(range[1])) {
       const y = middleY.lt(range[0]) ? range[0] : range[1];
       emit({ kind: 'line', p0: { x: clipped.p0.x, y }, p1: { x: clipped.p1.x, y } });
@@ -809,8 +811,8 @@ function trimSegmentX(segment: Segment, range: readonly [Decimal, Decimal], prec
   }
   const dx = segment.p1.x.sub(segment.p0.x);
   if (dx.isZero()) return segment.p0.x.ge(range[0]) && segment.p0.x.le(range[1]) ? segment : undefined;
-  const first = range[0].sub(segment.p0.x).div(dx, precision);
-  const second = range[1].sub(segment.p0.x).div(dx, precision);
+  const first = range[0].sub(segment.p0.x).divRound(dx, precision);
+  const second = range[1].sub(segment.p0.x).divRound(dx, precision);
   const start = first.lt(second) ? first.clamp(ZERO, ONE) : second.clamp(ZERO, ONE);
   const end = first.gt(second) ? first.clamp(ZERO, ONE) : second.clamp(ZERO, ONE);
   if (!start.lt(end)) return;

@@ -70,7 +70,7 @@ export class TimescopeStaticValueIndex {
     const lower = this.#dictionary[this.#wavelet.rangeKth(left, right, lowerIndex)];
     if (!remainder) return lower;
     const upper = this.#dictionary[this.#wavelet.rangeKth(left, right, lowerIndex + 1)];
-    return lower.add(upper.sub(lower).mul(remainder).div(denominator));
+    return lower.add(upper.sub(lower).mul(remainder).divExact(denominator));
   }
 
   get byteLength() {

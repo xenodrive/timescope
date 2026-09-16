@@ -290,11 +290,11 @@ export class Timescope<
     const rangeDecimal = range.map((t) => parseTimeLike(t));
     const resolution = rangeDecimal[1]
       .sub(rangeDecimal[0])
-      .div(this.#size.width - padding)
+      .div(this.#size.width - padding, 18)
       .abs();
 
     const zoom = zoomFor(resolution);
-    const time = rangeDecimal[0].add(rangeDecimal[1]).div(2);
+    const time = rangeDecimal[0].add(rangeDecimal[1]).divExact(2);
 
     let r = true;
     r &&= this.setZoom(zoom, opts?.animation !== false ? undefined : false);

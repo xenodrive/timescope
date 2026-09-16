@@ -25,7 +25,7 @@ type ParsedPoint = { x1: number; y1: number; x2: number; y2: number };
 type RenderedChartMark = Omit<TimescopeProjectedChartMark, 'point'> & { point: ParsedPoint };
 
 export function renderScaleX(dataResolution: Decimal, renderResolution: Decimal) {
-  return dataResolution.div(renderResolution).number();
+  return dataResolution.div(renderResolution, 18).number();
 }
 
 export function createLinkProjectionRebase(

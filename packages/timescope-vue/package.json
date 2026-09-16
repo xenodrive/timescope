@@ -23,8 +23,8 @@
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.1",
-    "@kikuchan/calendar": "^0.1.0-alpha.0",
-    "@kikuchan/decimal": "^0.1.0-alpha.10",
+    "@kikuchan/calendar": "^0.2.0-alpha.0",
+    "@kikuchan/decimal": "^0.2.0-alpha.0",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/eslint-config-typescript": "^14.9.0",
     "eslint": "^9.39.0",
@@ -42,8 +42,8 @@
     "vue-tsc": "^3.3.11"
   },
   "peerDependencies": {
-    "@kikuchan/calendar": "^0.1.0-alpha.0",
-    "@kikuchan/decimal": "^0.1.0-alpha.7",
+    "@kikuchan/calendar": "^0.2.0-alpha.0",
+    "@kikuchan/decimal": "^0.2.0-alpha.0",
     "vue": "^3.5.26"
   },
   "dependencies": {

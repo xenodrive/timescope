@@ -101,7 +101,7 @@ onMounted(() => {
       default: {
         timeAxis: {
           relative: true,
-          timeFormat: ({ time }) => `${time.div(DAY).toFixed(0)} d`,
+          timeFormat: ({ time }) => `${time.divRound(DAY).toFixed(0)} d`,
         },
       },
     },

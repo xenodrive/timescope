@@ -475,7 +475,7 @@ export class TimescopeView<T extends TimescopeViewPoint> extends TimescopeObserv
       const range =
         left === undefined
           ? window.range
-          : rangeAround(window.range[0].add(window.range[1]).div(2), resolution, left, left);
+          : rangeAround(window.range[0].add(window.range[1]).divExact(2), resolution, left, left);
       for (const chunk of createChunkList(range, resolution, this.#source.chunkSize, this.#source.chunkOffset)) {
         result.set(chunk.id, chunk);
       }

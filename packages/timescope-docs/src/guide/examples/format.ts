@@ -45,7 +45,7 @@ export function loadWaveFile(data: Uint8Array) {
     for (let ch = 0; ch < channels; ch++) {
       data.push(bits === 16 ? chunk.r.readInt16le() / 32768 : (chunk.r.readUint8() - 128) / 128);
     }
-    const time = Decimal(t).div(rate);
+    const time = Decimal(t).divExact(rate, 18);
 
     samples.push({ time, data: channels === 1 ? [...data, ...data].slice(0, 2) : data });
   }

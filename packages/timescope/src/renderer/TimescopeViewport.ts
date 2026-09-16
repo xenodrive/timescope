@@ -158,7 +158,7 @@ export class TimescopeViewport extends TimescopeObservable<TimescopeViewportEven
     const target = t ?? this.#presentationTime;
     const targetDecimal = Decimal(target as NumberLike)!;
 
-    return targetDecimal.sub(centerTime).div$(resolution, 3).number() + this.#state.axisLength[0];
+    return targetDecimal.sub(centerTime).divRound$(resolution, 3).number() + this.#state.axisLength[0];
   }
 
   /** pixel position -> time */
@@ -172,10 +172,10 @@ export class TimescopeViewport extends TimescopeObservable<TimescopeViewportEven
     const resolution = this.r(this.#timezoom.zoom.current);
     const centerTime = this.#timezoom.time.current ?? this.#presentationTime;
 
-    return resolution
-      .mul(p - this.#state.axisLength[0])
-      .add(centerTime)
-      .round(resolution.digits);
+    // Quantize the displacement to the same 0.001-pixel grid as p(). The coefficient's
+    // stored scale is not a measure of screen precision (e.g. resolution = 1024 or 1e3).
+    const pixels = Decimal(p - this.#state.axisLength[0]).round(3);
+    return resolution.mul(pixels).add(centerTime);
   }
 
   set disabled(v) {
@@ -301,7 +301,7 @@ export class TimescopeViewport extends TimescopeObservable<TimescopeViewportEven
     }
 
     this.#timezoom.time.update(unconstrained, displayed);
-    const springOffset = unconstrained.sub(displayed).div(resolution).number();
+    const springOffset = unconstrained.sub(displayed).div(resolution, 18).number();
     this.#kinetic.update(p + springOffset, 0);
   }
 
@@ -326,7 +326,7 @@ export class TimescopeViewport extends TimescopeObservable<TimescopeViewportEven
     const targetDisplacement = target.sub(origin);
     const tangent = targetDisplacement.isZero()
       ? 3
-      : value.sub(origin).div(targetDisplacement).add(1).mul(1.5).number();
+      : value.sub(origin).div(targetDisplacement, 18).add(1).mul(1.5).number();
 
     this.#timezoom.time.commit({
       value,
@@ -392,7 +392,7 @@ export class TimescopeViewport extends TimescopeObservable<TimescopeViewportEven
     if (Math.abs(q - p) > 2) {
       const r = b
         .sub(a)
-        .div(q - p)
+        .div(q - p, 18)
         .abs();
       const z = this.z(r);
       this.#timezoom.zoom.update(z);

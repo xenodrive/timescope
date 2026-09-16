@@ -79,4 +79,20 @@ describe('value projection', () => {
     expect(computeYProjectionToAnchor(linear, log.basis!)).toBeNull();
     expect(computeYProjectionToAnchor(log, linear.basis!)).toBeNull();
   });
+
+  it.each(['1e30', '1e-60'])('preserves narrow logarithmic ranges around %s across rebases', (magnitude) => {
+    const base = Decimal(magnitude);
+    const step = base.mul('1e-40');
+    const previous = createYProjection([base, base.add(step.mul(4))], 'log');
+    const next = createYProjection([base.add(step), base.add(step.mul(3))], 'log');
+    const constant = createYProjection([base.add(step), base.add(step)], 'log', 20, previous.basis);
+    const affine = computeYProjectionToAnchor(next, previous.basis!)!;
+    const constantAffine = computeYProjectionToAnchor(constant, previous.basis!)!;
+    for (const i of [0, 1, 2, 3, 4]) {
+      const value = base.add(step.mul(i));
+      expect(previous.normalize(value)).toBeCloseTo(i / 4, 12);
+      expect(next.normalize(value) * affine.scale + affine.offset).toBeCloseTo(i / 4, 12);
+      expect(constant.normalize(value) * constantAffine.scale + constantAffine.offset).toBeCloseTo(i / 4, 12);
+    }
+  });
 });

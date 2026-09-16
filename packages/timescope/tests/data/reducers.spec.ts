@@ -7,6 +7,31 @@ const chunk = createChunk({ id: 'bucket', seq: 0n, range: [Decimal(0), Decimal(4
 const context = { expiresAt() {}, expiresIn() {} };
 
 describe.each(['min-max-avg', 'percentiles'] as const)('%s snapshot reduction', (reducer) => {
+  it('assigns points and context just below bucket boundaries to the preceding bucket', async () => {
+    const epsilon = Decimal('1e-30');
+    const times = [
+      Decimal(-3).sub(epsilon),
+      Decimal(-3),
+      epsilon.neg(),
+      Decimal(0),
+      Decimal(3).sub(epsilon),
+      Decimal(3),
+      Decimal(6).sub(epsilon),
+    ];
+    const source = createDataSource({ data: times.map((time, i) => ({ time, value: i + 1 })), reducer });
+    const target = createChunk({
+      id: 'boundary',
+      seq: 0n,
+      range: [Decimal(0), Decimal(6)],
+      resolution: Decimal(3),
+      zoom: 0,
+    });
+    const rows = await source.query(target, context);
+    expect(rows.map((row) => row.values.value?.number())).toEqual([1, 2.5, 4.5, 6.5]);
+    expect(rows.slice(1).map((row) => row.range[0].number())).toEqual([-3, 0, 3]);
+    expect(rows.slice(1).map((row) => row.times.time.number())).toEqual([-1.5, 1.5, 4.5]);
+  });
+
   it('excludes nulls, retains zero, and preserves chronological first and last', async () => {
     const source = createDataSource({
       data: [

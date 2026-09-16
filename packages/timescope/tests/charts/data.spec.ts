@@ -104,7 +104,7 @@ describe('chart data', () => {
   });
 
   it.each([55, 70])('keeps a visible line between distant samples at zoom %s', async (zoom) => {
-    const resolution = Decimal(2).pow(-zoom, zoom);
+    const resolution = Decimal(2).pow(-zoom);
     const start = Decimal('1.5');
     const view = fixture(
       createDataSource([

@@ -38,7 +38,7 @@ function aggregateBucket(
   const first = entries[left].row;
   if (right - left === 1) return { ...first, values: aggregateValues(indexes, left, right) };
 
-  const midpoint = range[0].add(range[1]).div(2);
+  const midpoint = range[0].add(range[1]).divExact(2);
   return {
     times: Object.fromEntries(Object.keys(first.times).map((key) => [key, midpoint])),
     values: aggregateValues(indexes, left, right),
@@ -129,7 +129,7 @@ export class TimescopeStaticSeriesIndex {
 
     const contextBucket = (entry: IndexedRow | undefined) => {
       if (!entry) return;
-      const bucketOffset = entry.row.range[0].sub(start).div(resolution).floor();
+      const bucketOffset = entry.row.range[0].sub(start).divFloor(resolution);
       const bucketStart = start.add(resolution.mul(bucketOffset));
       const bucketEnd = bucketStart.add(resolution);
       const bucketFirst = lowerBound(this.#points, bucketStart);

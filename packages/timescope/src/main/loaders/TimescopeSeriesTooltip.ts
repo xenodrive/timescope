@@ -111,7 +111,7 @@ export class TimescopeSeriesTooltip<O extends TimescopeSeriesDataLoaderOptions> 
   }
 
   #loadViewData(range: TimescopeRange<Decimal>, resolution: Decimal, options: TimescopeDataLoadOptions) {
-    const center = range[0].add(range[1]).div(2);
+    const center = range[0].add(range[1]).divExact(2);
     const rows = this.#view.query(range, { includeOutbound: 1, loadMissing: options.loadMissing !== false });
     const selected = this.#selectRow(rows, range, resolution, center);
     if (!selected.row && options.loadMissing === false && this.options.series.immediate) this.#view.loadRetained();
@@ -150,7 +150,7 @@ export class TimescopeSeriesTooltip<O extends TimescopeSeriesDataLoaderOptions> 
     range: TimescopeRange<Decimal>,
     resolution: Decimal,
   ): Promise<TimescopeSeriesTooltipData> {
-    const center = range[0].add(range[1]).div(2);
+    const center = range[0].add(range[1]).divExact(2);
     const selected = this.#selectRow(this.#view.query(range), range, resolution, center);
     return this.#transformRows(series, selected.row ? [selected.row] : [], selected.using, range, resolution);
   }

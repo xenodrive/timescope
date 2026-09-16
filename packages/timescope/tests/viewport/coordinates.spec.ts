@@ -1,10 +1,11 @@
 import { Decimal } from '#src/core/decimal';
+import { resolutionFor, zoomFor } from '#src/core/zoom';
 import { renderScaleX } from '#src/renderer/layers/TimescopeSeriesChartLayer';
 import { TimescopeViewport } from '#src/renderer/TimescopeViewport';
 import { describe, expect, it, onTestFinished } from 'vitest';
 
 describe('time coordinates', () => {
-  it.each([20, 20.25, 100])(
+  it.each([-100, -10.25, 0, 0.25, 20, 20.25, 100])(
     'does not accumulate precision or position error through repeated round-trips at zoom %s',
     (zoom) => {
       const center = Decimal('1e48');
@@ -86,8 +87,23 @@ describe('time coordinates', () => {
     const localX = origin.neg().div(dataResolution).number();
     for (const fraction of [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1]) {
       const resolution = dataResolution.add(targetResolution.sub(dataResolution).mul(fraction));
-      const originX = origin.div(resolution, 3).number() + axisHalfWidth;
+      const originX = origin.divRound(resolution, 3).number() + axisHalfWidth;
       expect(originX + localX * renderScaleX(dataResolution, resolution)).toBeCloseTo(axisHalfWidth, 3);
     }
+  });
+
+  it.each([-1000, -10.25, 0, 0.25, 20.25, 1000])('round-trips resolution at zoom %s', (zoom) => {
+    const resolution = resolutionFor(zoom);
+    expect(resolution.isPositive()).toBe(true);
+    expect(zoomFor(resolution)).toBeCloseTo(zoom, 12);
+  });
+
+  it('rounds pixel positions to decimal places rather than significant digits', () => {
+    const axis = new TimescopeViewport({ time: 0, timeRange: [undefined, undefined], zoom: 0 });
+    onTestFinished(() => axis.dispose());
+    axis.setAxisLength([400, 400]);
+    expect(axis.p('123.45649')).toBe(523.456);
+    expect(axis.p('123.45651')).toBe(523.457);
+    expect(axis.t(523.456).eq('123.456')).toBe(true);
   });
 });

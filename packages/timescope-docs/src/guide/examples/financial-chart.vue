@@ -40,7 +40,7 @@ const intervals = [
 ] as const;
 
 const resolutions = intervals.map(({ seconds }) => Decimal(seconds));
-const viewResolutions = resolutions.map((resolution) => resolution.div(CANDLE_SPACING));
+const viewResolutions = resolutions.map((resolution) => resolution.divExact(CANDLE_SPACING));
 const candleResolution = {
   resolve: ({ resolution }: TimescopeResolutionContext) => resolution.mul(CANDLE_SPACING),
   snap: 'ceil',

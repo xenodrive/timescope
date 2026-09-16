@@ -69,6 +69,20 @@ function cubicAt(segment: ReturnType<typeof firstCubic>, t: number) {
 }
 
 describe('link geometry', () => {
+  it('preserves curve tangents when the X and Y spans have very different magnitudes', () => {
+    const rows = [0, 1, 2].map((i) => ({ x: { time: Decimal('1e60').mul(i) }, y: { value: Decimal(i) } }));
+    const path = compileLinkGeometry({
+      rows,
+      kind: 'curve',
+      using: 'value@time',
+      target: { xRange: [Decimal(0), Decimal('2e60')] },
+    });
+    const segment = firstCubic(path);
+    expect(segment.c1.y).toBeCloseTo(1 / 3, 12);
+    expect(segment.c2.y).toBeCloseTo(2 / 3, 12);
+    expect(segment.p1.y).toBe(1);
+  });
+
   it('emits vector line commands and splits null runs', () => {
     expect(compile([row(0, 1), row(1, 2), row(2, null), row(3, 4), row(4, 5)])).toBe('M0 1 L1 2 M3 4 L4 5');
   });
@@ -234,7 +248,7 @@ describe('link geometry', () => {
   });
 
   it('uses Decimal clipping for finite cached coordinates with insufficient relative precision', () => {
-    const distant = Decimal(2).pow(70, 70);
+    const distant = Decimal(2).pow(70);
     const cached = (value: Decimal) => ({ value, number: value.number() });
     const line = compileLinkGeometry({
       rows: [
