@@ -44,8 +44,8 @@
   <text x="364" y="224" text-anchor="middle" font-size="18" fill="#64748b">outbound — rows returned by the loader</text>
 
   <!-- legend -->
-  <circle cx="150" cy="258" r="5" fill="#3b82f6"/>
-  <text x="162" y="262" font-size="17" fill="#64748b">owned rows — marks · tooltips</text>
+  <circle cx="120" cy="258" r="5" fill="#3b82f6"/>
+  <text x="132" y="262" font-size="17" fill="#64748b">in-range rows — marks · tooltips</text>
   <circle cx="420" cy="258" r="5" fill="none" stroke="#f59e0b" stroke-width="2"/>
   <text x="432" y="262" font-size="17" fill="#64748b">context rows — links · Y range</text>
 </svg>

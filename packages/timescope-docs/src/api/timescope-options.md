@@ -8,22 +8,22 @@ titleTemplate: Timescope API
 
 ## Options
 
-| Key            | Type                                                 | Behavior                                                               |
-| -------------- | ---------------------------------------------------- | ---------------------------------------------------------------------- |
-| `style`        | `{ width?, height?, background? }`                   | Sets canvas size and background.                                       |
-| `padding`      | `number[]`                                           | Sets canvas padding as `[top, right, bottom, left]`.                   |
-| `indicator`    | `boolean`                                            | Shows the cursor indicator. Default: `true`.                           |
-| `showFps`      | `boolean`                                            | Shows the FPS overlay.                                                 |
-| `renderThread` | `'worker' \| 'main'`                                 | Selects the render engine's thread when mounting. Default: `'worker'`. |
-| `sources`      | `Record<string, TimescopeSourceInput>`               | Defines data sources.                                                  |
-| `domains`      | `Record<string, TimescopeDomainOptions>`             | Defines shared value domains.                                          |
-| `series`       | `Record<string, TimescopeSeriesInput>`               | Defines series.                                                        |
-| `tracks`       | `Record<string, { height?, symmetric?, timeAxis? }>` | Defines track layout.                                                  |
-| `selection`    | `boolean \| { resizable?, color?, invert?, range? }` | Configures range selection.                                            |
+| Key            | Type                                                 | Behavior                                                       |
+| -------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
+| `style`        | `{ width?, height?, background? }`                   | Sets canvas size and background.                               |
+| `padding`      | `number[]`                                           | Sets canvas padding as `[top, right, bottom, left]`.           |
+| `indicator`    | `boolean`                                            | Shows the cursor indicator. Default: `true`.                   |
+| `showFps`      | `boolean`                                            | Shows the FPS overlay.                                         |
+| `renderThread` | `'worker' \| 'main'`                                 | Selects the drawing thread when mounting. Default: `'worker'`. |
+| `sources`      | `Record<string, TimescopeSourceInput>`               | Defines data sources.                                          |
+| `domains`      | `Record<string, TimescopeDomainOptions>`             | Defines shared value domains.                                  |
+| `series`       | `Record<string, TimescopeSeriesInput>`               | Defines series.                                                |
+| `tracks`       | `Record<string, { height?, symmetric?, timeAxis? }>` | Defines track layout.                                          |
+| `selection`    | `boolean \| { resizable?, color?, invert?, range? }` | Configures range selection.                                    |
 
 ## Rendering Thread
 
-The same render engine and drawing layers can run in a Worker or on the main thread:
+Use `renderThread` to choose whether drawing runs in a Worker (the default) or on the main thread:
 
 ```ts
 new Timescope({
@@ -32,7 +32,7 @@ new Timescope({
 });
 ```
 
-`'worker'` uses a Worker and transfers the canvas to it. `'main'` runs the engine directly on the main thread using the canvas's 2D context. Data sources and loaders run on the main thread in both modes.
+Data sources and loaders run on the main thread in both modes.
 
 The setting is applied when mounting. Changing it with `setOptions()` or `updateOptions()` takes effect on the next mount.
 
@@ -48,7 +48,40 @@ The setting is applied when mounting. Changing it with `setOptions()` or `update
 | `function` or `{ loader }`         | Loads chunks. Set `chunked: false` to use a snapshot loader.              |
 | `TimescopeDataSource`              | Uses a source created by `createDataSource()` or a custom source.         |
 
-Use `createDataSource()` when rows need to be appended or replaced after configuration.
+Use [`createDataSource()`](#mutable-data-sources) when rows need to be appended or replaced after configuration.
+
+### Mutable Data Sources
+
+`createDataSource(input)` accepts the source inputs above. An array or `{ data }` creates a mutable source with the following methods. Sources created from URLs or loaders are not mutable.
+
+| Method                        | Returns         | Behavior                                                                                                                    |
+| ----------------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `append(rows)`                | `Promise<void>` | Adds one row or an array of rows.                                                                                           |
+| `replace([start, end], rows)` | `Promise<void>` | Removes existing rows intersecting `[start, end)` and adds one row or an array of rows. Pass `[]` to remove without adding. |
+
+Replacement endpoints accept `TimescopeTimeLike<never>` values; `end` must not precede `start`. Points at `end` are excluded. An overlapping interval row is removed in its entirety, even if it extends outside the replacement range. Every replacement row must intersect the replacement range. See [Rows](#rows) for point and interval definitions.
+
+Updates automatically refresh series using the source; calling `reload()` is unnecessary. Await the returned Promise before an operation that depends on the updated data. It does not indicate that a frame has been drawn.
+
+```ts
+import { createDataSource, Timescope } from 'timescope';
+
+const source = createDataSource({
+  data: [{ time: 0, value: 10 }],
+});
+const timescope = new Timescope({
+  target: '#timescope',
+  time: 1,
+  zoom: 6,
+  sources: { samples: source },
+  series: { samples: { data: { source: 'samples' }, chart: 'linespoints' } },
+});
+
+await source.append({ time: 1, value: 20 });
+await source.replace([0, 1], [{ time: 0, value: 12 }]);
+```
+
+Mutation methods accept row inputs. If the source uses `mappings`, pass records in the mapped input format. A `decoder` applies to the initial payload only; pass decoded rows to `append()` and `replace()`.
 
 ### Source Options
 
@@ -65,6 +98,45 @@ Use `createDataSource()` when rows need to be appended or replaced after configu
 
 `data`, `url`, and `loader` are mutually exclusive. `decoder` and `mappings` are also mutually exclusive.
 
+### Payloads and Decoders
+
+The argument to `decoder(payload)` depends on how the source acquires data:
+
+| Acquisition | Decoder input                                    |
+| ----------- | ------------------------------------------------ |
+| `data`      | The supplied data.                               |
+| `url`       | The fetched `Response`, before reading its body. |
+| `loader`    | The loader's resolved return value.              |
+
+Return an array of [rows](#rows), or a Promise of that array. For example, a JSON URL with a nested array can use:
+
+```ts
+sources: {
+  samples: {
+    url: '/samples.json',
+    decoder: async (response: Response) => {
+      const payload = await response.json();
+      return payload.samples;
+    },
+  },
+}
+```
+
+Without a decoder, a `Response` is read as JSON. The resulting payload must be an array of rows, or an array of records when using `mappings`.
+
+### Snapshot Loader
+
+Set `chunked: false` to load a complete snapshot. The loader is called without arguments and may return its payload directly or through a Promise. Return rows when no transform is configured, or a payload for `decoder` / `mappings` to convert.
+
+```ts
+sources: {
+  samples: {
+    chunked: false,
+    loader: async () => [{ time: 0, value: 10 }, { time: 1, value: 20 }],
+  },
+}
+```
+
 ### Rows
 
 | Field    | Type                                          | Behavior                                              |
@@ -74,6 +146,8 @@ Use `createDataSource()` when rows need to be appended or replaced after configu
 | `value`  | `TimescopeNumberLike \| null`                 | Sets the row value. Mutually exclusive with `values`. |
 | `values` | `Record<string, TimescopeNumberLike \| null>` | Sets named row values.                                |
 | `data`   | `unknown`                                     | Provides metadata to mark callbacks.                  |
+
+A row must contain at least one time. A single time, or several equal named times, represents a point. Otherwise, the row represents the half-open interval from its earliest to its latest named time: `[min(times), max(times))`. This interval determines overlap for chunk loading, replacement, and snapshot reduction, regardless of which time fields a chart selects with `using`.
 
 ### Mappings
 
@@ -91,7 +165,7 @@ Use `createDataSource()` when rows need to be appended or replaced after configu
 | `'percentiles'`                              | Provides `#first`, `#last`, `#min`, `#max`, `#p50`, `#p90`, and `#p95`. The unsuffixed value uses `#p50`. |
 | `{ type: 'percentiles', values?, primary? }` | Selects percentile suffixes and the percentile used by the unsuffixed value.                              |
 
-`min-max-avg` averages use Decimal division with 18 decimal places. Reducers aggregate point rows in snapshot sources; interval rows remain unchanged.
+Reducers aggregate point rows in snapshot sources; interval rows remain unchanged.
 
 ### URL Placeholders
 
@@ -104,17 +178,28 @@ Use `createDataSource()` when rows need to be appended or replaced after configu
 
 ### Chunk Loader
 
-The loader signature is `(chunk, api) => Promise<readonly TimescopeDataRowInput[]>`.
+The loader signature is `(chunk, api) => Promise<readonly TimescopeDataRowInput[]>` when returning rows directly. With `{ loader, decoder }` or `{ loader, mappings }`, return a Promise of the payload expected by that transform instead. The resulting rows must follow the range and context rules below.
 
-| Field                        | Type                                           | Behavior                                                                       |
-| ---------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------ |
-| `chunk.range`                | `[Decimal \| undefined, Decimal \| undefined]` | Requested time range. Timescope-generated requests have two defined endpoints. |
-| `chunk.resolution`           | `Decimal`                                      | Requested source resolution.                                                   |
-| `chunk.zoom`                 | `number`                                       | Zoom corresponding to the source resolution.                                   |
-| `api.expiresAt(timestampMs)` | `(number) => void`                             | Sets an absolute cache expiry in milliseconds.                                 |
-| `api.expiresIn(ms)`          | `(number) => void`                             | Sets cache lifetime in milliseconds.                                           |
+| Field                        | Type                                           | Behavior                                                                                           |
+| ---------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `chunk.range`                | `[Decimal \| undefined, Decimal \| undefined]` | Requested half-open range `[start, end)`. Timescope-generated requests have two defined endpoints. |
+| `chunk.resolution`           | `Decimal`                                      | Requested source resolution.                                                                       |
+| `chunk.zoom`                 | `number`                                       | Zoom corresponding to the source resolution.                                                       |
+| `api.expiresAt(timestampMs)` | `(number) => void`                             | Sets an absolute cache expiry in milliseconds.                                                     |
+| `api.expiresIn(ms)`          | `(number) => void`                             | Sets cache lifetime in milliseconds.                                                               |
 
-Return an empty array when the requested chunk has no rows.
+A chunk spans `chunkSize * chunk.resolution` time units, with boundaries aligned to `chunkOffset`. Return rows at a density appropriate for the requested source resolution.
+
+Return all rows intersecting `[start, end)`:
+
+- Points satisfy `start <= time < end`.
+- Interval rows satisfy `rowStart < end && start < rowEnd`. Include a row in every chunk it overlaps, even when its start is outside the requested range. Return the complete row, rather than trimming its times to the chunk boundaries.
+
+For charts with links, also return neighboring rows outside the range: the nearest row on each side for straight lines, steps, and their areas; the two nearest rows on each side for `curve` and `curve-area`. Return as many as exist at the ends of the data. These rows let links continue across chunk boundaries.
+
+Even when no row intersects the requested range, return the neighboring rows if a link crosses that range. For example, points at `0` and `100` are both needed to draw a line through a chunk covering `[40, 60)`. Return `[]` only when there are neither intersecting rows nor neighboring rows needed by the chart.
+
+Responses are cached without a time-based expiry by default. Use `api.expiresIn()` or `api.expiresAt()` when data may change, or call `timescope.reload()` to invalidate cached data.
 
 ## Series
 
@@ -139,7 +224,18 @@ Return an empty array when the requested chunk has no rows.
 | `resolve` | `TimescopeNumberLike \| ((context) => TimescopeNumberLike)` | Chooses a preferred source resolution.                         |
 | `snap`    | `'nearest' \| 'floor' \| 'ceil'`                            | Snaps to an available source resolution. Default: `'nearest'`. |
 
-The resolver receives `{ resolution, resolutions }`.
+The resolver receives `{ resolution, resolutions }`:
+
+| Field         | Type                 | Meaning                                                                                      |
+| ------------- | -------------------- | -------------------------------------------------------------------------------------------- |
+| `resolution`  | `Decimal`            | Display time units per pixel: `2 ** (-zoom)`. At zoom `0`, one pixel spans one time unit.    |
+| `resolutions` | `readonly Decimal[]` | Source intervals declared by `resolutions` or `zoomLevels`; empty when neither is specified. |
+
+Return a positive preferred source interval in the same time units as the rows. Timescope then snaps it to the source's available intervals. Without `resolve`, the preferred interval is the display resolution. Without a list of source intervals, snapping uses resolutions at integer zoom levels.
+
+`floor` selects the largest interval at or below the preferred interval; `ceil` selects the smallest at or above it. When no interval satisfies that direction, the nearest endpoint of the available range is used. `nearest` selects the closest interval on the zoom (logarithmic) scale.
+
+The selected source interval is passed to the loader as `chunk.resolution`. It can differ from the display resolution passed to chart callbacks.
 
 ### Instantaneous Values
 
@@ -212,6 +308,8 @@ Single-value marks default to `'value@time'`. `line`, `bar`, and `section` marks
 ## Style
 
 Mark style values may be callbacks receiving `{ times, values, data, resolution }`. Link callbacks receive `{ resolution }`. `values` entries are `Decimal | null`.
+
+In these callbacks, `resolution` is a `Decimal` giving display time units per pixel (`2 ** (-zoom)`), not the source interval requested by the loader. Use it to convert a time duration into a pixel width or to change appearance with zoom. `times` entries are `Decimal` values, and `data` is the row's metadata.
 
 ### Stroke
 
@@ -352,9 +450,9 @@ Nonzero constants are centered in the domain's available drawing region, while
 zero lies on the shared zero axis. `linear-symmetric` retains its zero-based
 scaling for nonzero constants. Constant ranges have a single value tick.
 
-Within a linear or logarithmic scale, transitions into and out of constant data
-animate the screen transform. An update during a transition continues from the
-current display, and the final display does not depend on earlier ranges.
+Within a linear or logarithmic scale, the display changes smoothly when entering
+or leaving constant data. An update during a transition continues from the
+current display.
 `animation: false` applies the final display immediately. Fixed bounds and
 `shrink: false` continue to constrain the range.
 

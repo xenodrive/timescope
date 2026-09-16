@@ -31,7 +31,7 @@ Tracks stack series vertically over a shared time axis. A domain is the value sc
 
 ## Data sources
 
-Inline arrays provide fixed data. Use `createDataSource()` when rows need to be appended or replaced. URLs and loaders can provide either complete snapshots or viewport-sized chunks.
+Inline arrays provide fixed data. Use [`createDataSource()`](/api/timescope-options#mutable-data-sources) when rows need to be appended or replaced. URLs and loaders can provide either complete snapshots or viewport-sized chunks.
 
 `decoder` converts loaded payloads to Timescope rows. `mappings` maps payload paths to named time and value fields. Snapshot reducers provide aggregate fields such as `value#avg`, `value#min`, and `value#max` for point rows; interval rows remain unchanged.
 
@@ -41,7 +41,9 @@ The timeline is tiled into chunks of `chunkSize` selected-resolution intervals. 
 
 A chunked loader receives the requested `range` and `resolution`. Return rows at a density matching that resolution. Responses are cached; `api.expiresIn()` sets their lifetime.
 
-Rows overlapping the chunk range are owned by that chunk (marks, tooltips). Also return the 1–2 nearest rows on each side — links need them to continue across boundaries.
+Return rows overlapping the half-open range `[start, end)`. Points at `end` belong to the next chunk. For rows with multiple named times, the interval from the earliest to the latest time determines overlap; include a complete interval row in every chunk it overlaps.
+
+For links, also return the nearest row on each side, or the two nearest on each side for curves. These neighboring rows are needed even when the requested range contains no points but a link crosses it. See [Chunk Loader](/api/timescope-options#chunk-loader) for the full response contract.
 
 ![Chunk loader: inbound range versus outbound rows](./assets/chunk-context.svg)
 
