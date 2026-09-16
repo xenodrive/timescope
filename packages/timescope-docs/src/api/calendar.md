@@ -173,6 +173,7 @@ Wrap text in `[...]` to treat it as a literal, or use a backslash to escape the 
 
 ## See Also
 
+- [@kikuchan/calendar](https://www.npmjs.com/package/@kikuchan/calendar#readme)
 - [Decimal](/api/decimal)
 - [Timescope API](/api/timescope)
 - [Timescope Options](/api/timescope-options)
