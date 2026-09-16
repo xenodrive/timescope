@@ -65,7 +65,6 @@ onMounted(() => {
             {
               draw: 'area',
               using: ['min', 'max'],
-              style: { fillOpacity: 0.25 },
             },
             { draw: 'line', using: 'value', style: { lineWidth: 1.5 } },
           ],
