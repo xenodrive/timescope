@@ -12,8 +12,6 @@ export type TimescopeChunk<T = never> = {
   id: string;
   /** Sequence number (monotonic along time). */
   seq: bigint;
-  /** Expiration timestamp (ms). */
-  expires?: number;
 
   /** Time range covered by this chunk. */
   range: TimescopeRange<Decimal | undefined>;
@@ -24,13 +22,6 @@ export type TimescopeChunk<T = never> = {
   /** Iterator for time points. */
   [Symbol.iterator]: () => Generator<Decimal>;
 } & ([T] extends [never] ? unknown : { data?: T });
-
-export type TimescopeChunkLoaderContext = { expiresAt: (t: number) => void; expiresIn: (t: number) => void };
-
-/**
- * Loader function that receives a chunk descriptor and returns its payload.
- */
-export type TimescopeChunkLoader<T> = (chunk: TimescopeChunk, api: TimescopeChunkLoaderContext) => Promise<T>;
 
 export function createChunkIterator(range: TimescopeRange<Decimal | undefined>, resolution: Decimal) {
   return function* () {
@@ -54,7 +45,7 @@ export function createChunkList(
   range: TimescopeRange<Decimal | undefined>,
   resolution: Decimal,
   chunkSize: number = DEFAULT_CHUNK_SIZE,
-  chunkOffset?: Decimal,
+  chunkOrigin?: Decimal,
 ): TimescopeChunk[] {
   if (!range[0] || !range[1]) throw new RangeError('Chunk range must be finite');
   if (resolution.le(0)) throw new RangeError('Chunk resolution must be positive');
@@ -63,7 +54,7 @@ export function createChunkList(
 
   const zoom = zoomFor(resolution);
   const results: TimescopeChunk[] = [];
-  const offset = chunkOffset ?? Decimal(0);
+  const offset = chunkOrigin ?? Decimal(0);
   const limit = range[1]!.add(chunkDuration);
   let seq = range[0]!.sub(offset).divFloor(chunkDuration).integer();
 
@@ -79,7 +70,6 @@ export function createChunkList(
       createChunk({
         id,
         seq,
-        expires: Infinity,
         range: chunkRange,
         resolution,
         zoom,

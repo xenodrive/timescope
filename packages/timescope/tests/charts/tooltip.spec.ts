@@ -1,6 +1,7 @@
-import { createChunkList, type TimescopeChunk } from '#src/core/chunk';
+import { createChunkList } from '#src/core/chunk';
 import { Decimal } from '#src/core/decimal';
-import { TimescopeSeriesTooltip } from '#src/main/loaders/TimescopeSeriesTooltip';
+import { TimescopeSeriesTooltip } from '#src/main/layers/TimescopeSeriesTooltip';
+import type { TimescopeLoadRequest } from '#src/main/TimescopeDataLoader';
 import { TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
 import { chunkStoreForDataSource, createDataSource } from '#src/main/TimescopeDataSource';
 import { TimescopeDomain } from '#src/main/TimescopeDomain';
@@ -10,19 +11,19 @@ import { deferred } from '../helpers/deferred';
 import { viewState } from '../helpers/view';
 
 function fixture(immediate = false) {
-  const rows = (chunk: TimescopeChunk) =>
+  const rows = (chunk: TimescopeLoadRequest) =>
     [0, 1, 2, 3].map((index) => ({
       time: chunk.range[0]!.add(chunk.resolution.mul(index)),
       value: chunk.resolution,
     }));
   const pending = new Map<
     string,
-    { chunk: TimescopeChunk; result: ReturnType<typeof deferred<ReturnType<typeof rows>>> }
+    { chunk: TimescopeLoadRequest; result: ReturnType<typeof deferred<ReturnType<typeof rows>>> }
   >();
-  const loader = vi.fn((chunk: TimescopeChunk) => {
+  const loader = vi.fn((chunk: TimescopeLoadRequest) => {
     if (!chunk.resolution.eq('0.25')) return Promise.resolve(rows(chunk));
     const result = deferred<ReturnType<typeof rows>>();
-    pending.set(chunk.id, { chunk, result });
+    pending.set(`${chunk.range[0]}:${chunk.resolution}`, { chunk, result });
     return result.promise;
   });
   const source = createDataSource({ loader, immediate, chunkSize: 4 });

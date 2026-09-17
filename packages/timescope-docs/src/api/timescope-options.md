@@ -48,25 +48,23 @@ The setting is applied when mounting. Changing it with `setOptions()` or `update
 | `function` or `{ loader }`         | Loads chunks. Set `chunked: false` to use a snapshot loader.              |
 | `TimescopeDataSource`              | Uses a source created by `createDataSource()` or a custom source.         |
 
-Use [`createDataSource()`](#mutable-data-sources) when rows need to be appended or replaced after configuration.
+### Source Types
 
-### Mutable Data Sources
+`createDataSource(input)` constructs one of these implementations. Custom DataSource instances pass through unchanged.
 
-`createDataSource(input)` accepts the source inputs above. An array or `{ data }` creates a mutable source with the following methods. Sources created from URLs or loaders are not mutable.
+| `type`               | Behavior                                                                                                                       | Acquisition       | Updates                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------- | -------------------------- |
+| `'simple'` (default) | Returns unaggregated point and interval rows. Snapshots use a static point/interval index; range loaders are queried directly. | Snapshot or range | Invalidation/reacquisition |
+| `'point-aggregate'`  | Returns point min/max/avg using a Segment Tree. Points must be in nondecreasing time order.                                    | Snapshot          | `append()`                 |
+| `'point-percentile'` | Returns point percentiles using a static value index.                                                                          | Snapshot          | Invalidation/reacquisition |
 
-| Method                        | Returns         | Behavior                                                                                                                    |
-| ----------------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `append(rows)`                | `Promise<void>` | Adds one row or an array of rows.                                                                                           |
-| `replace([start, end], rows)` | `Promise<void>` | Removes existing rows intersecting `[start, end)` and adds one row or an array of rows. Pass `[]` to remove without adding. |
-
-Replacement endpoints accept `TimescopeTimeLike<never>` values; `end` must not precede `start`. Points at `end` are excluded. An overlapping interval row is removed in its entirety, even if it extends outside the replacement range. Every replacement row must intersect the replacement range. See [Rows](#rows) for point and interval definitions.
-
-Updates automatically refresh series using the source; calling `reload()` is unnecessary. Await the returned Promise before an operation that depends on the updated data. It does not indicate that a frame has been drawn.
+Only point-aggregate sources expose `append()`. No built-in source exposes `replace()`. Appends automatically refresh consumers; await the returned Promise before an operation that depends on the new data. It does not indicate that a frame has been drawn.
 
 ```ts
 import { createDataSource, Timescope } from 'timescope';
 
 const source = createDataSource({
+  type: 'point-aggregate',
   data: [{ time: 0, value: 10 }],
 });
 const timescope = new Timescope({
@@ -78,25 +76,41 @@ const timescope = new Timescope({
 });
 
 await source.append({ time: 1, value: 20 });
-await source.replace([0, 1], [{ time: 0, value: 12 }]);
 ```
 
-Mutation methods accept row inputs. If the source uses `mappings`, pass records in the mapped input format. A `decoder` applies to the initial payload only; pass decoded rows to `append()` and `replace()`.
+`append()` accepts one row or an array of rows. If the source uses `mappings`, pass records in the mapped input format. A `decoder` applies to the initial payload only; pass decoded rows to `append()`.
 
 ### Source Options
 
-| Key           | Type                                                                                         | Behavior                                                                    |
-| ------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `chunkSize`   | `number`                                                                                     | Sets the number of selected-resolution intervals per chunk. Default: `256`. |
-| `chunkOffset` | `TimescopeNumberLike`                                                                        | Aligns chunk boundaries to the given time origin. Default: `0`.             |
-| `immediate`   | `boolean`                                                                                    | Allows loading while the view is moving. Default: `true`.                   |
-| `resolutions` | `TimescopeNumberLike[]`                                                                      | Limits requests to the listed source resolutions.                           |
-| `zoomLevels`  | `number[]`                                                                                   | Limits requests to resolutions represented by the listed zoom levels.       |
-| `decoder`     | `(payload) => readonly TimescopeDataRowInput[] \| Promise<readonly TimescopeDataRowInput[]>` | Converts a loaded payload to rows.                                          |
-| `mappings`    | `TimescopeMappings`                                                                          | Maps payload paths to time and value fields.                                |
-| `reducer`     | `TimescopeReducer`                                                                           | Reduces snapshot rows at requested resolutions.                             |
+| Key           | Type                                                                                         | Behavior                                                                                                                              |
+| ------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `chunkSize`   | `number`                                                                                     | Preferred number of resolution intervals per display-cache chunk. Default: `256`.                                                     |
+| `chunkOrigin` | `TimescopeNumberLike`                                                                        | Preferred chunk origin, also used to anchor point aggregation buckets. Default: `0`.                                                  |
+| `immediate`   | `boolean`                                                                                    | Allows loading while the view is moving. Default: `true`.                                                                             |
+| `resolutions` | `TimescopeNumberLike[]`                                                                      | Hints for preferred loader resolutions. Direct queries may request other positive resolutions.                                        |
+| `zoomLevels`  | `number[]`                                                                                   | Alternative way to specify resolution hints, using zoom levels.                                                                       |
+| `decoder`     | `(payload) => readonly TimescopeDataRowInput[] \| Promise<readonly TimescopeDataRowInput[]>` | Converts a loaded payload to rows.                                                                                                    |
+| `mappings`    | `TimescopeMappings`                                                                          | Maps payload paths to time and value fields.                                                                                          |
+| `type`        | `'simple' \| 'point-aggregate' \| 'point-percentile'`                                        | Selects a concrete DataSource.                                                                                                        |
+| `cacheSize`   | `number`                                                                                     | Output chunk LRU capacity. Default: `1000`; active and in-flight entries remain retained. `0` disables unreferenced result retention. |
+| `percentiles` | `{ values?: (0.5 \| 0.9 \| 0.95)[], primary?: 0.5 \| 0.9 \| 0.95 }`                          | Selects percentile suffixes and the primary value for point-percentile sources.                                                       |
 
 `data`, `url`, and `loader` are mutually exclusive. `decoder` and `mappings` are also mutually exclusive.
+
+Construction options describe acquisition hints. The resulting `source.resolutions`, `source.chunkSize`, and `source.chunkOrigin` guide how views construct requests and may differ from those options. Range-backed Simple sources publish their input hints unchanged; snapshot sources publish no preferred resolution list. Built-in sources preserve chunk size and origin. These hints do not require direct queries to use a listed resolution or align with chunk boundaries.
+
+### Direct Queries
+
+```ts
+const rows = await source.query({
+  range: [Decimal('1.3'), Decimal('8.7')],
+  resolution: Decimal('0.2'),
+});
+```
+
+`TimescopeDataSourceQuery` contains only a finite, ordered `range: [Decimal, Decimal]` and a positive `resolution: Decimal`. There is no chunk ID, sequence, or zoom. Direct queries do not cache results or share range acquisitions; snapshot sources still retain their acquired data and index.
+
+Simple range sources forward the request to their loader on a best-effort basis. Point aggregation and percentile sources anchor buckets to `chunkOrigin`, returning complete intersecting buckets and neighboring context. Shifting query boundaries does not shift bucket boundaries or change the values of an otherwise identical bucket.
 
 ### Payloads and Decoders
 
@@ -126,7 +140,7 @@ Without a decoder, a `Response` is read as JSON. The resulting payload must be a
 
 ### Snapshot Loader
 
-Set `chunked: false` to load a complete snapshot. The loader is called without arguments and may return its payload directly or through a Promise. Return rows when no transform is configured, or a payload for `decoder` / `mappings` to convert.
+Set `chunked: false` to load a complete snapshot. The loader takes no arguments and may return its payload directly or through a Promise. Return rows when no transform is configured, or a payload for `decoder` / `mappings` to convert. The Source retains and indexes the snapshot until invalidated.
 
 ```ts
 sources: {
@@ -147,7 +161,7 @@ sources: {
 | `values` | `Record<string, TimescopeNumberLike \| null>` | Sets named row values.                                |
 | `data`   | `unknown`                                     | Provides metadata to mark callbacks.                  |
 
-A row must contain at least one time. A single time, or several equal named times, represents a point. Otherwise, the row represents the half-open interval from its earliest to its latest named time: `[min(times), max(times))`. This interval determines overlap for chunk loading, replacement, and snapshot reduction, regardless of which time fields a chart selects with `using`.
+A row must contain at least one time. A single time, or several equal named times, represents a point. Otherwise, the row represents the half-open interval from its earliest to its latest named time: `[min(times), max(times))`. This interval determines overlap for queries, regardless of which time fields a chart selects with `using`. Simple sources support both points and intervals; point-aggregate and point-percentile reject intervals.
 
 ### Mappings
 
@@ -156,16 +170,11 @@ A row must contain at least one time. A single time, or several equal named time
 | `times`  | `Record<string, string>` | Maps canonical time names to payload paths.  |
 | `values` | `Record<string, string>` | Maps canonical value names to payload paths. |
 
-### Reducers
+### Aggregated Output
 
-| Value                                        | Behavior                                                                                                  |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `'null'`                                     | Returns snapshot rows without reduction. Default.                                                         |
-| `'min-max-avg'`                              | Provides `#avg`, `#first`, `#last`, `#min`, and `#max`. The unsuffixed value uses `#avg`.                 |
-| `'percentiles'`                              | Provides `#first`, `#last`, `#min`, `#max`, `#p50`, `#p90`, and `#p95`. The unsuffixed value uses `#p50`. |
-| `{ type: 'percentiles', values?, primary? }` | Selects percentile suffixes and the percentile used by the unsuffixed value.                              |
+Point-aggregate sources provide `#avg`, `#first`, `#last`, `#min`, and `#max`; the unsuffixed value is the average. Point-percentile sources provide `#first`, `#last`, `#min`, `#max`, `#p50`, `#p90`, and `#p95`; the primary value defaults to p50. Configure `percentiles: { values, primary }` to select percentile outputs.
 
-Reducers aggregate point rows in snapshot sources; interval rows remain unchanged.
+Singleton buckets retain the original point time. Buckets containing multiple points use the bucket midpoint. Set `series.data.instantaneous.resolution` independently when the tooltip should use finer data than the chart.
 
 ### URL Placeholders
 
@@ -173,22 +182,14 @@ Reducers aggregate point rows in snapshot sources; interval rows remain unchange
 | --------------------- | --------------------------- |
 | `{z}`, `{zoom}`       | Zoom level.                 |
 | `{r}`, `{resolution}` | Selected source resolution. |
-| `{s}`, `{start}`      | Chunk start time.           |
-| `{e}`, `{end}`        | Chunk end time.             |
+| `{s}`, `{start}`      | Requested range start time. |
+| `{e}`, `{end}`        | Requested range end time.   |
 
-### Chunk Loader
+### Range Loader
 
-The loader signature is `(chunk, api) => Promise<readonly TimescopeDataRowInput[]>` when returning rows directly. With `{ loader, decoder }` or `{ loader, mappings }`, return a Promise of the payload expected by that transform instead. The resulting rows must follow the range and context rules below.
+The loader signature is `(request: TimescopeLoadRequest) => rows | Promise<rows>`. With a decoder or mappings, return the expected payload instead. A request contains only `range: [Decimal, Decimal]` and `resolution: Decimal`: no chunk identity, sequence, or expiry context.
 
-| Field                        | Type                                           | Behavior                                                                                           |
-| ---------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `chunk.range`                | `[Decimal \| undefined, Decimal \| undefined]` | Requested half-open range `[start, end)`. Timescope-generated requests have two defined endpoints. |
-| `chunk.resolution`           | `Decimal`                                      | Requested source resolution.                                                                       |
-| `chunk.zoom`                 | `number`                                       | Zoom corresponding to the source resolution.                                                       |
-| `api.expiresAt(timestampMs)` | `(number) => void`                             | Sets an absolute cache expiry in milliseconds.                                                     |
-| `api.expiresIn(ms)`          | `(number) => void`                             | Sets cache lifetime in milliseconds.                                                               |
-
-A chunk spans `chunkSize * chunk.resolution` time units, with boundaries aligned to `chunkOffset`. Return rows at a density appropriate for the requested source resolution.
+Loaders accept arbitrary ranges and resolutions on a best-effort basis. Simple sources forward their query conditions. Views normally construct ranges spanning `chunkSize * resolution`, aligned to `chunkOrigin`, but direct callers need not do so. Return rows at a density appropriate for the requested resolution.
 
 Return all rows intersecting `[start, end)`:
 
@@ -199,7 +200,59 @@ For charts with links, also return neighboring rows outside the range: the neare
 
 Even when no row intersects the requested range, return the neighboring rows if a link crosses that range. For example, points at `0` and `100` are both needed to draw a line through a chunk covering `[40, 60)`. Return `[]` only when there are neither intersecting rows nor neighboring rows needed by the chart.
 
-Responses are cached without a time-based expiry by default. Use `api.expiresIn()` or `api.expiresAt()` when data may change, or call `timescope.reload()` to invalidate cached data.
+### Invalidation and Caching
+
+A display-side ChunkStore is shared by views of the same Source. On a cache miss it calls `source.query({ range, resolution })`, without forwarding the chunk identity. Concurrent chunk loads share acquisition; inactive results can remain in the LRU after leaving the viewport. Snapshot indexes survive output-cache eviction. Failed acquisitions are retryable. Calling `source.query()` directly bypasses this cache entirely.
+
+```ts
+source.invalidate(); // All data
+source.invalidate([start, end]); // An affected range
+source.invalidate([latestDataTime, undefined]); // The live tail, at every resolution
+```
+
+Endpoints accept `TimescopeTimeLike<undefined>`. An omitted endpoint is unbounded. The Source emits an invalidation notification; subscribed ChunkStores invalidate overlapping chunks, including the chunk containing the boundary. Sources do not look up or directly invalidate stores. Stores also check the Source revision before serving results, so a read immediately after invalidation cannot return a stale cached result. Active views reload what they need, and invalidated in-flight chunk loads are rejected. Use a data-time boundary that includes late-arriving samples, not necessarily the wall-clock time of the last request.
+
+All snapshot-backed sources discard their snapshot/index on explicit invalidation and reacquire the whole snapshot on the next query. This also discards appended points that are not present in the acquisition input. Even range-specific invalidation notifies consumers of a full reset for snapshot sources. `append()` itself retains the updated index and only notifies consumers of the changed range. `timescope.reload()` invalidates its sources.
+
+Renderers reference-count shared Source instances. Each renderer holds one reference per distinct Source, including Sources supplied by the caller. Removing the Source or disposing the renderer releases that reference; the final release disposes the Source. Moving a Source between names in one update preserves its lifetime. A JavaScript variable alone does not retain a usage reference. For standalone Sources used without a renderer, call `source.dispose()` when finished.
+
+`updateOptions()` preserves omitted Source and Series entries. Explicit Source settings create a new Source; passing the same Source instance reuses it. Explicit Series updates rebuild that Series from the merged settings. Settings are not serialized or deeply compared, and callbacks retain their original identity and closures. `setOptions()` replaces the complete configuration.
+
+### Reusable DataLoader
+
+`createDataLoader()` performs acquisition, decoding and normalization independently of the source's query algorithm. It has no cache, timers, invalidation API, or resolution/chunk constraints. Every `load()` performs acquisition. DataSources retain snapshot/index state and notify consumers of updates; display-side ChunkStores cache query results.
+
+```ts
+import { createDataLoader, createDataSource } from 'timescope';
+
+const loader = createDataLoader({
+  url: '/samples.json',
+  decoder: async (response: Response) => (await response.json()).samples,
+});
+
+const rows = await loader.load(); // Normalized readonly rows.
+const source = createDataSource({ loader, chunked: false });
+source.invalidate(); // Reacquire on the next query.
+```
+
+A range loader uses `load({ range, resolution })`. `loader.ranged` distinguishes range acquisition from whole-snapshot acquisition. The same Loader can be used by multiple sources; their state and invalidation are independent. Configure decoding/mappings on the Loader itself when supplying a Loader instance.
+
+### Append-only Segment Tree
+
+```ts
+import { createDataSource } from 'timescope';
+
+const source = createDataSource({
+  data: [{ time: 0, value: 10 }],
+  type: 'point-aggregate',
+});
+await source.append({ time: 1 / 60, value: 12 });
+// source.replace(...) is not available.
+```
+
+This source accepts only point rows in nondecreasing time order, including the initial data and each appended batch. Equal times retain insertion order. Invalid batches are rejected before any rows are inserted. Use Simple for unaggregated points/intervals, or point-percentile for percentiles.
+
+Each point is a leaf in a segment tree. Append updates its ancestors; queries combine range aggregates without scanning every point in a bucket. Capacity grows geometrically, so occasional appends rebuild the tree. This trades additional index memory for efficient aggregation of dense ranges.
 
 ## Series
 
@@ -226,16 +279,16 @@ Responses are cached without a time-based expiry by default. Use `api.expiresIn(
 
 The resolver receives `{ resolution, resolutions }`:
 
-| Field         | Type                 | Meaning                                                                                      |
-| ------------- | -------------------- | -------------------------------------------------------------------------------------------- |
-| `resolution`  | `Decimal`            | Display time units per pixel: `2 ** (-zoom)`. At zoom `0`, one pixel spans one time unit.    |
-| `resolutions` | `readonly Decimal[]` | Source intervals declared by `resolutions` or `zoomLevels`; empty when neither is specified. |
+| Field         | Type                 | Meaning                                                                                   |
+| ------------- | -------------------- | ----------------------------------------------------------------------------------------- |
+| `resolution`  | `Decimal`            | Display time units per pixel: `2 ** (-zoom)`. At zoom `0`, one pixel spans one time unit. |
+| `resolutions` | `readonly Decimal[]` | Output intervals published by `source.resolutions`; empty when unrestricted.              |
 
 Return a positive preferred source interval in the same time units as the rows. Timescope then snaps it to the source's available intervals. Without `resolve`, the preferred interval is the display resolution. Without a list of source intervals, snapping uses resolutions at integer zoom levels.
 
 `floor` selects the largest interval at or below the preferred interval; `ceil` selects the smallest at or above it. When no interval satisfies that direction, the nearest endpoint of the available range is used. `nearest` selects the closest interval on the zoom (logarithmic) scale.
 
-The selected source interval is passed to the loader as `chunk.resolution`. It can differ from the display resolution passed to chart callbacks.
+The selected output interval is passed to `source.query()`. Range-backed Simple sources pass it to their loader as `request.resolution`; snapshot sources use it for local queries. It can differ from the display resolution passed to chart callbacks.
 
 ### Instantaneous Values
 
@@ -256,16 +309,16 @@ Setting either `tooltip: false` or `data.instantaneous: false` disables cursor s
 
 ## Using Selectors
 
-| Form             | Selects                             |
-| ---------------- | ----------------------------------- |
-| `'value@time'`   | Named value and named time.         |
-| `'value'`        | Named value with the default time.  |
-| `'@start'`       | Default value at the named time.    |
-| `['min', 'max']` | Two coordinates.                    |
-| `'#zero'`        | Domain zero.                        |
-| `'#top'`         | Top of the chart area.              |
-| `'#bottom'`      | Bottom of the chart area.           |
-| `'value#avg'`    | An aggregate produced by a reducer. |
+| Form             | Selects                                            |
+| ---------------- | -------------------------------------------------- |
+| `'value@time'`   | Named value and named time.                        |
+| `'value'`        | Named value with the default time.                 |
+| `'@start'`       | Default value at the named time.                   |
+| `['min', 'max']` | Two coordinates.                                   |
+| `'#zero'`        | Domain zero.                                       |
+| `'#top'`         | Top of the chart area.                             |
+| `'#bottom'`      | Bottom of the chart area.                          |
+| `'value#avg'`    | An aggregate produced by a point-aggregate source. |
 
 Single-value marks default to `'value@time'`. `line`, `bar`, and `section` marks default to `['min', 'max']`. Single-value links default to `'value@time'`; area links use the value and domain zero by default.
 
@@ -342,13 +395,13 @@ both marks and links. Values are clamped to the range `0`–`1`. It controls the
 transparency of the fill, not the strength of the default shading, and does not
 affect strokes.
 
-| Fill settings | Marks | Links |
-| --- | --- | --- |
-| Omitted | Color at 25% alpha precomposited against the background | Color at 25% alpha |
-| `fillOpacity: 0.5` | Derived fill at half its alpha | Color at 12.5% alpha |
-| `fillColor: F` | F, including its alpha | F, including its alpha |
-| `fillColor: F, fillOpacity: 0.5` | F at half its alpha | F at half its alpha |
-| `fillOpacity: 0` or `fillColor: 'transparent'` | Fully transparent fill | Fully transparent fill |
+| Fill settings                                  | Marks                                                   | Links                  |
+| ---------------------------------------------- | ------------------------------------------------------- | ---------------------- |
+| Omitted                                        | Color at 25% alpha precomposited against the background | Color at 25% alpha     |
+| `fillOpacity: 0.5`                             | Derived fill at half its alpha                          | Color at 12.5% alpha   |
+| `fillColor: F`                                 | F, including its alpha                                  | F, including its alpha |
+| `fillColor: F, fillOpacity: 0.5`               | F at half its alpha                                     | F at half its alpha    |
+| `fillOpacity: 0` or `fillColor: 'transparent'` | Fully transparent fill                                  | Fully transparent fill |
 
 For a translucent fill in the original series color, set `fillColor` to that color
 and use `fillOpacity` to control its transparency. With no `fillColor`, setting

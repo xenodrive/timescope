@@ -1,223 +1,274 @@
 import { createChunk } from '#src/core/chunk';
 import { Decimal } from '#src/core/decimal';
-import { TimescopeChunkStore } from '#src/main/TimescopeChunkStore';
-import { createDataSource, TimescopeDataSourceBase, type TimescopeDataSource } from '#src/main/TimescopeDataSource';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { SimpleDataSource } from '#src/main/sources/SimpleDataSource';
+import { createDataLoader, type TimescopeLoadRequest } from '#src/main/TimescopeDataLoader';
+import {
+  createDataSource,
+  chunkStoreForDataSource,
+  TimescopeDataSourceBase,
+  type TimescopeDataSourceQuery,
+} from '#src/main/TimescopeDataSource';
+import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
+import { deferred } from '../helpers/deferred';
 
 afterEach(() => vi.unstubAllGlobals());
-
-function chunk(start: number, end: number, resolution: number, id = `${start}:${end}:${resolution}`) {
-  return createChunk({
-    id,
-    seq: 0n,
-    range: [Decimal(start), Decimal(end)],
-    resolution: Decimal(resolution),
-    zoom: 0,
-  });
+function chunk(start: number, end: number, resolution = 1, id = `${start}:${end}:${resolution}`) {
+  return createChunk({ id, seq: 0n, range: [Decimal(start), Decimal(end)], resolution: Decimal(resolution), zoom: 0 });
+}
+function request(start: number, end: number, resolution = 1): TimescopeDataSourceQuery {
+  return { range: [Decimal(start), Decimal(end)], resolution: Decimal(resolution) };
 }
 
-const context = { expiresAt() {}, expiresIn() {} };
-
-describe('data source contract', () => {
-  it('passes structural source instances through by identity', () => {
-    class Source extends TimescopeDataSourceBase<{ time: number; value: number }> {
+describe('data sources', () => {
+  it('passes custom sources through by identity', () => {
+    class Source extends TimescopeDataSourceBase {
       async query() {
         return [];
       }
     }
-    const source: TimescopeDataSource = new Source();
+    const source = new Source();
     expect(createDataSource(source)).toBe(source);
   });
 
-  it('classifies data and plain URLs as snapshots and template URLs as chunked', async () => {
-    const fetchMock = vi.fn(async (url: string) => new Response(JSON.stringify([{ time: 1, value: url.length }])));
-    vi.stubGlobal('fetch', fetchMock);
-    const data = createDataSource({ data: [{ time: 1, value: 2 }] });
-    const plain = createDataSource({ url: '/all.json' });
-    const template = createDataSource('/data/{start}/{end}.json');
-
-    await data.query(chunk(0, 10, 1), context);
-    await data.query(chunk(10, 20, 1), context);
-    const plainRows = await plain.query(chunk(0, 10, 1), context);
-    await plain.query(chunk(10, 20, 1), context);
-    await template.query(chunk(0, 10, 1), context);
-    await template.query(chunk(10, 20, 1), context);
-
-    expect(plainRows[0].values).not.toHaveProperty('value#avg');
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['/all.json', '/data/0/10.json', '/data/10/20.json']);
+  it('uses Simple for snapshots and range loaders, without mutation methods', async () => {
+    const snapshot = vi.fn(async () => [{ time: 1, value: 2 }]);
+    const range = vi.fn(async () => [{ time: 1, value: 3 }]);
+    const a = createDataSource({ loader: snapshot, chunked: false });
+    const b = createDataSource({ loader: range });
+    expect(a).toBeInstanceOf(SimpleDataSource);
+    expect(b).toBeInstanceOf(SimpleDataSource);
+    expectTypeOf(a).not.toHaveProperty('append');
+    expectTypeOf(a).not.toHaveProperty('replace');
+    expect(a).not.toHaveProperty('append');
+    expect(a).not.toHaveProperty('replace');
+    await a.query(request(0, 10));
+    await a.query(request(10, 20));
+    await Promise.all([b.query(request(0, 10)), b.query(request(0, 10))]);
+    expect(snapshot).toHaveBeenCalledOnce();
+    expect(range).toHaveBeenCalledTimes(2);
+    expect(Object.keys(range.mock.calls[0])).toHaveLength(1);
   });
 
-  it('defaults loaders to chunked and supports acquire-once snapshot loaders', async () => {
-    const chunkedLoader = vi.fn(async () => [{ time: 1, value: 2 }]);
-    const snapshotLoader = vi.fn(async () => [
-      { time: 1, value: 2 },
-      { time: 11, value: 4 },
-    ]);
-    const chunked = createDataSource({ loader: chunkedLoader });
-    const snapshot = createDataSource({ loader: snapshotLoader, chunked: false });
-
-    await chunked.query(chunk(0, 10, 1), context);
-    await chunked.query(chunk(0, 10, 1), context);
-    expect(chunkedLoader).toHaveBeenCalledTimes(2);
-    expect(await snapshot.query(chunk(0, 10, 1), context)).toHaveLength(2);
-    expect(await snapshot.query(chunk(10, 20, 1), context)).toHaveLength(2);
-    expect((await snapshot.query(chunk(0, 20, 20), context))[0].values).not.toHaveProperty('value#avg');
-    expect(snapshotLoader).toHaveBeenCalledOnce();
-  });
-
-  it('uses raw rows by default and only reduces snapshots when requested', async () => {
-    const input = [
-      { time: 1, value: 2 },
-      { time: 2, value: 4 },
-    ];
-    const defaultSource = createDataSource({ data: input });
-    const reduced = createDataSource({ data: input, reducer: 'min-max-avg' });
-    const raw = createDataSource({ data: input, reducer: 'null' });
-
-    const [aggregate] = await reduced.query(chunk(0, 10, 10), context);
-    expect(aggregate.values.value?.eq(3)).toBe(true);
-    expect(aggregate.values['value#avg']?.eq(3)).toBe(true);
-    expect(aggregate.values['value#min']?.eq(2)).toBe(true);
-    expect(await defaultSource.query(chunk(0, 10, 10), context)).toHaveLength(2);
-    expect(await raw.query(chunk(0, 10, 10), context)).toHaveLength(2);
-  });
-
-  it('selects a configured percentile as the primary value', async () => {
+  it('finds long overlapping intervals and preserves raw point values', async () => {
     const source = createDataSource({
-      data: Array.from({ length: 100 }, (_, index) => ({ time: index, value: index + 1 })),
-      reducer: { type: 'percentiles', values: [0.95], primary: 0.95 },
+      data: [
+        { times: { start: -1000, end: 1000 }, value: 999 },
+        ...Array.from({ length: 100 }, (_, time) => ({ time, value: time })),
+        { times: { start: 40, end: 60 }, value: 777 },
+      ],
     });
-    const [row] = await source.query(chunk(0, 100, 100), context);
-    expect(row.values['value#p95']?.eq('95.05')).toBe(true);
+    const rows = await source.query(request(50, 51));
+    expect(rows.some((row) => row.values.value?.eq(999))).toBe(true);
+    expect(rows.some((row) => row.values.value?.eq(777))).toBe(true);
+    expect(rows.some((row) => row.times.time?.eq(50))).toBe(true);
+    expect(rows.every((row) => !('value#avg' in row.values))).toBe(true);
+    expect(rows.length).toBeLessThan(10);
+  });
+
+  it('exposes tiling hints without restricting arbitrary range/resolution queries', async () => {
+    const acquire = vi.fn(async () => []);
+    const range = createDataSource({ loader: acquire, resolutions: [1, 10], chunkOrigin: 3, chunkSize: 8 });
+    const snapshot = createDataSource({ data: [], resolutions: [1, 10] });
+    const aggregate = createDataSource({ type: 'point-aggregate', data: [], resolutions: [1, 10] });
+    expect(range.resolutions?.map(Number)).toEqual([1, 10]);
+    expect(range.chunkOrigin.number()).toBe(3);
+    expect(range.chunkSize).toBe(8);
+    expect(snapshot.resolutions).toBeUndefined();
+    expect(aggregate.resolutions).toBeUndefined();
+    await expect(range.query(request(0.13, 10.27, 2))).resolves.toEqual([]);
+    expect(acquire).toHaveBeenCalledWith(request(0.13, 10.27, 2));
+    await expect(snapshot.query(request(0, 10, 2))).resolves.toEqual([]);
+  });
+
+  it('caches only through the shared display store, and strips chunk identity from source queries', async () => {
+    const acquire = vi.fn(async () => [{ time: 1, value: 2 }]);
+    const loader = createDataLoader({ loader: acquire });
+    const source = createDataSource({ loader });
+    const target = chunk(0, 10);
+    const store = chunkStoreForDataSource(source);
+    const query = vi.spyOn(source, 'query');
+    const [a, b] = await Promise.all([store.loadChunk(target), store.loadChunk(target)]);
+    expect(a).toBe(b);
+    expect(query).toHaveBeenCalledExactlyOnceWith(request(0, 10));
+    const rows = await source.query(request(0, 10));
+    expect(rows).not.toBe(a.data);
+    expect(acquire).toHaveBeenCalledTimes(2);
+    expect(store.peekChunk(target)).toBe(a);
+    expect(source).not.toHaveProperty('chunkStore');
+    source.invalidate([0, 10]);
+    expect(store.peekChunk(target)).toBeUndefined();
+    await store.loadChunk(target);
+    expect(acquire).toHaveBeenCalledTimes(3);
+  });
+
+  it('invalidates the live tail across resolutions while retaining historical chunks', async () => {
+    const acquire = vi.fn(async (request: TimescopeLoadRequest) => [{ time: request.range[0], value: 1 }]);
+    const source = createDataSource({ loader: acquire });
+    const store = chunkStoreForDataSource(source);
+    const old = chunk(0, 10);
+    const fine = chunk(20, 30);
+    const coarse = chunk(0, 100, 10);
+    const historical = await store.loadChunk(old);
+    await store.loadChunk(fine);
+    await store.loadChunk(coarse);
+    source.invalidate([25, undefined]);
+    expect(await store.loadChunk(old)).toBe(historical);
+    await store.loadChunk(fine);
+    await store.loadChunk(coarse);
+    expect(acquire).toHaveBeenCalledTimes(5);
+  });
+
+  it('performs repeated direct acquisitions without retaining their results', async () => {
+    const acquire = vi.fn(async (request: TimescopeLoadRequest) => [
+      { time: request.range[0], value: request.resolution },
+    ]);
+    const source = createDataSource({ loader: acquire });
+    const a = await source.query(request(0, 10));
+    const b = await source.query(request(20, 30));
+    const c = await source.query(request(20, 30, 2));
+    expect(a[0].times.time.number()).toBe(0);
+    expect(b[0].times.time.number()).toBe(20);
+    expect(c[0].values.value?.number()).toBe(2);
+    await source.query(request(0, 10));
+    expect(acquire).toHaveBeenCalledTimes(4);
+  });
+
+  it('rejects affected in-flight loads but preserves unrelated in-flight loads', async () => {
+    const pending = new Map<string, ReturnType<typeof deferred<{ time: number; value: number }[]>>>();
+    const source = createDataSource({
+      loader: (request) => {
+        const result = deferred<{ time: number; value: number }[]>();
+        pending.set(String(request.range[0]), result);
+        return result.promise;
+      },
+    });
+    const store = chunkStoreForDataSource(source);
+    const affected = store.loadChunk(chunk(0, 10));
+    const unaffected = store.loadChunk(chunk(20, 30));
+    const rejected = expect(affected).rejects.toThrow('Stale');
+    source.invalidate([0, 10]);
+    pending.get('0')!.resolve([{ time: 1, value: 1 }]);
+    pending.get('20')!.resolve([{ time: 21, value: 2 }]);
+    await rejected;
+    expect((await unaffected).data![0].values.value?.number()).toBe(2);
+  });
+
+  it('reacquires a snapshot once and rejects stale results after invalidation', async () => {
+    const first = deferred<{ time: number; value: number }[]>();
+    const second = deferred<{ time: number; value: number }[]>();
+    const acquire = vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    const source = createDataSource({ loader: acquire, chunked: false });
+    const stale = source.query(request(0, 10));
+    const rejected = expect(stale).rejects.toThrow('Stale');
+    source.invalidate([5, undefined]);
+    const fresh = source.query(request(0, 10));
+    second.resolve([{ time: 2, value: 2 }]);
+    expect((await fresh)[0].values.value?.number()).toBe(2);
+    first.resolve([{ time: 1, value: 1 }]);
+    await rejected;
+    expect((await source.query(request(10, 20)))[0].values.value?.number()).toBe(2);
+    expect(acquire).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries failed snapshots and releases pending loads on disposal', async () => {
+    const pending = deferred<{ time: number; value: number }[]>();
+    const acquire = vi.fn().mockRejectedValueOnce(new Error('network')).mockReturnValueOnce(pending.promise);
+    const source = createDataSource({ loader: acquire, chunked: false });
+    await expect(source.query(request(0, 10))).rejects.toThrow('network');
+    const result = source.query(request(0, 10));
+    const rejected = expect(result).rejects.toThrow();
+    source.dispose?.();
+    pending.resolve([{ time: 1, value: 1 }]);
+    await rejected;
+    await expect(source.query(request(0, 10))).rejects.toThrow('disposed');
+  });
+
+  it('evicts query results without discarding the snapshot index', async () => {
+    const acquire = vi.fn(async () => [{ time: 1, value: 2 }]);
+    const source = createDataSource({ loader: acquire, chunked: false, cacheSize: 1 });
+    const store = chunkStoreForDataSource(source);
+    await store.loadChunk(chunk(0, 10));
+    await store.loadChunk(chunk(20, 30));
+    expect(store.peekChunk(chunk(0, 10))).toBeUndefined();
+    await store.loadChunk(chunk(0, 10));
+    expect(acquire).toHaveBeenCalledOnce();
+  });
+
+  it('retains appended points until explicit invalidation reloads the whole snapshot', async () => {
+    const source = createDataSource({
+      type: 'point-aggregate',
+      data: [0, 10, 20, 30].map((time) => ({ time, value: time })),
+    });
+    const store = chunkStoreForDataSource(source);
+    const old = chunk(0, 5);
+    const tail = chunk(25, 35);
+    const historical = await store.loadChunk(old);
+    await store.loadChunk(tail);
+    await source.append({ time: 40, value: 40 });
+    expect(store.peekChunk(old)).toBe(historical);
+    expect(store.peekChunk(tail)).toBeUndefined();
+    expect((await store.loadChunk(tail)).data!.some((row) => row.times.time.eq(40))).toBe(true);
+    source.invalidate([40, undefined]);
+    expect(source.invalidation?.range).toBeUndefined();
+    expect(store.peekChunk(old)).toBeUndefined();
+    expect((await store.loadChunk(tail)).data!.some((row) => row.times.time.eq(40))).toBe(false);
+    expect(source).not.toHaveProperty('replace');
+  });
+
+  it('selects a configured percentile as the primary output', async () => {
+    const source = createDataSource({
+      type: 'point-percentile',
+      data: Array.from({ length: 100 }, (_, time) => ({ time, value: time + 1 })),
+      percentiles: { values: [0.95], primary: 0.95 },
+    });
+    const [row] = await source.query(request(0, 100, 100));
     expect(row.values.value?.eq('95.05')).toBe(true);
     expect(row.values).not.toHaveProperty('value#p50');
   });
 
-  it('mutates data snapshots and emits conservative ranged invalidation', async () => {
-    const source = createDataSource({ data: [{ time: 1, value: 1 }] });
-    const invalidations: unknown[] = [];
-    source.on('invalidate', (event) => invalidations.push(event.value));
+  it.each(['point-aggregate', 'point-percentile'] as const)(
+    'anchors %s buckets to the origin for arbitrary ranges',
+    async (type) => {
+      const data = Array.from({ length: 20 }, (_, i) => ({ time: -1 + i * 0.25, value: i }));
+      const source =
+        type === 'point-aggregate'
+          ? createDataSource({ type, data, chunkOrigin: 0.25 })
+          : createDataSource({ type, data, chunkOrigin: 0.25 });
+      const first = await source.query(request(0.3, 2.7, 1));
+      const shifted = await source.query(request(0.6, 2.9, 1));
+      expect(first).toEqual(shifted);
+      const bucket = first.find((row) => row.range[0].eq(0.25))!;
+      expect(bucket.range[1].eq(1.25)).toBe(true);
+      expect(bucket.times.time.eq(0.75)).toBe(true);
+      expect(bucket.values.value?.number()).toBe(6.5);
+      // A very narrow request still returns the entire intersecting bucket, not a partial average/percentile.
+      const narrow = await source.query(request(0.8, 0.81, 1));
+      expect(narrow.find((row) => row.range[0].eq(0.25))).toEqual(bucket);
+    },
+  );
 
-    await source.append([{ time: 5, value: 5 }]);
-    await source.replace([0, 2], [{ time: 1.5, value: 2 }]);
-
-    const rows = await source.query(chunk(0, 10, 1), context);
-    expect(rows.map((row) => [row.times.time.number(), row.values.value?.number()])).toEqual([
-      [1.5, 2],
-      [5, 5],
-    ]);
-    await vi.waitFor(() => expect(invalidations.length).toBeGreaterThan(0));
-    const { range } = invalidations.at(-1) as { range?: [Decimal | undefined, Decimal | undefined] };
-    // A conservative invalidation may grow, but must include the replaced range and link context.
-    expect(range?.[0] === undefined || range[0].le(0)).toBe(true);
-    expect(range?.[1] === undefined || range[1].ge(5)).toBe(true);
-  });
-
-  it('tracks point context independently from nearer interval rows', async () => {
-    const source = createDataSource({
-      data: [
-        { times: { start: 5, end: 6 }, value: 1 },
-        { time: 20, value: 2 },
-      ],
-    });
-    let invalidation: { range?: [Decimal | undefined, Decimal | undefined] } | undefined;
-    source.on('invalidate', (event) => (invalidation = event.value));
-
-    await source.append({ time: 10, value: 3 });
-    await vi.waitFor(() => expect(invalidation).toBeDefined());
-
-    expect(invalidation!.range?.[0]).toBeUndefined();
-    const upper = invalidation!.range?.[1];
-    expect(upper === undefined || upper.ge(20)).toBe(true);
-  });
-
-  it('keeps the newest snapshot when invalidated acquisitions resolve out of order', async () => {
-    const requests: ((rows: { time: number; value: number }[]) => void)[] = [];
-    const source = createDataSource({
-      loader: () => new Promise((resolve) => requests.push(resolve)),
-      chunked: false,
-      reducer: 'null',
-    });
-    const stale = source.query(chunk(0, 10, 1), context);
-    await vi.waitFor(() => expect(requests).toHaveLength(1));
-    source.invalidate();
-    const fresh = source.query(chunk(0, 10, 1), context);
-    await vi.waitFor(() => expect(requests).toHaveLength(2));
-
-    requests[1]([{ time: 2, value: 2 }]);
-    expect((await fresh).some((row) => row.values.value?.eq(2))).toBe(true);
-    requests[0]([{ time: 1, value: 1 }]);
-    await expect(stale).rejects.toThrow();
-    expect((await source.query(chunk(0, 10, 1), context)).some((row) => row.values.value?.eq(2))).toBe(true);
-  });
-
-  it('rejects stale in-flight runtime results after source revision changes', async () => {
-    let resolve!: (rows: { time: number; value: number }[]) => void;
-    const source = createDataSource({ loader: () => new Promise((done) => (resolve = done)) });
-    const runtime = new TimescopeChunkStore(source);
-    const pending = runtime.loadChunk(chunk(0, 10, 1));
-    source.invalidate([Decimal(0), Decimal(10)]);
-    resolve([{ time: 1, value: 1 }]);
-    await expect(pending).rejects.toThrow();
-  });
-
-  it('peeks resolved runtime chunks without triggering a source load', async () => {
-    const loader = vi.fn(async () => [{ time: 1, value: 2 }]);
-    const source = createDataSource({ loader });
-    const runtime = new TimescopeChunkStore(source);
-    const descriptor = chunk(0, 10, 1);
-
-    expect(runtime.peekChunk(descriptor)).toBeUndefined();
-    expect(loader).not.toHaveBeenCalled();
-
-    const loaded = await runtime.loadChunk(descriptor);
-    expect(runtime.peekChunk(descriptor)?.data).toEqual(loaded.data);
-    expect(loader).toHaveBeenCalledOnce();
-
-    source.invalidate();
-    expect(runtime.peekChunk(descriptor)).toBeUndefined();
-    expect(loader).toHaveBeenCalledOnce();
-  });
-
-  it('invalidates the full runtime cache when synchronous revisions skip ahead', async () => {
-    const loader = vi.fn(async (descriptor) => [{ time: descriptor.range[0]!, value: 1 }]);
-    const source = createDataSource({ loader });
-    const runtime = new TimescopeChunkStore(source);
-    const first = chunk(0, 10, 1);
-    const second = chunk(20, 30, 1);
-    await runtime.loadChunk(first);
-    await runtime.loadChunk(second);
-
-    source.invalidate([Decimal(0), Decimal(10)]);
-    source.invalidate([Decimal(20), Decimal(30)]);
-    await runtime.loadChunk(first);
-    await runtime.loadChunk(second);
-
-    expect(loader).toHaveBeenCalledTimes(4);
-  });
-
-  it('keeps nonintersecting chunks synchronously available after ranged invalidation', async () => {
-    const loader = vi.fn(async (descriptor) => [{ time: descriptor.range[0]!, value: 1 }]);
-    const source = createDataSource({ loader });
-    const runtime = new TimescopeChunkStore(source);
-    const affected = chunk(0, 10, 1);
-    const unaffected = chunk(20, 30, 1);
-    await runtime.loadChunk(affected);
-    const loaded = await runtime.loadChunk(unaffected);
-
-    source.invalidate([Decimal(0), Decimal(10)]);
-
-    expect(runtime.peekChunk(affected)).toBeUndefined();
-    expect(runtime.peekChunk(unaffected)?.data).toEqual(loaded.data);
-  });
+  it.each(['simple', 'point-aggregate', 'point-percentile'] as const)(
+    'validates arbitrary %s queries',
+    async (type) => {
+      const source =
+        type === 'point-aggregate'
+          ? createDataSource({ type, data: [] })
+          : type === 'point-percentile'
+            ? createDataSource({ type, data: [] })
+            : createDataSource({ data: [] });
+      await expect(source.query(request(2, 1))).rejects.toThrow('ordered');
+      await expect(source.query(request(0, 1, 0))).rejects.toThrow('positive');
+    },
+  );
 
   it.each([
-    { data: [], url: '/data.json' },
+    { data: [], url: '/all' },
     { data: [], decoder: () => [], mappings: { times: {}, values: {} } },
-    { loader: async () => [], reducer: 'min-max-avg' },
-    { data: [], reducer: null },
-    { data: [], reducer: ['null'] },
-  ])('rejects incompatible source options: %j', (options) => {
+    { loader: async () => [], type: 'point-aggregate' },
+    { url: '/{start}', type: 'point-percentile' },
+    { data: [], type: 'invalid' },
+    { data: [], reducer: 'null' },
+  ])('rejects incompatible options %j', (options) => {
     expect(() => createDataSource(options as never)).toThrow();
   });
 });

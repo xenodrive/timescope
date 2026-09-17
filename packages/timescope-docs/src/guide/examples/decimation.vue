@@ -27,7 +27,7 @@ onMounted(() => {
       telemetry: {
         url: '/timescope/data/decimation.json',
         immediate: true,
-        reducer: 'min-max-avg',
+        type: 'point-aggregate',
       },
     },
     series: {

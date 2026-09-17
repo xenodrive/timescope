@@ -1,5 +1,5 @@
 import { Decimal } from '#src/core/decimal';
-import { TimescopeYAxis } from '#src/main/loaders/TimescopeYAxis';
+import { TimescopeYAxis } from '#src/main/layers/TimescopeYAxis';
 import { TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
 import { createDataSource } from '#src/main/TimescopeDataSource';
 import { TimescopeDomain, type TimescopeDomainOptions } from '#src/main/TimescopeDomain';

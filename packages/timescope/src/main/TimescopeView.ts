@@ -17,7 +17,7 @@ export type TimescopeViewRequest = {
 
 export type TimescopeViewSourceOptions = {
   chunkSize: number;
-  chunkOffset: Decimal;
+  chunkOrigin: Decimal;
   resolutions?: readonly Decimal[];
 };
 
@@ -345,7 +345,6 @@ export class TimescopeView<T extends TimescopeViewPoint> extends TimescopeObserv
     const targetZoom = this.#target.values().next().value?.zoom as number | undefined;
     const chunks: TimescopeChunk<readonly T[]>[] = [];
     for (const entry of this.#entries.values()) {
-      if (entry.payload && entry.expires <= Date.now() && entry.state === 'loaded') this.#load(entry);
       if (entry.payload) chunks.push(entry.payload);
     }
     chunks.sort((a, b) => {
@@ -486,7 +485,7 @@ export class TimescopeView<T extends TimescopeViewPoint> extends TimescopeObserv
         left === undefined
           ? window.range
           : rangeAround(window.range[0].add(window.range[1]).divExact(2), resolution, left, left);
-      for (const chunk of createChunkList(range, resolution, this.#source.chunkSize, this.#source.chunkOffset)) {
+      for (const chunk of createChunkList(range, resolution, this.#source.chunkSize, this.#source.chunkOrigin)) {
         result.set(chunk.id, chunk);
       }
     }

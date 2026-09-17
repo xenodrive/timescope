@@ -1,6 +1,6 @@
 import { Decimal } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
-import { TimescopeTimeAxis } from '#src/main/loaders/TimescopeTimeAxis';
+import { TimescopeTimeAxis } from '#src/main/layers/TimescopeTimeAxis';
 import type { TimescopeTimeAxisOptions } from '#src/main/options';
 import { TimescopeViewRegistry } from '#src/main/TimescopeView';
 import { describe, expect, it } from 'vitest';

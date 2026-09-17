@@ -148,7 +148,7 @@ export function exampleOptions(kind: LandingExampleKind): Options {
   if (kind === 'audio')
     return {
       ...common,
-      sources: { waveform: { data: waveform, reducer: 'min-max-avg' } },
+      sources: { waveform: { data: waveform, type: 'point-aggregate' } },
       tracks: { default: { symmetric: true, timeAxis: { relative: true } } },
       series: {
         waveform: {

@@ -1,5 +1,5 @@
 import { Decimal } from '#src/core/decimal';
-import { TimescopeSeriesChart } from '#src/main/loaders/TimescopeSeriesChart';
+import { TimescopeSeriesChart } from '#src/main/layers/TimescopeSeriesChart';
 import { TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
 import { createDataSource, type TimescopeDataSource } from '#src/main/TimescopeDataSource';
 import { TimescopeDomain } from '#src/main/TimescopeDomain';
@@ -73,7 +73,7 @@ describe('chart data', () => {
       const view = fixture(
         createDataSource({
           chunkSize: 10,
-          chunkOffset: -3,
+          chunkOrigin: -3,
           data: Array.from({ length: 31 }, (_, time) => ({ time: time - 10, value: 0.5 })),
         }),
         { links: () => [{ draw, style: { lineDashArray: [3, 2], lineColor: color } }], marks: [{ draw: 'circle' }] },
@@ -98,14 +98,17 @@ describe('chart data', () => {
   );
 
   it('rebuilds retained geometry for changed data, resolution, and Y projection', async () => {
+    const data = Array.from({ length: 11 }, (_, time) => ({ time, value: 0.5 }));
     const source = createDataSource({
       chunkSize: 10,
-      data: Array.from({ length: 11 }, (_, time) => ({ time, value: 0.5 })),
+      loader: () => data,
+      chunked: false,
     });
     const view = fixture(source, 'lines');
     const range: [Decimal, Decimal] = [Decimal(1), Decimal(5)];
     const first = await view.render(range);
-    await source.replace([3, 4], [{ time: 3, value: 0.75 }]);
+    data[3] = { time: 3, value: 0.75 };
+    source.invalidate([3, 4]);
     const updated = await view.render(range);
     expect(updated.data.links[0].geometryUid).not.toBe(first.data.links[0].geometryUid);
     expect(yAtX(updated.data.links[0].commands, 2)).toBeCloseTo(0.75);

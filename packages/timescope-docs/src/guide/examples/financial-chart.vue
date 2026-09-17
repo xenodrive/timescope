@@ -12,7 +12,7 @@ title: Financial Chart
 import { onBeforeUnmount, onMounted } from 'vue';
 
 // #region code
-import { Decimal, Timescope, type TimescopeResolutionContext } from 'timescope';
+import { createDataSource, Decimal, Timescope, type TimescopeResolutionContext } from 'timescope';
 
 const DAY = 86400;
 const CANDLE_SPACING = 5;
@@ -88,6 +88,58 @@ onMounted(() => {
 
   const now = Math.floor(Date.now() / 1000);
 
+  const market = createDataSource({
+    chunkSize: CHUNK_SIZE,
+    resolutions,
+    loader: async (chunk) => {
+      const config = intervalFor(chunk.resolution);
+      const contextSeconds = config.interval === '1M' ? 32 * DAY : config.seconds;
+      const startTime = Math.max(
+        0,
+        chunk.range[0]!.sub(contextSeconds * MA_CONTEXT)
+          .mul(1000)
+          .floor()
+          .number(),
+      );
+      const endTime = Math.min(Date.now(), chunk.range[1]!.add(contextSeconds).mul(1000).ceil().number() - 1);
+
+      if (endTime < startTime) return [];
+
+      const params = new URLSearchParams({
+        symbol: 'BTCUSDT',
+        interval: config.interval,
+        startTime: String(startTime),
+        endTime: String(endTime),
+        limit: '1000',
+      });
+
+      try {
+        const response = await fetch(`https://data-api.binance.vision/api/v3/klines?${params}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const klines = (await response.json()) as BinanceKline[];
+
+        return klines.map(([openTime, open, high, low, close, volume], index) => ({
+          time: openTime / 1000,
+          values: {
+            open,
+            high,
+            low,
+            close,
+            volume,
+            ma5: movingAverage(klines, index, 5),
+            ma20: movingAverage(klines, index, 20),
+          },
+          data: { intervalSeconds: config.seconds },
+        }));
+      } catch (error) {
+        console.warn('Failed to load Binance market data', error);
+        throw error;
+      }
+    },
+  });
+  // Refresh the unfinished candle at every available resolution.
+  const refresh = setInterval(() => market.invalidate([Date.now() / 1000 - 60, undefined]), 5000);
   const timescope = new Timescope({
     target: '#example-financial-chart',
     style: { height: '280px' },
@@ -96,63 +148,7 @@ onMounted(() => {
     zoom: -15,
     zoomRange: [-Math.log2(viewResolutions.at(-1)!.number()), -Math.log2(viewResolutions[0].number())],
     selection: { color: 'rgba(14, 118, 149, 0.16)' },
-    sources: {
-      market: {
-        chunkSize: CHUNK_SIZE,
-        resolutions,
-        loader: async (chunk, api) => {
-          const config = intervalFor(chunk.resolution);
-          const contextSeconds = config.interval === '1M' ? 32 * DAY : config.seconds;
-          const startTime = Math.max(
-            0,
-            chunk.range[0]!.sub(contextSeconds * MA_CONTEXT)
-              .mul(1000)
-              .floor()
-              .number(),
-          );
-          const endTime = Math.min(Date.now(), chunk.range[1]!.add(contextSeconds).mul(1000).ceil().number() - 1);
-
-          if (endTime < startTime) return [];
-
-          const params = new URLSearchParams({
-            symbol: 'BTCUSDT',
-            interval: config.interval,
-            startTime: String(startTime),
-            endTime: String(endTime),
-            limit: '1000',
-          });
-
-          try {
-            const response = await fetch(`https://data-api.binance.vision/api/v3/klines?${params}`);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-            const klines = (await response.json()) as BinanceKline[];
-
-            if (endTime >= Date.now() - contextSeconds * 1000) {
-              api.expiresIn(Math.max(5000, Math.min(60000, config.seconds * 1000)));
-            }
-
-            return klines.map(([openTime, open, high, low, close, volume], index) => ({
-              time: openTime / 1000,
-              values: {
-                open,
-                high,
-                low,
-                close,
-                volume,
-                ma5: movingAverage(klines, index, 5),
-                ma20: movingAverage(klines, index, 20),
-              },
-              data: { intervalSeconds: config.seconds },
-            }));
-          } catch (error) {
-            api.expiresIn(30000);
-            console.warn('Failed to load Binance market data', error);
-            return [];
-          }
-        },
-      },
-    },
+    sources: { market },
     domains: {
       price: {
         range: { shrink: true, expand: true, default: [undefined, undefined] },
@@ -249,6 +245,10 @@ onMounted(() => {
 
   // #endregion code
 
-  onBeforeUnmount(() => timescope.dispose());
+  onBeforeUnmount(() => {
+    clearInterval(refresh);
+    timescope.dispose();
+    market.dispose?.();
+  });
 });
 </script>

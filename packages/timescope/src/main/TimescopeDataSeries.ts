@@ -122,8 +122,8 @@ export class TimescopeDataSeries {
     return this.#source.chunkSize;
   }
 
-  get chunkOffset() {
-    return this.#source.chunkOffset;
+  get chunkOrigin() {
+    return this.#source.chunkOrigin;
   }
 
   get resolutions() {

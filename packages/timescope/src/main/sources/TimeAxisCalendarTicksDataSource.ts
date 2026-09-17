@@ -1,167 +1,15 @@
-import type { TimescopeChunk } from '#src/core/chunk';
 import { DEFAULT_CHUNK_SIZE } from '#src/core/chunk';
 import { Decimal, pow10 } from '#src/core/decimal';
-import { normalizeOptions } from '#src/core/options';
+import { TimescopeObservable, type TimescopeEvent } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
-import { type TimeUnit } from '#src/core/time';
-import type { TextStyleOptions } from '#src/main/chart';
-import { TimescopeDataLoaderBase } from '#src/main/loaders/TimescopeDataLoader';
-import { TimescopeChunkStore } from '#src/main/TimescopeChunkStore';
-import { TimescopeView, type TimescopeViewRegistry } from '#src/main/TimescopeView';
-import type { TimescopeTimeAxisData } from '#src/renderer/types';
+import {
+  scaleTimeUnit,
+  type CalendarLevel,
+  type TimescopeTimeAxisOptions,
+  type TimeAxisTick,
+} from '#src/main/timeAxis';
+import type { TimescopeDataSourceInvalidation, TimescopeDataSourceQuery } from '#src/main/TimescopeDataSource';
 import { Calendar } from '@kikuchan/calendar';
-
-export type CalendarLevel = 'subsecond' | 'second' | 'minute' | 'hour' | 'day' | 'month' | 'year' | 'relative';
-export type TimeFormatFuncOptions = {
-  time: Decimal;
-  unit: TimeUnit;
-  level: CalendarLevel;
-  digits: number;
-  stride?: bigint;
-};
-export type TimeFormatFunc = (opts: TimeFormatFuncOptions) => string | undefined;
-export type TimeFormatLabelerOptions = {
-  year: bigint;
-  quarter: number;
-  month: number;
-  day: number;
-  hour: number;
-  minute: number;
-  second: bigint;
-  subseconds: Decimal;
-  time: Decimal;
-  week: number;
-  digits: number;
-};
-export type TimeFormatLabeler = {
-  year?: (opts: TimeFormatLabelerOptions) => string;
-  month?: (opts: TimeFormatLabelerOptions) => string;
-  quarter?: (opts: TimeFormatLabelerOptions) => string;
-  date?: (opts: TimeFormatLabelerOptions) => string;
-  minutes?: (opts: TimeFormatLabelerOptions) => string;
-  seconds?: (opts: TimeFormatLabelerOptions) => string;
-};
-export type TimescopeTimeAxisOptions = {
-  timeZone?: string;
-  axis?: false | { color?: string };
-  ticks?: false | { color?: string };
-  labels?: false | TextStyleOptions;
-  relative?: boolean;
-  timeFormat?: TimeFormatFunc | TimeFormatLabeler;
-  timeUnit?: 's' | 'ms' | 'us' | 'ns';
-};
-
-const UNIT_EXPONENTS: Record<TimeUnit, bigint> = { s: 0n, ms: 3n, us: 6n, ns: 9n } as const;
-
-export type TickLabel = {
-  /** Tick time at the label position. */
-  time: { time: Decimal; _minTime?: Decimal; _maxTime?: Decimal };
-  /** Human-readable label text. Omit to render no label. */
-  text?: string;
-  /** Whether to render a tick mark. */
-  tick?: boolean;
-  /** Whether this tick is a major tick. */
-  major?: boolean;
-};
-
-function defaultTimeFormatRelative({
-  time,
-  digits,
-  labeler,
-}: TimeFormatFuncOptions & { labeler?: TimeFormatLabeler }): string {
-  const lopts: TimeFormatLabelerOptions = {
-    year: 0n,
-    quarter: 0,
-    month: 0,
-    day: 0,
-    hour: 0,
-    minute: 0,
-    subseconds: time.sub(time.integer()),
-    week: 0,
-
-    second: time.integer(),
-    digits,
-    time,
-  };
-  if (digits > 0) {
-    const parts = time.toFixed(digits).split('.');
-    return labeler?.seconds?.(lopts) ?? parts[0] + '.' + toSmallDigits(parts[1]);
-  }
-  return labeler?.seconds?.(lopts) ?? time.toString();
-}
-
-export function scaleTimeUnit(v: Decimal, from: TimeUnit, to: TimeUnit): Decimal {
-  if (from === to) return v;
-
-  const fromExponent = UNIT_EXPONENTS[from] ?? 0n;
-  const toExponent = UNIT_EXPONENTS[to] ?? 0n;
-  const shift = toExponent - fromExponent;
-
-  return v.shift10(shift);
-}
-
-function* createLinearTicks(
-  range: TimescopeRange<Decimal | undefined>,
-  resolution: Decimal,
-  options: TimescopeTimeAxisOptions,
-) {
-  if (!range[0] || !range[1]) return;
-
-  const timeFormat = typeof options.timeFormat === 'function' ? options.timeFormat : undefined;
-  const timeLabeler = typeof options.timeFormat !== 'function' ? options.timeFormat : {};
-
-  const chunkSize = Decimal(DEFAULT_CHUNK_SIZE);
-  const effectiveResolution = resolution.mul(chunkSize);
-  let exp = effectiveResolution.order();
-  // Round log10 to the nearest integer by comparing the mantissa with sqrt(10), exactly.
-  if (effectiveResolution.shift10(-exp).pow(2).ge(10)) exp++;
-  const baseStep = pow10(exp);
-  const resolutionThreshold = resolution.mul(Decimal(20));
-
-  const divisors: readonly bigint[] = [10n, 5n, 1n];
-
-  let step = baseStep;
-  let divisor = 1n;
-  for (const candidate of divisors) {
-    const candidateStep = baseStep.divExact(candidate);
-    if (!candidateStep.lt(resolutionThreshold)) {
-      step = candidateStep;
-      divisor = candidate;
-      break;
-    }
-  }
-
-  if (step.isZero()) return;
-
-  const divisorDecimal = Decimal(divisor);
-  const one = Decimal(1n);
-  let index = range[0]!.divFloor(step).sub(one);
-
-  const digits = Math.max(0, -Number(step.order()));
-
-  for (let guard = 0; guard < 1_000_000; guard += 1) {
-    index = index.add(one);
-    const current = step.mul(index);
-    if (current.ge(range[1]!)) break;
-    if (current.lt(range[0]!)) continue;
-
-    const major = index.mod(divisorDecimal).isZero();
-    const opts: TimeFormatFuncOptions = {
-      time: current,
-      unit: options.timeUnit ?? 's',
-      level: 'relative',
-      digits,
-      stride: undefined,
-    };
-
-    yield {
-      time: { time: current, _minTime: current, _maxTime: current },
-      major,
-      tick: true,
-      text: major ? (timeFormat?.(opts) ?? defaultTimeFormatRelative({ ...opts, labeler: timeLabeler })) : '',
-    };
-  }
-}
 
 type TickOps = {
   align(time: Decimal): Decimal;
@@ -581,96 +429,6 @@ function forgeCalendarContext(resolution: Decimal, timeZone: string): CalendarCo
   };
 }
 
-function toSmallDigits(s: string) {
-  return s.replace(/[0-9]/g, (v) => String.fromCodePoint(v.charCodeAt(0) - 48 + '₀'.charCodeAt(0)));
-}
-
-function defaultTimeFormatCalendar(
-  opts: TimeFormatFuncOptions & CalendarContext & { labeler?: TimeFormatLabeler },
-): string {
-  const { time, unit } = opts;
-  const context = opts;
-  const {
-    year,
-    month,
-    day,
-    hour,
-    minutes: minute,
-    seconds,
-    weekday,
-  } = Calendar.fromEpoch(scaleTimeUnit(time, unit, 's'))
-    .zone(opts.timeZone)
-    .components();
-  const [secondIntegral, subseconds] = seconds.split();
-  const second = secondIntegral.integer();
-  const week = weekday;
-  const quarter = Math.floor((Number(month) - 1) / 3) + 1;
-
-  const padNumber = (value: number | bigint, length: number) => value.toString().padStart(length, '0');
-  const pad2 = (value: number | bigint) => padNumber(value, 2);
-
-  const labeler = opts.labeler ?? {};
-
-  const lopts: TimeFormatLabelerOptions = {
-    year,
-    quarter,
-    month: Number(month),
-    day: Number(day),
-    hour: Number(hour),
-    minute: Number(minute),
-    second,
-    subseconds,
-    week,
-    digits: context.digits,
-    time,
-  };
-
-  const formatYearLabel =
-    labeler.year ??
-    (() => {
-      if (year > 0n) return year.toString();
-      const bc = (1n - year).toString();
-      return ` ${bc} BC`;
-    });
-  const formatQuarterLabel =
-    labeler.quarter ??
-    (() => {
-      if (quarter === 1) return `${formatYearLabel(lopts)} Q${quarter}`;
-      return `Q${quarter}`;
-    });
-  const formatMonthLabel = labeler.month ?? (() => `${formatYearLabel(lopts)}/${pad2(month)}`);
-  const formatDateLabel =
-    labeler.date ??
-    (() => {
-      const weekMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      return `${pad2(month)}/${pad2(day)}(${weekMap[week]})`;
-    });
-  const formatHourMinuteLabel = labeler?.minutes ?? (() => `${pad2(hour)}:${pad2(minute)}`);
-
-  const digits = context.digits > 0 ? '.' + toSmallDigits(subseconds.toFixed(context.digits).split('.')[1]) : '';
-  const formatSecondLabel = labeler.seconds ?? (() => `${pad2(hour)}:${pad2(minute)}:${pad2(second)}${digits}`);
-
-  switch (context.level) {
-    case 'subsecond':
-    case 'second':
-      if (hour === 0n && minute === 0n && second === 0n && subseconds.eq(0)) return formatDateLabel(lopts);
-      return formatSecondLabel(lopts);
-    case 'minute':
-    case 'hour':
-      if (hour === 0n && minute === 0n) return formatDateLabel(lopts);
-      return formatHourMinuteLabel(lopts);
-    case 'day':
-      return formatDateLabel(lopts);
-    case 'month': {
-      if (context.stride === 3n) return formatQuarterLabel(lopts);
-      return formatMonthLabel(lopts);
-    }
-    case 'year':
-    default:
-      return formatYearLabel(lopts);
-  }
-}
-
 function advanceTick(ops: TickOps | null, current: Decimal, end: Decimal): Decimal | null {
   if (!ops) return null;
   const next = ops.next(current);
@@ -683,7 +441,7 @@ function* createCalendarTicks(
   range: TimescopeRange<Decimal | undefined>,
   resolution: Decimal,
   options: TimescopeTimeAxisOptions,
-): Generator<TickLabel> {
+): Generator<TimeAxisTick> {
   if (!range[0] || !range[1]) return;
 
   const unit = options.timeUnit ?? 's';
@@ -695,8 +453,6 @@ function* createCalendarTicks(
 
   const context: CalendarContext | null = forgeCalendarContext(resolution, options.timeZone ?? 'local');
   if (!context) return;
-
-  const timeFormat = typeof options.timeFormat === 'function' ? options.timeFormat : undefined;
 
   let majorTime: Decimal | null = context.major.align(start);
   let minorTime: Decimal | null = context.minor?.align(start) ?? null;
@@ -710,14 +466,14 @@ function* createCalendarTicks(
           time: { time, _minTime: time, _maxTime: time },
           major: true,
           tick: true,
-          text:
-            timeFormat?.({ time, unit, ...context }) ??
-            defaultTimeFormatCalendar({
-              time,
-              unit,
-              ...context,
-              labeler: typeof options.timeFormat !== 'function' ? options.timeFormat : undefined,
-            }),
+          format: {
+            time,
+            unit,
+            level: context.level,
+            digits: context.digits,
+            stride: context.stride,
+            timeZone: context.timeZone,
+          },
         };
       }
 
@@ -731,79 +487,22 @@ function* createCalendarTicks(
     if (minorTime) {
       if (start.le(minorTime)) {
         const time = scaleTimeUnit(minorTime, 's', unit);
-        yield { time: { time, _minTime: time, _maxTime: time }, major: false, tick: true, text: '' };
+        yield { time: { time, _minTime: time, _maxTime: time }, major: false, tick: true };
       }
       minorTime = advanceTick(context.minor, minorTime, end);
     }
   }
 }
 
-export type TimescopeTimeAxisDataOptions = {
-  timeAxis?: TimescopeTimeAxisOptions | boolean;
-  viewContext?: TimescopeViewRegistry;
-};
-
-type NormalizedTimescopeTimeAxisDataOptions = {
-  timeAxis: TimescopeTimeAxisOptions;
-};
-
-type TimeAxisChunkPoint = TickLabel;
-
-export class TimescopeTimeAxis extends TimescopeDataLoaderBase<
-  { data: TickLabel[] },
-  NormalizedTimescopeTimeAxisDataOptions
+export class TimeAxisCalendarTicksDataSource extends TimescopeObservable<
+  TimescopeEvent<'invalidate', TimescopeDataSourceInvalidation>
 > {
-  static isEnabled(options: TimescopeTimeAxisOptions | boolean | undefined) {
-    return options !== false;
+  readonly chunkSize = DEFAULT_CHUNK_SIZE;
+  readonly chunkOrigin = Decimal(0);
+  constructor(readonly options: TimescopeTimeAxisOptions) {
+    super();
   }
-
-  #view: TimescopeView<TimeAxisChunkPoint>;
-
-  constructor(opts: TimescopeTimeAxisDataOptions) {
-    const normalized = {
-      timeAxis: normalizeOptions(opts.timeAxis, {
-        timeUnit: 's',
-      })!,
-    };
-    super(normalized);
-
-    if (!opts.viewContext) throw new Error('Time axis requires a view context');
-    const source = {
-      revision: 0,
-      query: async (chunk: TimescopeChunk) => [
-        ...(this.options.timeAxis.relative
-          ? createLinearTicks(chunk.range, chunk.resolution, this.options.timeAxis)
-          : createCalendarTicks(chunk.range, chunk.resolution, this.options.timeAxis)),
-      ],
-      on: () => () => {},
-    };
-    this.#view = new TimescopeView(
-      new TimescopeChunkStore(source),
-      opts.viewContext,
-      { chunkSize: DEFAULT_CHUNK_SIZE, chunkOffset: Decimal(0) },
-      { strategy: 'candidate-with-current' },
-    );
-    this.onDispose(this.#view.on('change', () => this.changed()));
-    this.onDispose(() => this.#view.dispose());
-  }
-
-  async loadData(range: TimescopeRange<Decimal>, resolution: Decimal): Promise<TimescopeTimeAxisData> {
-    const data = [...this.#view.query(range)];
-
-    return {
-      data,
-      meta: {
-        time: range[0]!,
-        resolution,
-      },
-    };
-  }
-
-  async waitForTarget() {
-    await this.#view.waitForTarget();
-  }
-
-  cancelTargetWaiters() {
-    this.#view.cancelTargetWaiters();
+  async query({ range, resolution }: TimescopeDataSourceQuery) {
+    return [...createCalendarTicks(range, resolution, this.options)];
   }
 }

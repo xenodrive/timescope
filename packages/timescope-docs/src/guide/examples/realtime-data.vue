@@ -21,6 +21,7 @@ onMounted(() => {
   const initialSampleCount = 80;
   const valueAt = (index: number) => 50 + Math.sin(index / 8) * 18 + Math.sin(index / 2.5) * 4;
   const source = createDataSource({
+    type: 'point-aggregate',
     data: Array.from({ length: initialSampleCount }, (_, index) => ({
       time: index * sampleInterval,
       value: valueAt(index),
@@ -38,10 +39,14 @@ onMounted(() => {
       realtime: {
         data: {
           source: 'realtime',
+          instantaneous: { resolution: sampleInterval },
           domain: { range: [20, 80] },
         },
         chart: {
-          links: [{ draw: 'line', using: 'value', style: { lineWidth: 2 } }],
+          links: [
+            { draw: 'area', using: ['value#min', 'value#max'] },
+            { draw: 'line', using: 'value#avg', style: { lineWidth: 2 } },
+          ],
         },
       },
     },

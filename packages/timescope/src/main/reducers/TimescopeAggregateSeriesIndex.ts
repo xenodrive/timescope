@@ -5,7 +5,7 @@ import type { TimescopeDataRow } from '#src/main/TimescopeData';
 
 type Entry = { row: TimescopeDataRow; ordinal: number; leaf?: LeafNode };
 
-type MutableValueAggregate = {
+export type MutableValueAggregate = {
   count: number;
   sum: Decimal;
   min: Decimal | null;
@@ -110,7 +110,7 @@ function balancedGroups<T>(values: readonly T[], capacity: number) {
   return groups;
 }
 
-function addValue(target: Map<string, MutableValueAggregate>, key: string, value: Decimal) {
+export function addValue(target: Map<string, MutableValueAggregate>, key: string, value: Decimal) {
   const current = target.get(key);
   if (!current || current.count === 0) {
     target.set(key, { count: 1, sum: value, min: value, max: value, first: value, last: value });
@@ -131,7 +131,7 @@ function addEntry(target: Map<string, MutableValueAggregate>, entry: Entry) {
   }
 }
 
-function mergeAggregate(
+export function mergeAggregate(
   target: Map<string, MutableValueAggregate>,
   source: ReadonlyMap<string, MutableValueAggregate>,
 ) {
@@ -154,7 +154,7 @@ function mergeAggregate(
   }
 }
 
-function publicAggregate(source: ReadonlyMap<string, MutableValueAggregate>): TimescopePointAggregate {
+export function publicAggregate(source: ReadonlyMap<string, MutableValueAggregate>): TimescopePointAggregate {
   return Object.fromEntries(
     [...source].map(([key, value]) => [
       key,
@@ -497,40 +497,34 @@ export class TimescopeAggregateSeriesIndex {
     return node;
   }
 
-  #findLeafForTime(time: Decimal) {
-    let node = this.#root;
-    while (node && !node.leaf) {
-      node = node.children.find((child) => time.le(child.last.row.range[0])) ?? node.children.at(-1)!;
-    }
-    return node;
-  }
-
-  *#entriesBefore(time: Decimal, pointsOnly = false, intervalsOnly = false) {
-    let leaf = this.#findLeafForTime(time);
-    if (!leaf) return;
-    let index = lowerBoundTime(leaf.entries, time) - 1;
-    while (leaf) {
-      for (; index >= 0; index--) {
-        const point = isPoint(leaf.entries[index]);
-        if ((!pointsOnly || point) && (!intervalsOnly || !point)) yield leaf.entries[index];
+  *#entriesBefore(time: Decimal, pointsOnly = false, intervalsOnly = false, node = this.#root): Generator<Entry> {
+    if (!node) return;
+    const first = pointsOnly ? node.pointFirst : intervalsOnly ? node.intervalFirst : node.first;
+    if (!first || first.row.range[0].ge(time)) return;
+    if (node.leaf) {
+      for (let index = lowerBoundTime(node.entries, time) - 1; index >= 0; index--) {
+        const entry = node.entries[index];
+        if ((!pointsOnly || isPoint(entry)) && (!intervalsOnly || !isPoint(entry))) yield entry;
       }
-      leaf = leaf.previous;
-      index = leaf ? leaf.entries.length - 1 : -1;
+      return;
+    }
+    for (let index = node.children.length - 1; index >= 0; index--) {
+      yield* this.#entriesBefore(time, pointsOnly, intervalsOnly, node.children[index]);
     }
   }
 
-  *#entriesAtOrAfter(time: Decimal, pointsOnly = false, intervalsOnly = false) {
-    let leaf = this.#findLeafForTime(time);
-    if (!leaf) return;
-    let index = lowerBoundTime(leaf.entries, time);
-    while (leaf) {
-      for (; index < leaf.entries.length; index++) {
-        const point = isPoint(leaf.entries[index]);
-        if ((!pointsOnly || point) && (!intervalsOnly || !point)) yield leaf.entries[index];
+  *#entriesAtOrAfter(time: Decimal, pointsOnly = false, intervalsOnly = false, node = this.#root): Generator<Entry> {
+    if (!node) return;
+    const last = pointsOnly ? node.pointLast : intervalsOnly ? node.intervalLast : node.last;
+    if (!last || last.row.range[0].lt(time)) return;
+    if (node.leaf) {
+      for (let index = lowerBoundTime(node.entries, time); index < node.entries.length; index++) {
+        const entry = node.entries[index];
+        if ((!pointsOnly || isPoint(entry)) && (!intervalsOnly || !isPoint(entry))) yield entry;
       }
-      leaf = leaf.next;
-      index = 0;
+      return;
     }
+    for (const child of node.children) yield* this.#entriesAtOrAfter(time, pointsOnly, intervalsOnly, child);
   }
 
   #allEntries() {

@@ -8,12 +8,9 @@ import {
   type LinkGeometryKind,
   type LinkGeometryRole,
   type LinkGeometrySource,
-} from '#src/main/loaders/LinkGeometry';
-import { parseUsing, unwrapFn } from '#src/main/loaders/options';
-import {
-  TimescopeSeriesDataLoader,
-  type TimescopeSeriesDataLoaderOptions,
-} from '#src/main/loaders/TimescopeDataLoader';
+} from '#src/main/layers/LinkGeometry';
+import { parseUsing, unwrapFn } from '#src/main/layers/options';
+import { TimescopeSeriesLayerData, type TimescopeSeriesLayerDataOptions } from '#src/main/layers/TimescopeLayerData';
 import type { TimescopeDataRow } from '#src/main/TimescopeData';
 import type { TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
 import { releaseViewForDataSource, requestViewForDataSource } from '#src/main/TimescopeDataSource';
@@ -247,7 +244,7 @@ function rowIntersectsRange(row: TimescopeDataRow, [start, end]: TimescopeRange<
   return start.lt(row.range[1]) && row.range[0].lt(end);
 }
 
-export class TimescopeSeriesChart<O extends TimescopeSeriesDataLoaderOptions> extends TimescopeSeriesDataLoader<
+export class TimescopeSeriesChart<O extends TimescopeSeriesLayerDataOptions> extends TimescopeSeriesLayerData<
   TimescopeSeriesChartData,
   O
 > {

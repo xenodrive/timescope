@@ -1,7 +1,7 @@
 import type { TimescopeStateOptions } from '#src/core/TimescopeState';
 import type { TimescopeOptionsSelection } from '#src/main/chart';
 import type { TimescopeFont } from '#src/main/font';
-import type { TimescopeTimeAxisOptions } from '#src/main/loaders/TimescopeTimeAxis';
+import type { TimescopeTimeAxisOptions } from '#src/main/layers/TimescopeTimeAxis';
 import type { TimescopeOptionsSeries, TimescopeSeriesInput } from '#src/main/TimescopeDataSeries';
 import type { TimescopeOptionsSources, TimescopeSourceInput } from '#src/main/TimescopeDataSource';
 import type { TimescopeDomainOptions } from '#src/main/TimescopeDomain';
@@ -98,8 +98,7 @@ export type { TimescopeOptionsSeries, TimescopeSeriesInput } from '#src/main/Tim
 export type {
   TimescopeDataDecoder,
   TimescopeOptionsSources,
-  TimescopePercentilesReducer,
-  TimescopeReducer,
+  TimescopePercentileOptions,
   TimescopeSnapshotLoader,
   TimescopeSourceCommonOptions,
   TimescopeSourceInput,
@@ -113,7 +112,7 @@ export type {
   TimeFormatLabeler,
   TimeFormatLabelerOptions,
   TimescopeTimeAxisOptions,
-} from '#src/main/loaders/TimescopeTimeAxis';
+} from '#src/main/layers/TimescopeTimeAxis';
 export type {
   AngleStyle,
   BoxStyle,

@@ -45,7 +45,7 @@ onMounted(() => {
       waveform: {
         url: player.src,
         decoder: decodeAudio,
-        reducer: 'min-max-avg',
+        type: 'point-aggregate',
       },
     },
     series: {

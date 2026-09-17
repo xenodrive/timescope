@@ -15,11 +15,11 @@ import { resolutionFor } from '#src/core/zoom';
 import { resolveDocumentFonts, resolveFonts } from '#src/main/font';
 import type { TimescopeFont } from '#src/main/font';
 import type { InteractionInfo } from '#src/main/interaction';
-import type { TimescopeDataLoader, TimescopeDataLoaderClass } from '#src/main/loaders/TimescopeDataLoader';
-import { TimescopeSeriesChart } from '#src/main/loaders/TimescopeSeriesChart';
-import { TimescopeSeriesTooltip } from '#src/main/loaders/TimescopeSeriesTooltip';
-import { TimescopeTimeAxis } from '#src/main/loaders/TimescopeTimeAxis';
-import { TimescopeYAxis } from '#src/main/loaders/TimescopeYAxis';
+import type { TimescopeLayerData, TimescopeLayerDataClass } from '#src/main/layers/TimescopeLayerData';
+import { TimescopeSeriesChart } from '#src/main/layers/TimescopeSeriesChart';
+import { TimescopeSeriesTooltip } from '#src/main/layers/TimescopeSeriesTooltip';
+import { TimescopeTimeAxis } from '#src/main/layers/TimescopeTimeAxis';
+import { TimescopeYAxis } from '#src/main/layers/TimescopeYAxis';
 import type { TimescopeDomainOptions, TimescopeOptions } from '#src/main/options';
 import { createDataSeries, type TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
 import { createDataSource, type TimescopeDataSource } from '#src/main/TimescopeDataSource';
@@ -28,129 +28,18 @@ import { TimescopeViewRegistry } from '#src/main/TimescopeView';
 import type { TimescopeDataCacheOptionsWire, TimescopeRenderEngineOptions } from '#src/renderer/types';
 import { Decimal } from '@kikuchan/decimal';
 
-function deepEqual(a: any, b: any) {
-  if (a === b) return true;
-  if (typeof a !== typeof b) return false;
-  if (typeof a === 'function') return a.toString() === b.toString();
-  if (a && b && typeof a === 'object') {
-    const aKeys = Object.keys(a);
-    const bKeys = Object.keys(b);
-    if (aKeys.length !== bKeys.length) return false;
-    for (const key of aKeys) {
-      if (!deepEqual(a[key], b[key])) return false;
-    }
-    return true;
-  }
-  return false;
+// Each renderer holds one reference per distinct Source, regardless of aliases.
+const sourceReferences = new WeakMap<TimescopeDataSource<any>, number>();
+function retainSource(source: TimescopeDataSource<any>) {
+  sourceReferences.set(source, (sourceReferences.get(source) ?? 0) + 1);
 }
-
-function cloneForComparison(value: any, transfer?: Transferable[], seen: WeakSet<object> = new WeakSet()): any {
-  if (value == null) return value;
-
-  const valueType = typeof value;
-  if (valueType === 'string' || valueType === 'number' || valueType === 'boolean' || valueType === 'bigint') {
-    return value;
+function releaseSource(source: TimescopeDataSource<any>) {
+  const count = sourceReferences.get(source)! - 1;
+  if (count > 0) sourceReferences.set(source, count);
+  else {
+    sourceReferences.delete(source);
+    source.dispose?.();
   }
-
-  if (valueType === 'undefined' || valueType === 'symbol') {
-    return undefined;
-  }
-
-  if (valueType === 'function') {
-    return value.toString();
-  }
-
-  if (value instanceof Date || value instanceof RegExp || ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
-    return value;
-  }
-
-  if (transfer?.includes(value)) {
-    return value;
-  }
-
-  if (seen.has(value)) {
-    throw new TypeError('Cannot serialize circular reference');
-  }
-
-  seen.add(value);
-
-  if (typeof value.toJSON === 'function') {
-    const jsonValue = value.toJSON();
-    if (jsonValue !== value) {
-      const result = cloneForComparison(jsonValue, transfer, seen);
-      seen.delete(value);
-      return result;
-    }
-  }
-
-  if (Array.isArray(value)) {
-    const result = new Array(value.length);
-    for (let index = 0; index < value.length; index++) {
-      const entry = cloneForComparison(value[index], transfer, seen);
-      result[index] = entry;
-    }
-    seen.delete(value);
-    return result;
-  }
-
-  if (value instanceof Date || value instanceof RegExp || ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
-    seen.delete(value);
-    return value;
-  }
-
-  const result: Record<string, unknown> = {};
-  for (const key of Object.keys(value)) {
-    const entry = cloneForComparison(value[key], transfer, seen);
-    result[key] = entry;
-  }
-
-  seen.delete(value);
-  return result;
-}
-
-function cloneSourceForComparison(value: any) {
-  if (Array.isArray(value)) return value;
-  if (
-    value &&
-    typeof value === 'object' &&
-    typeof value.query === 'function' &&
-    typeof value.invalidate === 'function'
-  ) {
-    return value;
-  }
-  if (!value || typeof value !== 'object' || !('data' in value)) return cloneForComparison(value);
-  const { data, ...options } = value;
-  return { ...cloneForComparison(options), data };
-}
-
-function materialize<S, D extends object>(
-  src: Record<string, S> | undefined,
-  dst: Record<string, D & { _src?: S }> | undefined,
-  fn: (src: S, key: string) => D,
-  snapshot: (src: S) => S = cloneForComparison,
-  force = false,
-) {
-  if (src == null) src = {};
-  if (dst == null) dst = {};
-
-  const populated: string[] = [];
-  const old = { ...dst };
-  for (const k in src) {
-    if (force || !old[k] || (old[k] !== src[k] && !deepEqual(old[k]?._src, src[k]))) {
-      (old[k] as { dispose?: () => void } | undefined)?.dispose?.();
-      dst[k] = fn(src[k], k);
-      if (dst[k] !== src[k]) {
-        dst[k]._src = snapshot(src[k]);
-        populated.push(k);
-      }
-    }
-    delete old[k];
-  }
-
-  Object.keys(old).forEach((key) => {
-    (old[key] as { dispose?: () => void }).dispose?.();
-    delete dst[key];
-  });
 }
 
 const colorPresets = ['#080', '#800', '#008', '#880', '#088', '#808'];
@@ -171,7 +60,7 @@ export type TimescopeRendererOptions = {
   fonts?: (string | TimescopeFont)[];
 };
 
-type DataLoaderMapping = [string, TimescopeDataLoaderClass, object, TimescopeDataCacheOptionsWire];
+type LayerDataMapping = [string, TimescopeLayerDataClass, object, TimescopeDataCacheOptionsWire];
 
 function interactionForEngine(info: InteractionInfo): InteractionInfoWire {
   const pointer = (value: InteractionInfo['latest']) => ({
@@ -225,7 +114,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
 
   #sources: Record<string, TimescopeDataSource<any>> = {};
   #series: Record<string, TimescopeDataSeries> = {};
-  #dataLoaders: Record<string, TimescopeDataLoader> = {};
+  #layerData: Record<string, TimescopeLayerData> = {};
   #views = new TimescopeViewRegistry();
   #domainsByName: Record<string, TimescopeDomain> = {};
   #domainsBySeries: Record<string, TimescopeDomain> = {};
@@ -249,7 +138,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
   }
 
   #waitForTargets() {
-    return Promise.all([...new Set(Object.values(this.#dataLoaders))].map((loader) => loader.waitForTarget?.()));
+    return Promise.all([...new Set(Object.values(this.#layerData))].map((data) => data.waitForTarget?.()));
   }
 
   protected constructor() {
@@ -283,7 +172,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
       },
 
       'data:load': async (msg: TimescopeDataLoadMessage) => {
-        return await this.#dataLoaders[msg.key]?.loadData(msg.range, msg.resolution, msg.xOrigin, {
+        return await this.#layerData[msg.key]?.loadData(msg.range, msg.resolution, msg.xOrigin, {
           fallbackResolution: msg.fallbackResolution,
           loadMissing: msg.loadMissing,
         });
@@ -314,9 +203,11 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
     if (this.#disposed) return;
     this.#disposed = true;
     this.#disableDocumentFontWatchers();
-    for (const loader of new Set(Object.values(this.#dataLoaders))) loader.dispose?.();
+    for (const data of new Set(Object.values(this.#layerData))) data.dispose?.();
     for (const series of Object.values(this.#series)) series.dispose();
-    this.#dataLoaders = {};
+    for (const source of new Set(Object.values(this.#sources))) releaseSource(source);
+    this.#sources = {};
+    this.#layerData = {};
     this.#series = {};
     this.#connection?.dispose();
     this.#connection = undefined;
@@ -349,7 +240,9 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
   }
 
   updateOptions(options: TimescopeOptions) {
+    if (this.#disposed) return;
     const { sources, ...otherOptions } = options;
+    const previousSourceOptions = this.#options.sources;
     mergeOptions(this.#options, otherOptions);
     if ('sources' in options) {
       this.#options.sources = sources === undefined ? undefined : { ...(this.#options.sources ?? {}), ...sources };
@@ -363,185 +256,210 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
     if ('selection' in options) optionsForWorker.selection = options.selection;
 
     let changed = false;
+    const releasedSources: TimescopeDataSource<any>[] = [];
     let domainsChanged = false;
     if ('sources' in options) {
-      materialize(
-        this.#options.sources,
-        this.#sources,
-        (value) => {
-          changed = true;
-          return createDataSource(value);
-        },
-        cloneSourceForComparison,
-      );
+      const next: Record<string, TimescopeDataSource<any>> = {};
+      const created: TimescopeDataSource<any>[] = [];
+      try {
+        for (const [key, value] of Object.entries(this.#options.sources ?? {})) {
+          next[key] = sources && Object.hasOwn(sources, key) ? createDataSource(value) : this.#sources[key];
+          if (next[key] !== this.#sources[key]) changed = true;
+          if (sources && Object.hasOwn(sources, key) && next[key] !== value) created.push(next[key]);
+        }
+      } catch (error) {
+        for (const source of created) source.dispose?.();
+        this.#options.sources = previousSourceOptions;
+        throw error;
+      }
+      const before = new Set(Object.values(this.#sources));
+      const after = new Set(Object.values(next));
+      // Acquire all new references before releasing any old ones (including alias moves).
+      for (const source of after) if (!before.has(source)) retainSource(source);
+      for (const source of before) if (!after.has(source)) releasedSources.push(source);
+      if (Object.keys(next).length !== Object.keys(this.#sources).length) changed = true;
+      this.#sources = next;
     }
 
-    if ('domains' in options) {
-      const next = this.#options.domains ?? {};
-      const nextKeys = new Set(Object.keys(next));
-      for (const key of nextKeys) {
-        const opts = next[key]!;
-        const existing = this.#domainsByName[key];
-        if (existing) {
-          existing.updateOptions(opts, key);
-        } else {
-          this.#domainsByName[key] = new TimescopeDomain(opts, key);
-        }
-      }
-      for (const key of Object.keys(this.#domainsByName)) {
-        if (!nextKeys.has(key)) delete this.#domainsByName[key];
-      }
-      domainsChanged = true;
-    }
-
-    if (changed || 'series' in options || 'tracks' in options || domainsChanged) {
-      const sourcesChanged = changed;
-      materialize(
-        this.#options.series,
-        this.#series,
-        (opts, seriesKey) => {
-          if (!opts.data.color) {
-            opts.data.color = colorPresets[this.#colorIdx++];
-            this.#colorIdx = this.#colorIdx % colorPresets.length;
+    try {
+      if ('domains' in options) {
+        const next = this.#options.domains ?? {};
+        const nextKeys = new Set(Object.keys(next));
+        for (const key of nextKeys) {
+          const opts = next[key]!;
+          const existing = this.#domainsByName[key];
+          if (existing) {
+            existing.updateOptions(opts, key);
+          } else {
+            this.#domainsByName[key] = new TimescopeDomain(opts, key);
           }
-          changed = true;
-          const ds = createDataSeries({
-            sources: this.#sources,
-            options: opts,
-            domain: this.#resolveDomain(opts.data.domain, seriesKey, opts.data.name),
-          });
-          return ds;
-        },
-        cloneForComparison,
-        sourcesChanged || domainsChanged,
-      );
-      const seriesKeys = new Set(Object.keys(this.#options.series ?? {}));
-      for (const key of Object.keys(this.#domainsBySeries)) {
-        if (!seriesKeys.has(key)) delete this.#domainsBySeries[key];
+        }
+        for (const key of Object.keys(this.#domainsByName)) {
+          if (!nextKeys.has(key)) delete this.#domainsByName[key];
+        }
+        domainsChanged = true;
       }
 
-      if ('tracks' in options) changed = true;
-
-      if (changed || domainsChanged || 'series' in options || 'tracks' in options) {
-        const mappings: DataLoaderMapping[] = [];
-        for (const [trackKey, track] of Object.entries(this.#options.tracks ?? { default: {} })) {
-          if (!TimescopeTimeAxis.isEnabled(track.timeAxis)) continue;
-          mappings.push([
-            `tracks:${trackKey}:timeAxis`,
-            TimescopeTimeAxis,
-            {
-              timeAxis: track.timeAxis,
-              viewContext: this.#views,
-            },
-            { immediate: true },
-          ]);
+      if (changed || 'series' in options || 'tracks' in options || domainsChanged) {
+        const sourcesChanged = changed;
+        for (const [seriesKey, opts] of Object.entries(this.#options.series ?? {})) {
+          if (
+            !this.#series[seriesKey] ||
+            sourcesChanged ||
+            domainsChanged ||
+            Object.hasOwn(options.series ?? {}, seriesKey)
+          ) {
+            if (!opts.data.color) {
+              opts.data.color = colorPresets[this.#colorIdx++];
+              this.#colorIdx = this.#colorIdx % colorPresets.length;
+            }
+            changed = true;
+            const ds = createDataSeries({
+              sources: this.#sources,
+              options: opts,
+              domain: this.#resolveDomain(opts.data.domain, seriesKey, opts.data.name),
+            });
+            this.#series[seriesKey]?.dispose();
+            this.#series[seriesKey] = ds;
+          }
+        }
+        const seriesKeys = new Set(Object.keys(this.#options.series ?? {}));
+        for (const key of Object.keys(this.#series)) {
+          if (!seriesKeys.has(key)) {
+            this.#series[key].dispose();
+            delete this.#series[key];
+            changed = true;
+          }
+        }
+        for (const key of Object.keys(this.#domainsBySeries)) {
+          if (!seriesKeys.has(key)) delete this.#domainsBySeries[key];
         }
 
-        const tracks = Object.keys(this.#options.tracks ?? { default: {} });
-        const defaultTrack = tracks[0] ?? 'default';
-        const yAxes = new Set<string>();
-        for (const [seriesKey, series] of Object.entries(this.#series)) {
-          const opts = {
-            series,
-            viewContext: this.#views,
-          };
-          const source = this.#sources[series.options.data.source];
-          if (TimescopeSeriesChart.isEnabled(series)) {
-            mappings.push([
-              `series:${seriesKey}:chart`,
-              TimescopeSeriesChart,
-              opts,
-              source.immediate ? { immediate: true } : {},
-            ]);
-          }
+        if ('tracks' in options) changed = true;
 
-          const instantaneous = series.options.data.instantaneous;
-          if (TimescopeSeriesTooltip.isEnabled(series)) {
-            const instantaneousOptions = instantaneous === false ? undefined : instantaneous;
+        if (changed || domainsChanged || 'series' in options || 'tracks' in options) {
+          const mappings: LayerDataMapping[] = [];
+          for (const [trackKey, track] of Object.entries(this.#options.tracks ?? { default: {} })) {
+            if (!TimescopeTimeAxis.isEnabled(track.timeAxis)) continue;
             mappings.push([
-              `series:${seriesKey}:tooltip`,
-              TimescopeSeriesTooltip,
-              opts,
+              `tracks:${trackKey}:timeAxis`,
+              TimescopeTimeAxis,
               {
-                immediate: true,
-                instantResolution:
-                  Decimal(instantaneousOptions?.resolution) ??
-                  (instantaneousOptions?.zoom !== undefined ? resolutionFor(instantaneousOptions.zoom) : undefined),
-                instantWidth: series.chunkSize,
+                timeAxis: track.timeAxis,
+                viewContext: this.#views,
               },
+              { immediate: true },
             ]);
           }
 
-          if (TimescopeYAxis.isEnabled(series.domain)) {
-            const track = series.options.track ?? defaultTrack;
-            const key = `tracks:${track}:domains:${series.domain.uid}:yAxis`;
-            if (!yAxes.has(key)) {
-              mappings.push([key, TimescopeYAxis, { domain: series.domain }, { immediate: true }]);
-              yAxes.add(key);
+          const tracks = Object.keys(this.#options.tracks ?? { default: {} });
+          const defaultTrack = tracks[0] ?? 'default';
+          const yAxes = new Set<string>();
+          for (const [seriesKey, series] of Object.entries(this.#series)) {
+            const opts = {
+              series,
+              viewContext: this.#views,
+            };
+            const source = this.#sources[series.options.data.source];
+            if (TimescopeSeriesChart.isEnabled(series)) {
+              mappings.push([
+                `series:${seriesKey}:chart`,
+                TimescopeSeriesChart,
+                opts,
+                source.immediate ? { immediate: true } : {},
+              ]);
+            }
+
+            const instantaneous = series.options.data.instantaneous;
+            if (TimescopeSeriesTooltip.isEnabled(series)) {
+              const instantaneousOptions = instantaneous === false ? undefined : instantaneous;
+              mappings.push([
+                `series:${seriesKey}:tooltip`,
+                TimescopeSeriesTooltip,
+                opts,
+                {
+                  immediate: true,
+                  instantResolution:
+                    Decimal(instantaneousOptions?.resolution) ??
+                    (instantaneousOptions?.zoom !== undefined ? resolutionFor(instantaneousOptions.zoom) : undefined),
+                  instantWidth: series.chunkSize,
+                },
+              ]);
+            }
+
+            if (TimescopeYAxis.isEnabled(series.domain)) {
+              const track = series.options.track ?? defaultTrack;
+              const key = `tracks:${track}:domains:${series.domain.uid}:yAxis`;
+              if (!yAxes.has(key)) {
+                mappings.push([key, TimescopeYAxis, { domain: series.domain }, { immediate: true }]);
+                yAxes.add(key);
+              }
             }
           }
-        }
 
-        optionsForWorker.dataCacheOptions = {};
+          optionsForWorker.dataCacheOptions = {};
 
-        const old = { ...this.#dataLoaders };
-        for (const [key, ctor, opts, cacheOpts] of mappings) {
-          old[key]?.dispose?.();
-          this.#dataLoaders[key] = new ctor(opts);
-          delete old[key];
+          const old = { ...this.#layerData };
+          for (const [key, ctor, opts, cacheOpts] of mappings) {
+            old[key]?.dispose?.();
+            this.#layerData[key] = new ctor(opts);
+            delete old[key];
 
-          this.#dataLoaders[key].on('change', () => {
-            if (!this.#disposed) this.call('data:changed', key);
-          });
+            this.#layerData[key].on('change', () => {
+              if (!this.#disposed) this.call('data:changed', key);
+            });
 
-          if (cacheOpts) optionsForWorker.dataCacheOptions[key] = cacheOpts;
-          this.#dataLoaders[key].changed();
-        }
-        Object.keys(old).forEach((key) => {
-          old[key]?.dispose?.();
-          delete this.#dataLoaders[key];
-        });
-      }
-    }
-
-    if ('series' in options) {
-      if (this.#options.series === undefined) {
-        optionsForWorker.series = undefined;
-      } else {
-        const seriesForWorker: NonNullable<TimescopeRenderEngineOptions['series']> = {};
-        for (const [key, series] of Object.entries(this.#options.series)) {
-          const seriesOptions: (typeof seriesForWorker)[string] = {};
-          if (series.track !== undefined) seriesOptions.track = series.track;
-          if (series.tooltip === false || series.data.instantaneous === false) seriesOptions.tooltip = false;
-          seriesForWorker[key] = seriesOptions;
-        }
-        optionsForWorker.series = seriesForWorker;
-      }
-    }
-    if ('tracks' in options) {
-      if (this.#options.tracks === undefined) {
-        optionsForWorker.tracks = undefined;
-      } else {
-        const tracksForWorker: NonNullable<TimescopeRenderEngineOptions['tracks']> = {};
-        for (const [key, track] of Object.entries(this.#options.tracks)) {
-          const trackOptions: (typeof tracksForWorker)[string] = {};
-          if (track.height !== undefined) trackOptions.height = track.height;
-          if (track.symmetric !== undefined) trackOptions.symmetric = track.symmetric;
-          if (typeof track.timeAxis === 'object') {
-            trackOptions.timeAxis = {
-              axis: track.timeAxis.axis,
-              ticks: track.timeAxis.ticks,
-              labels: track.timeAxis.labels,
-            };
-          } else if (track.timeAxis !== undefined) {
-            trackOptions.timeAxis = track.timeAxis;
+            if (cacheOpts) optionsForWorker.dataCacheOptions[key] = cacheOpts;
+            this.#layerData[key].changed();
           }
-          tracksForWorker[key] = trackOptions;
+          Object.keys(old).forEach((key) => {
+            old[key]?.dispose?.();
+            delete this.#layerData[key];
+          });
         }
-        optionsForWorker.tracks = tracksForWorker;
       }
+
+      if ('series' in options) {
+        if (this.#options.series === undefined) {
+          optionsForWorker.series = undefined;
+        } else {
+          const seriesForWorker: NonNullable<TimescopeRenderEngineOptions['series']> = {};
+          for (const [key, series] of Object.entries(this.#options.series)) {
+            const seriesOptions: (typeof seriesForWorker)[string] = {};
+            if (series.track !== undefined) seriesOptions.track = series.track;
+            if (series.tooltip === false || series.data.instantaneous === false) seriesOptions.tooltip = false;
+            seriesForWorker[key] = seriesOptions;
+          }
+          optionsForWorker.series = seriesForWorker;
+        }
+      }
+      if ('tracks' in options) {
+        if (this.#options.tracks === undefined) {
+          optionsForWorker.tracks = undefined;
+        } else {
+          const tracksForWorker: NonNullable<TimescopeRenderEngineOptions['tracks']> = {};
+          for (const [key, track] of Object.entries(this.#options.tracks)) {
+            const trackOptions: (typeof tracksForWorker)[string] = {};
+            if (track.height !== undefined) trackOptions.height = track.height;
+            if (track.symmetric !== undefined) trackOptions.symmetric = track.symmetric;
+            if (typeof track.timeAxis === 'object') {
+              trackOptions.timeAxis = {
+                axis: track.timeAxis.axis,
+                ticks: track.timeAxis.ticks,
+                labels: track.timeAxis.labels,
+              };
+            } else if (track.timeAxis !== undefined) {
+              trackOptions.timeAxis = track.timeAxis;
+            }
+            tracksForWorker[key] = trackOptions;
+          }
+          optionsForWorker.tracks = tracksForWorker;
+        }
+      }
+      this.call('options:update', optionsForWorker);
+    } finally {
+      for (const source of releasedSources) releaseSource(source);
     }
-    this.call('options:update', optionsForWorker);
   }
 
   resize(size: Parameters<RenderEngineCommands['resize']>[0]) {
@@ -608,7 +526,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
   }
 
   abortFrame() {
-    for (const loader of new Set(Object.values(this.#dataLoaders))) loader.cancelTargetWaiters?.();
+    for (const data of new Set(Object.values(this.#layerData))) data.cancelTargetWaiters?.();
     this.call('frame:abort', undefined);
   }
 

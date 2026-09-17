@@ -76,7 +76,7 @@ export class TimescopeStaticSeriesIndex {
     }
   }
 
-  query(chunk: TimescopeChunk) {
+  query(chunk: Pick<TimescopeChunk, 'range' | 'resolution'>) {
     const [start, end] = chunk.range;
     if (!start || !end) throw new RangeError('Chunk range must be finite');
     if (chunk.resolution.le(0)) throw new RangeError('Chunk resolution must be positive');

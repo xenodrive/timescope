@@ -1,6 +1,7 @@
-import { createChunk, type TimescopeChunk, type TimescopeChunkLoaderContext } from '#src/core/chunk';
+import { createChunk, type TimescopeChunk } from '#src/core/chunk';
 import { TimescopeEvent, TimescopeObservable, type Un } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
+import type { TimescopeDataSourceQuery } from '#src/main/TimescopeDataSource';
 import type { Decimal } from '@kikuchan/decimal';
 
 export type TimescopeChunkStoreInvalidation = {
@@ -11,7 +12,7 @@ export type TimescopeChunkStoreInvalidation = {
 type TimescopeChunkStoreSource<T> = {
   readonly revision: number;
   readonly invalidation?: TimescopeChunkStoreInvalidation;
-  query(chunk: TimescopeChunk, context: TimescopeChunkLoaderContext): Promise<readonly T[]>;
+  query(request: TimescopeDataSourceQuery): Promise<readonly T[]>;
   on(type: 'invalidate', listener: (event: TimescopeEvent<'invalidate', TimescopeChunkStoreInvalidation>) => void): Un;
 };
 
@@ -20,7 +21,6 @@ export type TimescopeChunkStoreEntry<T> = {
   state: 'idle' | 'loading' | 'loaded' | 'error';
   payload?: TimescopeChunk<readonly T[]>;
   revision: number;
-  expires: number;
   references: number;
   requestId: number;
   result?: Promise<TimescopeChunk<readonly T[]>>;
@@ -40,27 +40,34 @@ export class TimescopeChunkStore<T> extends TimescopeObservable<
   #source: TimescopeChunkStoreSource<T>;
   #handledRevision: number;
   #maxSize = 1000;
+  #unsubscribe: Un;
+  #disposed = false;
 
-  constructor(source: TimescopeChunkStoreSource<T>) {
+  constructor(source: TimescopeChunkStoreSource<T>, maxSize = 1000) {
     super();
     this.#source = source;
     this.#handledRevision = source.revision;
-    source.on('invalidate', ({ value }) => this.invalidate(value?.range, value?.revision ?? this.#source.revision));
+    if (!Number.isSafeInteger(maxSize) || maxSize < 0) throw new RangeError('cacheSize must be a nonnegative integer');
+    this.#maxSize = maxSize;
+    this.#unsubscribe = source.on('invalidate', ({ value }) =>
+      this.invalidate(value?.range, value?.revision ?? this.#source.revision),
+    );
   }
 
   acquireChunk(chunk: TimescopeChunk) {
+    if (this.#disposed) throw new Error('ChunkStore is disposed');
     this.#syncInvalidation();
-    let entry = this.#entries.get(chunk.id);
+    const key = chunk.id;
+    let entry = this.#entries.get(key);
     if (!entry) {
       entry = {
         descriptor: chunk,
         state: 'idle',
         revision: this.#source.revision,
-        expires: Infinity,
         references: 0,
         requestId: 0,
       };
-      this.#entries.set(chunk.id, entry);
+      this.#entries.set(key, entry);
     } else {
       this.#touch(entry);
     }
@@ -90,38 +97,38 @@ export class TimescopeChunkStore<T> extends TimescopeObservable<
   }
 
   loadEntry(entry: TimescopeChunkStoreEntry<T>) {
+    if (this.#disposed) return Promise.reject(new Error('ChunkStore is disposed'));
     this.#syncInvalidation();
     const current = this.#entries.get(entry.descriptor.id);
     if (current !== entry) throw new Error(`Released chunk entry: ${entry.descriptor.id}`);
     this.#touch(entry);
     if (entry.state === 'loading' && entry.result) return entry.result;
-    if (entry.state === 'loaded' && entry.expires > Date.now() && entry.revision === this.#source.revision) {
+    if (entry.state === 'loaded' && entry.revision === this.#source.revision) {
       return Promise.resolve(entry.payload!);
     }
 
-    let expires = Infinity;
-    const context = {
-      expiresAt: (time: number) => (expires = time),
-      expiresIn: (time: number) => (expires = Date.now() + time),
-    };
     const requestId = ++entry.requestId;
     entry.state = 'loading';
     entry.revision = this.#source.revision;
     this.#notify(entry);
     let query: Promise<readonly T[]>;
     try {
-      query = this.#source.query(entry.descriptor, context);
+      const {
+        range: [start, end],
+        resolution,
+      } = entry.descriptor;
+      if (!start || !end) throw new RangeError('Chunk range must be finite');
+      query = this.#source.query({ range: [start, end], resolution });
     } catch (error) {
       query = Promise.reject(error);
     }
     const result = query
       .then((data) => {
         this.#syncInvalidation();
-        if (entry.requestId !== requestId || entry.revision !== this.#source.revision) {
+        if (this.#disposed || entry.requestId !== requestId || entry.revision !== this.#source.revision) {
           throw new Error(`Stale source result for chunk ${entry.descriptor.id}`);
         }
-        entry.expires = expires;
-        entry.payload = Object.freeze(createChunk({ ...entry.descriptor, expires, data: Object.freeze([...data]) }));
+        entry.payload = Object.freeze(createChunk({ ...entry.descriptor, data: Object.freeze([...data]) }));
         entry.state = 'loaded';
         this.#notify(entry);
         return entry.payload;
@@ -143,7 +150,7 @@ export class TimescopeChunkStore<T> extends TimescopeObservable<
 
   peekChunk(chunk: TimescopeChunk) {
     const entry = this.#entryFor(chunk);
-    if (!entry || entry.state !== 'loaded' || !entry.payload || entry.expires <= Date.now()) return;
+    if (!entry || entry.state !== 'loaded' || !entry.payload) return;
     this.#touch(entry);
     return entry.payload;
   }
@@ -168,9 +175,16 @@ export class TimescopeChunkStore<T> extends TimescopeObservable<
     this.dispatchEvent(new TimescopeEvent('entrychange', entry));
   }
 
+  dispose() {
+    this.#disposed = true;
+    this.#unsubscribe?.();
+    this.#entries.clear();
+  }
+
   #touch(entry: TimescopeChunkStoreEntry<T>) {
-    this.#entries.delete(entry.descriptor.id);
-    this.#entries.set(entry.descriptor.id, entry);
+    const key = entry.descriptor.id;
+    this.#entries.delete(key);
+    this.#entries.set(key, entry);
   }
 
   #prune() {

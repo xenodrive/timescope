@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 440" role="img" font-family="ui-sans-serif, system-ui, 'Segoe UI', sans-serif">
-  <title>Data pipeline: acquisition, transform, canonical rows, reducer</title>
+  <title>Data pipeline: acquisition, transform, canonical rows, source</title>
 
   <defs>
     <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -60,10 +60,10 @@
   <rect x="140" y="270" width="460" height="50" rx="8" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
   <text x="370" y="301" font-size="16" fill="#3b82f6" text-anchor="middle">canonical rows — { time | times } &amp; { value | values }</text>
 
-  <!-- rows -> reducer -->
+  <!-- rows -> source -->
   <line x1="370" y1="320" x2="370" y2="366" stroke="#64748b" marker-end="url(#arr)"/>
 
-  <!-- reducer -->
+  <!-- source -->
   <rect x="140" y="370" width="460" height="50" rx="8" fill="none" stroke="#f59e0b" stroke-width="1.5"/>
-  <text x="370" y="401" font-size="16" fill="#f59e0b" text-anchor="middle">reducer — snapshot only (min-max-avg · percentiles)</text>
+  <text x="370" y="401" font-size="16" fill="#f59e0b" text-anchor="middle">source — simple · point-aggregate · point-percentile</text>
 </svg>

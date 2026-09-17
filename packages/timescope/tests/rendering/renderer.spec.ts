@@ -2,6 +2,9 @@ import type { RendererCommands } from '#src/bridge/protocol';
 import type { RenderCall } from '#src/bridge/rpc';
 import { Decimal } from '#src/core/decimal';
 import { PathCommand } from '#src/core/path';
+import { SimpleDataSource } from '#src/main/sources/SimpleDataSource';
+import { TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
+import { createDataSource } from '#src/main/TimescopeDataSource';
 import { TimescopeMainThreadRenderer } from '#src/main/TimescopeMainThreadRenderer';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
 import { TimescopeSeriesChartLayer } from '#src/renderer/layers/TimescopeSeriesChartLayer';
@@ -61,6 +64,48 @@ afterEach(() => {
 });
 
 describe('renderer integration', () => {
+  it('rebuilds explicitly updated settings and preserves omitted sources and series', () => {
+    const renderer = new TimescopeMainThreadRenderer({ canvas: canvas(), fonts: [] });
+    cleanups.push(() => renderer.dispose());
+    const disposed = vi.spyOn(SimpleDataSource.prototype, 'dispose');
+    const seriesDisposed = vi.spyOn(TimescopeDataSeries.prototype, 'dispose');
+    const makeLoader = (value: number) => async () => [{ time: 0, value }];
+    const makeFormat = (label: string) => () => label;
+    renderer.setOptions({
+      sources: { a: { loader: makeLoader(1), chunked: false }, b: { data: [] } },
+      series: {
+        a: { data: { source: 'a' }, tooltip: { format: makeFormat('first') } },
+        b: { data: { source: 'b' } },
+      },
+    });
+    renderer.updateOptions({ padding: [10] });
+    expect(disposed).not.toHaveBeenCalled();
+    expect(seriesDisposed).not.toHaveBeenCalled();
+    renderer.updateOptions({ series: { a: { data: { source: 'a' }, tooltip: { format: makeFormat('second') } } } });
+    expect(seriesDisposed).toHaveBeenCalledOnce();
+    expect(disposed).not.toHaveBeenCalled();
+    renderer.updateOptions({ sources: { a: { loader: makeLoader(2), chunked: false } } });
+    expect(disposed).toHaveBeenCalledOnce();
+    renderer.dispose();
+    expect(disposed).toHaveBeenCalledTimes(3);
+  });
+  it('reference-counts shared sources across renderers and aliases', () => {
+    const source = createDataSource({ data: [{ time: 0, value: 1 }] });
+    const externalDispose = vi.spyOn(source, 'dispose');
+    const renderer = new TimescopeMainThreadRenderer({ canvas: canvas(), fonts: [] });
+    const second = new TimescopeMainThreadRenderer({ canvas: canvas(), fonts: [] });
+    renderer.setOptions({ sources: { shared: source, alias: source } });
+    second.setOptions({ sources: { shared: source } });
+    renderer.setOptions({ sources: { moved: source } });
+    expect(externalDispose).not.toHaveBeenCalled();
+    renderer.setOptions({ sources: {} });
+    expect(externalDispose).not.toHaveBeenCalled();
+    renderer.dispose();
+    expect(externalDispose).not.toHaveBeenCalled();
+    second.dispose();
+    second.dispose();
+    expect(externalDispose).toHaveBeenCalledOnce();
+  });
   it('translates retained link paths across cloned data updates and rebuilds changed geometry', () => {
     vi.stubGlobal(
       'Path2D',

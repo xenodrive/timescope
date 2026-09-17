@@ -61,6 +61,22 @@ function oracleAggregate(entries: readonly { row: TimescopeDataRow; ordinal: num
 }
 
 describe('mutable aggregate series index', () => {
+  it('finds sparse interval context across point-only subtrees after mutations', () => {
+    const index = new TimescopeAggregateSeriesIndex(Array.from({ length: 4096 }, (_, time) => point(time)));
+    const query = chunk(2000, 2002, 1);
+    const intervals = () => index.query(query).filter((row) => row.times.start !== undefined);
+    expect(intervals()).toEqual([]);
+
+    const spans = [interval(0, 1), interval(10, 11), interval(4000, 4001), interval(4095, 4096)];
+    index.append(spans);
+    expect(intervals()).toEqual(spans);
+
+    index.replaceRange([Decimal(0), Decimal(12)], []);
+    expect(intervals()).toEqual(spans.slice(2));
+    index.replaceRange([Decimal(4000), Decimal(4096)], []);
+    expect(intervals()).toEqual([]);
+  });
+
   it.each(['1e30', '-1e30', '1e-80'])('retains a repeating mean relative to a narrow spread around %s', (magnitude) => {
     const base = Decimal(magnitude);
     const step = base.abs().mul('1e-40');

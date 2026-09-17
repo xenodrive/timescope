@@ -222,7 +222,7 @@ describe('source view contract', () => {
       }
 
       async query(chunk: Parameters<TimescopeDataSourceBase['query']>[0]) {
-        await new Promise<void>((resolve) => pending.set(chunk.id, resolve));
+        await new Promise<void>((resolve) => pending.set(String(chunk.range[0]), resolve));
         return [row(chunk.range[0]!.number())];
       }
     }
@@ -230,12 +230,12 @@ describe('source view contract', () => {
     const context = new TimescopeViewRegistry();
     context.update(state(1));
     const view = source.requestView(context, { strategy: 'candidate-with-current' });
-    const initialIds = new Set(view.target.map((chunk) => chunk.id));
+    const initialIds = new Set(view.target.map((chunk) => String(chunk.range[0])));
     let settled = false;
     const waiting = view.waitForTarget().then(() => (settled = true));
 
     context.update(state(1, 'changed', 100));
-    const latestIds = new Set(view.target.map((chunk) => chunk.id));
+    const latestIds = new Set(view.target.map((chunk) => String(chunk.range[0])));
     for (const id of initialIds) pending.get(id)?.();
     await Promise.resolve();
     await Promise.resolve();

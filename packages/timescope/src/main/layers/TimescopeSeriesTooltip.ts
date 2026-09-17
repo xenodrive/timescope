@@ -2,12 +2,9 @@ import type { TimescopeChunk } from '#src/core/chunk';
 import { Decimal } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
 import { resolutionFor } from '#src/core/zoom';
-import { parseUsing, unwrapFn } from '#src/main/loaders/options';
-import type { TimescopeDataLoadOptions } from '#src/main/loaders/TimescopeDataLoader';
-import {
-  TimescopeSeriesDataLoader,
-  type TimescopeSeriesDataLoaderOptions,
-} from '#src/main/loaders/TimescopeDataLoader';
+import { parseUsing, unwrapFn } from '#src/main/layers/options';
+import type { TimescopeLayerDataLoadOptions } from '#src/main/layers/TimescopeLayerData';
+import { TimescopeSeriesLayerData, type TimescopeSeriesLayerDataOptions } from '#src/main/layers/TimescopeLayerData';
 import type { TimescopeOptions } from '#src/main/options';
 import type { TimescopeDataRow } from '#src/main/TimescopeData';
 import type { TimescopeDataSeries, TimescopeSeriesPoint } from '#src/main/TimescopeDataSeries';
@@ -62,7 +59,7 @@ function parseTooltip(opts: TimescopeDataSeriesInput['tooltip']) {
   };
 }
 
-export class TimescopeSeriesTooltip<O extends TimescopeSeriesDataLoaderOptions> extends TimescopeSeriesDataLoader<
+export class TimescopeSeriesTooltip<O extends TimescopeSeriesLayerDataOptions> extends TimescopeSeriesLayerData<
   TimescopeSeriesTooltipData,
   O
 > {
@@ -105,12 +102,12 @@ export class TimescopeSeriesTooltip<O extends TimescopeSeriesDataLoaderOptions> 
     range: TimescopeRange<Decimal>,
     resolution: Decimal,
     _xOrigin?: Decimal,
-    options: TimescopeDataLoadOptions = {},
+    options: TimescopeLayerDataLoadOptions = {},
   ) {
     return this.#loadViewData(range, resolution, options);
   }
 
-  #loadViewData(range: TimescopeRange<Decimal>, resolution: Decimal, options: TimescopeDataLoadOptions) {
+  #loadViewData(range: TimescopeRange<Decimal>, resolution: Decimal, options: TimescopeLayerDataLoadOptions) {
     const center = range[0].add(range[1]).divExact(2);
     const rows = this.#view.query(range, { includeOutbound: 1, loadMissing: options.loadMissing !== false });
     const selected = this.#selectRow(rows, range, resolution, center);

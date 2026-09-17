@@ -100,7 +100,7 @@ export const test4 = defineTimescopeSeries(
   defineTimescopeSources({
     test: {
       data: [] as { time: number; value: number }[],
-      reducer: 'min-max-avg',
+      type: 'point-aggregate',
     },
   }),
 );
@@ -111,13 +111,13 @@ const loaderSources = defineTimescopeSources({
     decoder: (payload: { samples: { timestamp: number; temperature: number }[] }) =>
       payload.samples.map((sample) => ({ time: sample.timestamp, value: sample.temperature })),
     chunked: false,
-    reducer: 'percentiles',
+    type: 'point-percentile',
   },
   mapped: {
     loader: async () => [{ timestamp: 1, metric: 2 }],
     mappings: { times: { timestamp: 'timestamp' }, values: { 'metric#raw': 'metric' } },
     chunked: false,
-    reducer: 'percentiles',
+    type: 'point-percentile',
   },
 });
 
@@ -154,7 +154,7 @@ export const test5 = defineTimescopeSeries(
 const instanceSources = defineTimescopeSources({
   instance: createDataSource({
     data: [] as { times: { recorded: number }; values: { load: number } }[],
-    reducer: 'null',
+    type: 'simple',
   }),
 });
 

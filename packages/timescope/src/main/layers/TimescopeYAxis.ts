@@ -1,6 +1,6 @@
 import { Decimal, precisionForSpan } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
-import { TimescopeDataLoaderBase } from '#src/main/loaders/TimescopeDataLoader';
+import { TimescopeLayerDataBase } from '#src/main/layers/TimescopeLayerData';
 import type { TimescopeDomain } from '#src/main/TimescopeDomain';
 import type { TimescopeYAxisData } from '#src/renderer/types';
 
@@ -8,7 +8,7 @@ export type TimescopeYAxisDataOptions = {
   domain: TimescopeDomain;
 };
 
-export class TimescopeYAxis extends TimescopeDataLoaderBase<TimescopeYAxisData, TimescopeYAxisDataOptions> {
+export class TimescopeYAxis extends TimescopeLayerDataBase<TimescopeYAxisData, TimescopeYAxisDataOptions> {
   static isEnabled(domain: TimescopeDomain) {
     return Boolean(domain.axis);
   }

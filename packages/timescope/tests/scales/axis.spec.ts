@@ -1,5 +1,5 @@
 import { Decimal } from '#src/core/decimal';
-import { TimescopeYAxis } from '#src/main/loaders/TimescopeYAxis';
+import { TimescopeYAxis } from '#src/main/layers/TimescopeYAxis';
 import { TimescopeDomain } from '#src/main/TimescopeDomain';
 import { describe, expect, it } from 'vitest';
 

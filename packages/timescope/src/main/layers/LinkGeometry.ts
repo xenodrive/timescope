@@ -1,7 +1,7 @@
 import { Decimal, isDecimal } from '#src/core/decimal';
 import { PathCommand, type TimescopePathCommands } from '#src/core/path';
 import type { Using } from '#src/main/chart';
-import { parseUsing } from '#src/main/loaders/options';
+import { parseUsing } from '#src/main/layers/options';
 
 export type LinkGeometryKind =
   | 'line'
