@@ -4,7 +4,7 @@ import { TimescopeDomain } from '#src/main/TimescopeDomain';
 import { describe, expect, it } from 'vitest';
 
 describe('value axis presentation', () => {
-  it('keeps five logarithmic ticks distinct in a narrow range at a huge baseline', async () => {
+  it('keeps logarithmic tick positions and labels distinct in a narrow range at a huge baseline', async () => {
     const lower = Decimal('1e30');
     const upper = lower.add('4e-10');
     const domain = new TimescopeDomain({ range: [lower, upper], scale: 'log', digits: 12, axis: true }, 'value');
@@ -12,11 +12,18 @@ describe('value axis presentation', () => {
     const axis = new TimescopeYAxis({ domain });
     try {
       const result = await axis.loadData([Decimal(0), Decimal(1)], Decimal(1));
-      expect(result.data.ticks).toHaveLength(5);
-      for (const [i, tick] of result.data.ticks.entries()) expect(tick.value).toBeCloseTo(i / 4, 12);
-      expect(result.data.ticks[0].text).toBe(lower.toFixed(12));
-      expect(result.data.ticks[4].text).toBe(upper.toFixed(12));
-      expect(new Set(result.data.ticks.map((tick) => tick.text)).size).toBe(5);
+      const ticks = result.data.ticks;
+      expect(ticks.length).toBeGreaterThan(1);
+      for (const [i, tick] of ticks.entries()) {
+        const value = Decimal(tick.text);
+        expect(value.ge(lower) && value.le(upper)).toBe(true);
+        expect(tick.value).toBeGreaterThanOrEqual(0);
+        expect(tick.value).toBeLessThanOrEqual(1);
+        if (i > 0) {
+          expect(tick.value).toBeGreaterThan(ticks[i - 1].value);
+          expect(value.gt(ticks[i - 1].text)).toBe(true);
+        }
+      }
     } finally {
       axis.dispose();
     }

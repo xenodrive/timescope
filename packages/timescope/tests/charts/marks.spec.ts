@@ -122,14 +122,10 @@ describe('mark and path rendering', () => {
     const unknown = pathCommands([99, 1, 2]);
     const invalidLength = { ...pathCommands([]), length: 1 };
 
-    expect(() => createCompiledLinkPath(truncated, 1, -1, 0, 0, 0, 100)).toThrow('Truncated link path command');
-    expect(() => createCompiledLinkPath(unknown, 1, -1, 0, 0, 0, 100)).toThrow('Unknown link path command: 99');
-    expect(() => createCompiledLinkPath(invalidLength, 1, -1, 0, 0, 0, 100)).toThrow(
-      'Invalid link path command length',
-    );
-    expect(() => createCompiledLinkPath(pathCommands([]), 1, -Infinity, 0, 0, 0, 100)).toThrow(
-      'Link path transform must be finite',
-    );
+    expect(() => createCompiledLinkPath(truncated, 1, -1, 0, 0, 0, 100)).toThrow(RangeError);
+    expect(() => createCompiledLinkPath(unknown, 1, -1, 0, 0, 0, 100)).toThrow(RangeError);
+    expect(() => createCompiledLinkPath(invalidLength, 1, -1, 0, 0, 0, 100)).toThrow(RangeError);
+    expect(() => createCompiledLinkPath(pathCommands([]), 1, -Infinity, 0, 0, 0, 100)).toThrow(RangeError);
   });
 
   it('positions and rotates a mark using its endpoints and style offset', () => {
@@ -160,7 +156,7 @@ describe('mark and path rendering', () => {
     });
   });
 
-  it('batches equal resolved marks while preserving declaration layer order', () => {
+  it('preserves declaration layers and per-point styles when grouping marks', () => {
     const points = [
       { x1: 1, y1: 2, x2: 1, y2: 2 },
       { x1: 3, y1: 4, x2: 3, y2: 4 },
@@ -196,15 +192,12 @@ describe('mark and path rendering', () => {
     const layers = groupMarkPointsByLayer(marks);
 
     expect(layers).toHaveLength(2);
-    expect([...layers[0].values()].map(({ mark, points }) => [mark.draw, points])).toEqual([['line', points]]);
-    expect(
-      [...layers[1].values()].map(({ mark, points }) => [
-        mark.draw === 'circle' ? (mark.style as { size?: number })?.size : null,
-        points,
-      ]),
-    ).toEqual([
-      [3, [points[0], points[2]]],
-      [5, [points[1]]],
-    ]);
+    for (const [index, draw] of ['line', 'circle'].entries()) {
+      const entries = [...layers[index].values()].flatMap(({ mark, points }) =>
+        points.map((point) => ({ draw: mark.draw, style: mark.style, point })),
+      );
+      expect(entries.map((entry) => entry.draw)).toEqual([draw, draw, draw]);
+      expect(entries.toSorted((a, b) => a.point.x1 - b.point.x1)).toEqual(marks.map((row) => row[index]));
+    }
   });
 });

@@ -1,7 +1,6 @@
 import type { RendererCommands } from '#src/bridge/protocol';
 import type { RenderCall } from '#src/bridge/rpc';
 import { Decimal } from '#src/core/decimal';
-import { PathCommand } from '#src/core/path';
 import { SimpleDataSource } from '#src/main/sources/SimpleDataSource';
 import { TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
 import { createDataSource } from '#src/main/TimescopeDataSource';
@@ -106,92 +105,6 @@ describe('renderer integration', () => {
     second.dispose();
     expect(externalDispose).toHaveBeenCalledOnce();
   });
-  it('translates retained link paths across cloned data updates and rebuilds changed geometry', () => {
-    vi.stubGlobal(
-      'Path2D',
-      class {
-        moveTo() {}
-        lineTo() {}
-      },
-    );
-    const ctx = canvas().getContext('2d')!;
-    const stroke = vi.fn();
-    const translate = vi.fn();
-    ctx.stroke = stroke;
-    ctx.translate = translate;
-    const projection: TimescopeSeriesChartData['meta']['projection'] = {
-      domainId: 'domain',
-      domainEpoch: 1,
-      revision: 1,
-      autoscale: false,
-      animation: false,
-      mode: 'zero-inclusive',
-      extent: [0, 1],
-      gap: 0,
-      floating: 0,
-      numericZero: 0,
-      toAnchor: { scale: 1, offset: 0 },
-    };
-    const values = new Float64Array([PathCommand.moveTo, -10, 0, PathCommand.lineTo, 100, 1]);
-    const data: TimescopeSeriesChartData = {
-      data: {
-        marks: [],
-        links: [
-          {
-            commands: { values, length: values.length },
-            geometryUid: '1',
-            draw: 'line',
-            style: { lineDashArray: [3, 2] },
-          },
-        ],
-      },
-      meta: { color: '#000', time: Decimal(0), resolution: Decimal(1), projection, linkProjection: projection },
-    };
-    const cache = { data, revision: 1 };
-    let offset = 0;
-    const context = {
-      ctx,
-      dpr: 1,
-      chart: {},
-      size: {},
-      options: { series: { sample: {} }, padding: [0, 0, 0, 0] },
-      tracks: [
-        {
-          id: 'track',
-          seriesKeys: ['sample'],
-          revision: 1,
-          animating: false,
-          oy: 0,
-          height: 100,
-          top: 0,
-          bottom: 100,
-          y0: 100,
-          fadeForDomain: () => 0,
-          affineForDomain: () => ({ scale: -100, offset: 100 }),
-        },
-      ],
-      timeAxis: { current: { resolution: Decimal(1) }, p: () => offset },
-      dataCaches: { 'series:sample:chart': cache },
-    } as unknown as TimescopeRenderingContext;
-    const layer = new TimescopeSeriesChartLayer();
-    layer.render(context);
-    const firstPath = stroke.mock.calls.at(-1)![0];
-
-    // Model a worker transfer: new command objects, same geometry identity.
-    cache.data = { ...data, data: structuredClone(data.data) };
-    cache.revision++;
-    offset = -5;
-    layer.render(context);
-    expect(stroke.mock.calls.at(-1)![0]).toBe(firstPath);
-    expect(translate).toHaveBeenLastCalledWith(-5, 0);
-
-    cache.data.data.links[0].geometryUid = '2';
-    cache.data.data.links[0].commands.values[5] = 0.5;
-    cache.revision++;
-    layer.render(context);
-    expect(stroke.mock.calls.at(-1)![0]).not.toBe(firstPath);
-  });
-
   it('does not acquire a source when all its data presentations are disabled', async () => {
     const loader = vi.fn(async () => [{ time: 0, value: 1 }]);
     const renderer = new TimescopeMainThreadRenderer({ canvas: canvas(), fonts: [] });

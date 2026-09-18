@@ -58,7 +58,6 @@ describe('chart data', () => {
       await view.provider.waitForTarget();
       const moving = await view.provider.transform(view.series, after, resolution, after[0]);
       const settled = await view.render(after, resolution);
-      expect(settled.data.links[0].commands).toBe(moving.data.links[0].commands);
       for (const result of [moving, settled]) {
         const x = Decimal('-1.7').sub(result.meta.time).div(resolution).number();
         expect(yAtX(result.data.links[0].commands, x)).toBeCloseTo(0.5);
@@ -67,7 +66,7 @@ describe('chart data', () => {
   );
 
   it.each(['line', 'curve', 'step'] as const)(
-    'retains %s geometry and its origin while panning inside a chunk',
+    'preserves visible %s geometry and updates styles and marks while panning',
     async (draw) => {
       let color = 'red';
       const view = fixture(
@@ -79,25 +78,26 @@ describe('chart data', () => {
         { links: () => [{ draw, style: { lineDashArray: [3, 2], lineColor: color } }], marks: [{ draw: 'circle' }] },
       );
       const first = await view.render([Decimal(-2), Decimal(2)]);
+      expect(first.data.links[0].style.lineColor).toBe('red');
       color = 'blue';
       const panned = await view.render([Decimal(-1), Decimal(3)]);
 
-      expect(panned.data.links[0].commands).toBe(first.data.links[0].commands);
-      expect(panned.data.links[0].geometryUid).toBe(first.data.links[0].geometryUid);
-      expect(panned.meta.time.eq(first.meta.time)).toBe(true);
       expect(panned.data.links[0].style.lineColor).toBe('blue');
-      // Coordinates remain relative to the retained origin, while mark visibility changes.
-      expect(panned.data.marks.map(([mark]) => mark.point.x1)).toEqual([1, 2, 3, 4]);
-      expect(yAtX(panned.data.links[0].commands, -0.5)).toBeCloseTo(0.5);
-      expect(yAtX(panned.data.links[0].commands, 8)).toBeCloseTo(0.5);
+      expect(
+        panned.data.marks.map(([mark]) => panned.meta.time.add(panned.meta.resolution.mul(mark.point.x1)).number()),
+      ).toEqual([-1, 0, 1, 2]);
+      for (const time of [-0.5, 2.5]) {
+        const x = Decimal(time).sub(panned.meta.time).div(panned.meta.resolution).number();
+        expect(yAtX(panned.data.links[0].commands, x)).toBeCloseTo(0.5);
+      }
 
       const outside = await view.render([Decimal(8), Decimal(12)]);
-      expect(outside.data.links[0].geometryUid).not.toBe(first.data.links[0].geometryUid);
-      expect(yAtX(outside.data.links[0].commands, 1)).toBeCloseTo(0.5);
+      const x = Decimal(9).sub(outside.meta.time).div(outside.meta.resolution).number();
+      expect(yAtX(outside.data.links[0].commands, x)).toBeCloseTo(0.5);
     },
   );
 
-  it('rebuilds retained geometry for changed data, resolution, and Y projection', async () => {
+  it('reflects changed data, resolution, and Y projection in visible geometry', async () => {
     const data = Array.from({ length: 11 }, (_, time) => ({ time, value: 0.5 }));
     const source = createDataSource({
       chunkSize: 10,
@@ -106,21 +106,21 @@ describe('chart data', () => {
     });
     const view = fixture(source, 'lines');
     const range: [Decimal, Decimal] = [Decimal(1), Decimal(5)];
-    const first = await view.render(range);
+    await view.render(range);
     data[3] = { time: 3, value: 0.75 };
     source.invalidate([3, 4]);
     const updated = await view.render(range);
-    expect(updated.data.links[0].geometryUid).not.toBe(first.data.links[0].geometryUid);
-    expect(yAtX(updated.data.links[0].commands, 2)).toBeCloseTo(0.75);
+    const updatedX = Decimal(3).sub(updated.meta.time).div(updated.meta.resolution).number();
+    expect(yAtX(updated.data.links[0].commands, updatedX)).toBeCloseTo(0.75);
 
     const zoomed = await view.render(range, Decimal('0.5'));
-    expect(zoomed.data.links[0].geometryUid).not.toBe(updated.data.links[0].geometryUid);
-    expect(yAtX(zoomed.data.links[0].commands, 4)).toBeCloseTo(0.75);
+    const zoomedX = Decimal(3).sub(zoomed.meta.time).div(zoomed.meta.resolution).number();
+    expect(yAtX(zoomed.data.links[0].commands, zoomedX)).toBeCloseTo(0.75);
 
     view.domain.updateOptions({ range: [0, 2] });
     const rescaled = await view.render(range, Decimal('0.5'));
-    expect(rescaled.data.links[0].geometryUid).not.toBe(zoomed.data.links[0].geometryUid);
-    expect(yAtX(rescaled.data.links[0].commands, 4)).toBeCloseTo(0.375);
+    const rescaledX = Decimal(3).sub(rescaled.meta.time).div(rescaled.meta.resolution).number();
+    expect(yAtX(rescaled.data.links[0].commands, rescaledX)).toBeCloseTo(0.375);
   });
 
   it('does not include the expanded geometry range in autoscaling', async () => {

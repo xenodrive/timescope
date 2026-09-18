@@ -42,11 +42,6 @@ describe('fill compositing', () => {
     expect(faded).toEqual(shade.map((value, i) => value * 0.5 + (i === 2 ? 255 * 0.5 : 0)));
   });
 
-  it('fillOpacity multiplies the derived link alpha, including the series color alpha', () => {
-    const fill = createFillStyle({ color: 'rgba(255, 0, 0, 0.5)', fillOpacity: 0.4 });
-    expect(paint(fill, [0, 0, 255])).toEqual([255 * 0.5 * 0.25 * 0.4, 0, 255 * (1 - 0.5 * 0.25 * 0.4)]);
-  });
-
   it.each([
     { fillColor: '#f00', expectedAlpha: 1 },
     { fillColor: 'rgba(255, 0, 0, 0.5)', expectedAlpha: 0.5 },

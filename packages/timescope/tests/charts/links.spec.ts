@@ -6,6 +6,7 @@ import {
   type LinkGeometryKind,
 } from '#src/main/layers/LinkGeometry';
 import { describe, expect, it } from 'vitest';
+import { yAtX } from '../helpers/geometry';
 
 type TestRow = {
   x: Record<string, LinkGeometryCoordinate | null | undefined>;
@@ -53,21 +54,6 @@ function firstCubic(path: string) {
   };
 }
 
-function lastCubicControlY(path: string) {
-  const values = path.match(/-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi)?.map(Number) ?? [];
-  return values.at(-3);
-}
-
-function cubicAt(segment: ReturnType<typeof firstCubic>, t: number) {
-  const mt = 1 - t;
-  const coordinate = (key: 'x' | 'y') =>
-    mt ** 3 * segment.p0[key] +
-    3 * mt * mt * t * segment.c1[key] +
-    3 * mt * t * t * segment.c2[key] +
-    t ** 3 * segment.p1[key];
-  return { x: coordinate('x'), y: coordinate('y') };
-}
-
 describe('link geometry', () => {
   it('preserves curve tangents when the X and Y spans have very different magnitudes', () => {
     const rows = [0, 1, 2].map((i) => ({ x: { time: Decimal('1e60').mul(i) }, y: { value: Decimal(i) } }));
@@ -87,31 +73,44 @@ describe('link geometry', () => {
     expect(compile([row(0, 1), row(1, 2), row(2, null), row(3, 4), row(4, 5)])).toBe('M0 1 L1 2 M3 4 L4 5');
   });
 
-  it('preserves monotone curves as cubic commands', () => {
-    const d = compile([row(0, 0), row(2, 2), row(4, 0)], 'curve');
-    expect(d).toMatch(/^M0 0 C/);
-    expect(d.match(/C/g)).toHaveLength(2);
-    expect(d).not.toMatch(/NaN|Infinity/);
+  it('interpolates curve samples monotonically between extrema', () => {
+    const commands = compileCommands({
+      rows: [row(0, 0), row(2, 2), row(4, 0)],
+      kind: 'curve',
+      using: 'value@time',
+      target: { xRange: [Decimal(0), Decimal(4)] },
+    });
+    expect(yAtX(commands, 0)).toBeCloseTo(0, 12);
+    expect(yAtX(commands, 2)).toBeCloseTo(2, 12);
+    expect(yAtX(commands, 4)).toBeCloseTo(0, 12);
+    for (const x of [0.5, 1, 1.5, 2]) {
+      expect(yAtX(commands, x)).toBeGreaterThan(yAtX(commands, x - 0.5));
+      expect(yAtX(commands, x + 2)).toBeLessThan(yAtX(commands, x + 1.5));
+    }
   });
 
   it('keeps clipped curve segments stable with neighboring context on each side', () => {
     const rows = [1e100, 0, 100, 101, 102, 103, 104, 204, 205, -1e100].map((y, x) => row(x, y));
     const target = { xRange: [Decimal(3), Decimal(6)] as const };
-    const full = compileLinkGeometry({ rows, kind: 'curve', using: 'value@time', target });
-    const contextual = compileLinkGeometry({ rows: rows.slice(2, 8), kind: 'curve', using: 'value@time', target });
-    const insufficient = compileLinkGeometry({ rows: rows.slice(3, 7), kind: 'curve', using: 'value@time', target });
+    const full = compileCommands({ rows, kind: 'curve', using: 'value@time', target });
+    const contextual = compileCommands({ rows: rows.slice(2, 8), kind: 'curve', using: 'value@time', target });
+    const insufficient = compileCommands({ rows: rows.slice(3, 7), kind: 'curve', using: 'value@time', target });
 
-    expectPathClose(contextual, full);
-    expect(lastCubicControlY(insufficient)).not.toBeCloseTo(lastCubicControlY(full)!, 12);
+    for (const x of [3, 3.25, 3.5, 4, 4.5, 5, 5.5, 5.75, 6]) {
+      expect(yAtX(contextual, x)).toBeCloseTo(yAtX(full, x), 12);
+    }
+    expect(yAtX(insufficient, 5.5)).not.toBeCloseTo(yAtX(full, 5.5), 12);
   });
 
   it('does not let a point beyond the right halo alter the visible segment', () => {
     const rows = [0.2, 0.45, 0.6, 0.4].map((y, x) => row(x, y));
     const target = { xRange: [Decimal(0), Decimal(0.75)] as const };
-    const withHalo = compileLinkGeometry({ rows: rows.slice(0, 3), kind: 'curve', using: 'value@time', target });
-    const withDistantPoint = compileLinkGeometry({ rows, kind: 'curve', using: 'value@time', target });
+    const withHalo = compileCommands({ rows: rows.slice(0, 3), kind: 'curve', using: 'value@time', target });
+    const withDistantPoint = compileCommands({ rows, kind: 'curve', using: 'value@time', target });
 
-    expect(withDistantPoint).toBe(withHalo);
+    for (const x of [0, 0.25, 0.5, 0.75]) {
+      expect(yAtX(withDistantPoint, x)).toBeCloseTo(yAtX(withHalo, x), 12);
+    }
   });
 
   it('encodes special Y roles as binary sentinels', () => {
@@ -302,39 +301,47 @@ describe('link geometry', () => {
     expect(values[3]).toBe(10.0000000001);
   });
 
-  it('clips a cubic as the same curve and preserves C commands', () => {
+  it('preserves the visible curve when clipping its X range', () => {
     const rows = [row(0, 0), row(2, 2), row(4, 0)];
-    const full = firstCubic(compile(rows, 'curve'));
-    const clippedPath = compileLinkGeometry({
+    const full = compileCommands({
+      rows,
+      kind: 'curve',
+      using: 'value@time',
+      target: { xRange: [Decimal(0), Decimal(4)] },
+    });
+    const clipped = compileCommands({
       rows,
       kind: 'curve',
       using: 'value@time',
       target: { xRange: [Decimal(1), Decimal(3)] },
     });
-    const clipped = firstCubic(clippedPath);
-
-    expect(clippedPath.match(/C/g)).toHaveLength(2);
-    expect(clippedPath).not.toMatch(/[LQ]/);
-    for (const t of [0, 0.25, 0.5, 0.75, 1]) {
-      const actual = cubicAt(clipped, t);
-      const expected = cubicAt(full, 0.5 + t / 2);
-      expect(actual.x).toBeCloseTo(expected.x, 12);
-      expect(actual.y).toBeCloseTo(expected.y, 12);
+    for (const x of [1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3]) {
+      // Clipped endpoints may round slightly inside the requested X boundary.
+      expect(yAtX(clipped, x, 1e-12)).toBeCloseTo(yAtX(full, x), 12);
     }
   });
 
-  it('splits a cubic at Y boundaries without flattening it', () => {
-    const d = compileLinkGeometry({
-      rows: [row(0, 0), row(2, 2), row(4, 0)],
+  it('preserves visible curve fragments and their gap when clipping its Y range', () => {
+    const rows = [row(0, 0), row(2, 2), row(4, 0)];
+    const full = compileCommands({
+      rows,
+      kind: 'curve',
+      using: 'value@time',
+      target: { xRange: [Decimal(0), Decimal(4)] },
+    });
+    const clipped = compileCommands({
+      rows,
       kind: 'curve',
       using: 'value@time',
       target: { xRange: [Decimal(0), Decimal(4)], yRange: [Decimal(0), Decimal(1)] },
     });
-    const values = d.match(/-?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?/gi)?.map(Number) ?? [];
-    expect(d.match(/M/g)).toHaveLength(2);
-    expect(d.match(/C/g)).toHaveLength(2);
-    expect(d).not.toContain('L');
-    expect(values.filter((_, index) => index % 2 === 1).every((value) => value >= 0 && value <= 1)).toBe(true);
+    for (const x of [0, 0.25, 0.5, 3.5, 3.75, 4]) {
+      const y = yAtX(clipped, x);
+      expect(y).toBeCloseTo(yAtX(full, x), 12);
+      expect(y).toBeGreaterThanOrEqual(0);
+      expect(y).toBeLessThanOrEqual(1);
+    }
+    expect(() => yAtX(clipped, 2)).toThrow();
   });
 
   it('does not create boundary curves for source runs wholly outside the clip', () => {

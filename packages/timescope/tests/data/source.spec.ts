@@ -1,6 +1,5 @@
 import { createChunk } from '#src/core/chunk';
 import { Decimal } from '#src/core/decimal';
-import { SimpleDataSource } from '#src/main/sources/SimpleDataSource';
 import { createDataLoader, type TimescopeLoadRequest } from '#src/main/TimescopeDataLoader';
 import {
   createDataSource,
@@ -30,13 +29,11 @@ describe('data sources', () => {
     expect(createDataSource(source)).toBe(source);
   });
 
-  it('uses Simple for snapshots and range loaders, without mutation methods', async () => {
+  it('shares snapshot acquisition but acquires each range query, without mutation methods', async () => {
     const snapshot = vi.fn(async () => [{ time: 1, value: 2 }]);
     const range = vi.fn(async () => [{ time: 1, value: 3 }]);
     const a = createDataSource({ loader: snapshot, chunked: false });
     const b = createDataSource({ loader: range });
-    expect(a).toBeInstanceOf(SimpleDataSource);
-    expect(b).toBeInstanceOf(SimpleDataSource);
     expectTypeOf(a).not.toHaveProperty('append');
     expectTypeOf(a).not.toHaveProperty('replace');
     expect(a).not.toHaveProperty('append');
