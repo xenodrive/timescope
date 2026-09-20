@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 325" role="img" font-family="ui-sans-serif, system-ui, 'Segoe UI', sans-serif">
+  <title>Tracks stack vertically and share time</title>
+  <desc>Two line Charts overlay in Track A, while a line Chart and a bar Chart overlay in Track B. Both Tracks share the same horizontal time coordinates and display resolution. A single red time cursor aligns across both drawing regions.</desc>
+  <text x="280" y="26" text-anchor="middle" font-size="17" fill="#ef4444">shared time cursor</text>
+  <g fill="rgba(148,163,184,0.04)" stroke="#94a3b8">
+    <rect x="40" y="45" width="480" height="115" rx="4"/>
+    <rect x="40" y="180" width="480" height="115" rx="4"/>
+  </g>
+  <g stroke="#94a3b8" stroke-dasharray="4 3" opacity="0.3">
+    <line x1="100" y1="45" x2="100" y2="295"/>
+    <line x1="190" y1="45" x2="190" y2="295"/>
+    <line x1="370" y1="45" x2="370" y2="295"/>
+    <line x1="460" y1="45" x2="460" y2="295"/>
+  </g>
+  <g font-size="17" fill="#64748b">
+    <text x="54" y="70">Track A</text>
+    <text x="54" y="205">Track B</text>
+  </g>
+  <polyline points="65,130 145,90 225,115 305,95 385,125 495,85" fill="none" stroke="#3b82f6" stroke-width="2"/>
+  <polyline points="65,110 145,135 225,95 305,130 385,100 495,125" fill="none" stroke="#f59e0b" stroke-width="2"/>
+  <text x="320" y="70" font-size="17" fill="#64748b">Charts overlay</text>
+  <g fill="rgba(245,158,11,0.2)" stroke="#f59e0b">
+    <rect x="55" y="250" width="20" height="35"/>
+    <rect x="135" y="260" width="20" height="25"/>
+    <rect x="215" y="225" width="20" height="60"/>
+    <rect x="295" y="250" width="20" height="35"/>
+    <rect x="375" y="230" width="20" height="55"/>
+    <rect x="485" y="255" width="20" height="30"/>
+  </g>
+  <polyline points="65,275 145,235 225,255 305,225 385,260 495,235" fill="none" stroke="#3b82f6" stroke-width="2"/>
+  <text x="320" y="205" font-size="17" fill="#64748b">line + bar Charts</text>
+  <line x1="280" y1="37" x2="280" y2="310" stroke="#ef4444" stroke-width="1.5"/>
+  <line x1="40" y1="310" x2="520" y2="310" stroke="#64748b" stroke-width="1.5"/>
+  <path d="M530 310 l-10 -5 v10 z" fill="#64748b"/>
+</svg>

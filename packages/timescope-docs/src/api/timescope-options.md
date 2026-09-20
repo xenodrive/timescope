@@ -23,20 +23,11 @@ titleTemplate: Timescope API
 
 ## Rendering Thread
 
-Use `renderThread` to choose whether drawing runs in a Worker (the default) or on the main thread:
-
-```ts
-new Timescope({
-  target: '#timescope',
-  renderThread: 'main',
-});
-```
-
-Data sources and loaders run on the main thread in both modes.
-
-The setting is applied when mounting. Changing it with `setOptions()` or `updateOptions()` takes effect on the next mount.
+`renderThread`: `'worker'` (default) or `'main'`. Applied on mount; changes require remounting. Sources and loaders always run on the main thread.
 
 ## Sources
+
+For the acquisition and query model, see [Sources](/guide/concepts#sources).
 
 ### Input Types
 
@@ -46,39 +37,20 @@ The setting is applied when mounting. Changing it with `setOptions()` or `update
 | `{ data }`                         | Uses inline data with source options.                                     |
 | `string` or `{ url }`              | Loads a snapshot URL, or loads chunks when the URL contains placeholders. |
 | `function` or `{ loader }`         | Loads chunks. Set `chunked: false` to use a snapshot loader.              |
+| `{ loader: dataLoader }`           | Uses a reusable [DataLoader](#reusable-dataloader) instance.              |
 | `TimescopeDataSource`              | Uses a source created by `createDataSource()` or a custom source.         |
 
 ### Source Types
 
 `createDataSource(input)` constructs one of these implementations. Custom DataSource instances pass through unchanged.
 
-| `type`               | Behavior                                                                                                                       | Acquisition       | Updates                    |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------- | -------------------------- |
-| `'simple'` (default) | Returns unaggregated point and interval rows. Snapshots use a static point/interval index; range loaders are queried directly. | Snapshot or range | Invalidation/reacquisition |
-| `'point-aggregate'`  | Returns point min/max/avg using a Segment Tree. Points must be in nondecreasing time order.                                    | Snapshot          | `append()`                 |
-| `'point-percentile'` | Returns point percentiles using a static value index.                                                                          | Snapshot          | Invalidation/reacquisition |
+| `type`               | Behavior                                                               | Acquisition       | Updates                    |
+| -------------------- | ---------------------------------------------------------------------- | ----------------- | -------------------------- |
+| `'simple'` (default) | Returns unaggregated point and interval rows.                          | Snapshot or range | Invalidation/reacquisition |
+| `'point-aggregate'`  | Returns point min/max/avg. Points must be in nondecreasing time order. | Snapshot          | `append()`                 |
+| `'point-percentile'` | Returns point percentiles.                                             | Snapshot          | Invalidation/reacquisition |
 
-Only point-aggregate sources expose `append()`. No built-in source exposes `replace()`. Appends automatically refresh consumers; await the returned Promise before an operation that depends on the new data. It does not indicate that a frame has been drawn.
-
-```ts
-import { createDataSource, Timescope } from 'timescope';
-
-const source = createDataSource({
-  type: 'point-aggregate',
-  data: [{ time: 0, value: 10 }],
-});
-const timescope = new Timescope({
-  target: '#timescope',
-  time: 1,
-  zoom: 6,
-  sources: { samples: source },
-  series: { samples: { data: { source: 'samples' }, chart: 'linespoints' } },
-});
-
-await source.append({ time: 1, value: 20 });
-```
-
-`append()` accepts one row or an array of rows. If the source uses `mappings`, pass records in the mapped input format. A `decoder` applies to the initial payload only; pass decoded rows to `append()`.
+Only point-aggregate exposes [append()](#append-only-segment-tree). No built-in Source exposes `replace()`.
 
 ### Source Options
 
@@ -97,7 +69,7 @@ await source.append({ time: 1, value: 20 });
 
 `data`, `url`, and `loader` are mutually exclusive. `decoder` and `mappings` are also mutually exclusive.
 
-Construction options describe acquisition hints. The resulting `source.resolutions`, `source.chunkSize`, and `source.chunkOrigin` guide how views construct requests and may differ from those options. Range-backed Simple sources publish their input hints unchanged; snapshot sources publish no preferred resolution list. Built-in sources preserve chunk size and origin. These hints do not require direct queries to use a listed resolution or align with chunk boundaries.
+Built-in Sources retain chunk size and origin. Range-backed Sources publish resolution hints; snapshot Sources do not. Direct queries need not align with these hints.
 
 ### Direct Queries
 
@@ -108,9 +80,7 @@ const rows = await source.query({
 });
 ```
 
-`TimescopeDataSourceQuery` contains only a finite, ordered `range: [Decimal, Decimal]` and a positive `resolution: Decimal`. There is no chunk ID, sequence, or zoom. Direct queries do not cache results or share range acquisitions; snapshot sources still retain their acquired data and index.
-
-Simple range sources forward the request to their loader on a best-effort basis. Point aggregation and percentile sources anchor buckets to `chunkOrigin`, returning complete intersecting buckets and neighboring context. Shifting query boundaries does not shift bucket boundaries or change the values of an otherwise identical bucket.
+`query({ range, resolution })` takes a finite ordered Decimal range and a positive Decimal resolution. It bypasses the display cache; snapshot data remains retained. Range Sources forward the request to their Loader, including the [neighboring-row response contract](#range-loader). Aggregate buckets stay anchored to `chunkOrigin` and are returned whole, with neighboring context.
 
 ### Payloads and Decoders
 
@@ -122,34 +92,11 @@ The argument to `decoder(payload)` depends on how the source acquires data:
 | `url`       | The fetched `Response`, before reading its body. |
 | `loader`    | The loader's resolved return value.              |
 
-Return an array of [rows](#rows), or a Promise of that array. For example, a JSON URL with a nested array can use:
-
-```ts
-sources: {
-  samples: {
-    url: '/samples.json',
-    decoder: async (response: Response) => {
-      const payload = await response.json();
-      return payload.samples;
-    },
-  },
-}
-```
-
-Without a decoder, a `Response` is read as JSON. The resulting payload must be an array of rows, or an array of records when using `mappings`.
+Return rows or a Promise of rows. Without a decoder, Responses are read as JSON; payloads must be row arrays or, with `mappings`, record arrays.
 
 ### Snapshot Loader
 
-Set `chunked: false` to load a complete snapshot. The loader takes no arguments and may return its payload directly or through a Promise. Return rows when no transform is configured, or a payload for `decoder` / `mappings` to convert. The Source retains and indexes the snapshot until invalidated.
-
-```ts
-sources: {
-  samples: {
-    chunked: false,
-    loader: async () => [{ time: 0, value: 10 }, { time: 1, value: 20 }],
-  },
-}
-```
+`chunked: false`: `loader()` takes no arguments and returns rows or a transform payload, synchronously or as a Promise. The Source retains the snapshot until invalidated.
 
 ### Rows
 
@@ -161,7 +108,7 @@ sources: {
 | `values` | `Record<string, TimescopeNumberLike \| null>` | Sets named row values.                                |
 | `data`   | `unknown`                                     | Provides metadata to mark callbacks.                  |
 
-A row must contain at least one time. A single time, or several equal named times, represents a point. Otherwise, the row represents the half-open interval from its earliest to its latest named time: `[min(times), max(times))`. This interval determines overlap for queries, regardless of which time fields a chart selects with `using`. Simple sources support both points and intervals; point-aggregate and point-percentile reject intervals.
+A row must contain at least one time. Its temporal support is a point when all times are equal, otherwise `[min(times), max(times))`, independently of `using`. Simple sources accept both; point-aggregate and point-percentile reject intervals. See [Canonical Rows](/guide/concepts#canonical-rows) for the data model.
 
 ### Mappings
 
@@ -187,22 +134,20 @@ Singleton buckets retain the original point time. Buckets containing multiple po
 
 ### Range Loader
 
-The loader signature is `(request: TimescopeLoadRequest) => rows | Promise<rows>`. With a decoder or mappings, return the expected payload instead. A request contains only `range: [Decimal, Decimal]` and `resolution: Decimal`: no chunk identity, sequence, or expiry context.
-
-Loaders accept arbitrary ranges and resolutions on a best-effort basis. Simple sources forward their query conditions. Views normally construct ranges spanning `chunkSize * resolution`, aligned to `chunkOrigin`, but direct callers need not do so. Return rows at a density appropriate for the requested resolution.
+`loader({ range, resolution })` returns rows or a transform payload, synchronously or as a Promise. Requests contain an arbitrary finite ordered Decimal range and a positive Decimal resolution; they need not align with chunk boundaries or resolution hints. Match row density to the requested resolution. See [Range Loader](/guide/concepts#range-loader) for the response model and [Chunk Loading](/guide/concepts#chunk-loading) for how display requests are chosen.
 
 Return all rows intersecting `[start, end)`:
 
 - Points satisfy `start <= time < end`.
-- Interval rows satisfy `rowStart < end && start < rowEnd`. Include a row in every chunk it overlaps, even when its start is outside the requested range. Return the complete row, rather than trimming its times to the chunk boundaries.
+- Intervals satisfy `rowStart < end && start < rowEnd`; return complete, untrimmed rows.
 
-For charts with links, also return neighboring rows outside the range: the nearest row on each side for straight lines, steps, and their areas; the two nearest rows on each side for `curve` and `curve-area`. Return as many as exist at the ends of the data. These rows let links continue across chunk boundaries.
+For links, the loader **SHOULD** return extra rows consisting of the nearest neighbors on each side: one for lines, steps, and their areas; two for curves and curve areas, as available, even when the range contains no points.
 
-Even when no row intersects the requested range, return the neighboring rows if a link crosses that range. For example, points at `0` and `100` are both needed to draw a line through a chunk covering `[40, 60)`. Return `[]` only when there are neither intersecting rows nor neighboring rows needed by the chart.
+This recommendation also applies to direct queries and range DataLoader calls. For example, a very narrow range containing no points can return two neighbors on each side for curves, if available — four rows in total.
 
 ### Invalidation and Caching
 
-A display-side ChunkStore is shared by views of the same Source. On a cache miss it calls `source.query({ range, resolution })`, without forwarding the chunk identity. Concurrent chunk loads share acquisition; inactive results can remain in the LRU after leaving the viewport. Snapshot indexes survive output-cache eviction. Failed acquisitions are retryable. Calling `source.query()` directly bypasses this cache entirely.
+Display queries share cached results per Source. `cacheSize` limits inactive result retention; eviction preserves snapshots. Failed acquisitions are retryable.
 
 ```ts
 source.invalidate(); // All data
@@ -210,17 +155,26 @@ source.invalidate([start, end]); // An affected range
 source.invalidate([latestDataTime, undefined]); // The live tail, at every resolution
 ```
 
-Endpoints accept `TimescopeTimeLike<undefined>`. An omitted endpoint is unbounded. The Source emits an invalidation notification; subscribed ChunkStores invalidate overlapping chunks, including the chunk containing the boundary. Sources do not look up or directly invalidate stores. Stores also check the Source revision before serving results, so a read immediately after invalidation cannot return a stale cached result. Active views reload what they need, and invalidated in-flight chunk loads are rejected. Use a data-time boundary that includes late-arriving samples, not necessarily the wall-clock time of the last request.
+- Endpoints accept `TimescopeTimeLike<undefined>`; omitted endpoints are unbounded. Include late-arriving samples in the affected range.
+- Overlapping and boundary chunks reload; stale cache results and invalidated in-flight results are rejected.
+- Snapshot invalidation always reacquires the whole snapshot, discarding appends absent from the acquisition input. `append()` retains data and notifies only the changed range.
+- `timescope.reload()` invalidates its Sources.
 
-All snapshot-backed sources discard their snapshot/index on explicit invalidation and reacquire the whole snapshot on the next query. This also discards appended points that are not present in the acquisition input. Even range-specific invalidation notifies consumers of a full reset for snapshot sources. `append()` itself retains the updated index and only notifies consumers of the changed range. `timescope.reload()` invalidates its sources.
+Shared Sources are disposed when their last renderer releases them; standalone Sources require `dispose()`. Renaming within one update preserves the instance.
 
-Renderers reference-count shared Source instances. Each renderer holds one reference per distinct Source, including Sources supplied by the caller. Removing the Source or disposing the renderer releases that reference; the final release disposes the Source. Moving a Source between names in one update preserves its lifetime. A JavaScript variable alone does not retain a usage reference. For standalone Sources used without a renderer, call `source.dispose()` when finished.
-
-`updateOptions()` preserves omitted Source and Series entries. Explicit Source settings create a new Source; passing the same Source instance reuses it. Explicit Series updates rebuild that Series from the merged settings. Settings are not serialized or deeply compared, and callbacks retain their original identity and closures. `setOptions()` replaces the complete configuration.
+`updateOptions()` retains omitted entries, recreates explicitly configured Sources, reuses supplied Source instances, and rebuilds updated Series from merged settings. `setOptions()` replaces all settings. Callbacks retain their closures.
 
 ### Reusable DataLoader
 
-`createDataLoader()` performs acquisition, decoding and normalization independently of the source's query algorithm. It has no cache, timers, invalidation API, or resolution/chunk constraints. Every `load()` performs acquisition. DataSources retain snapshot/index state and notify consumers of updates; display-side ChunkStores cache query results.
+`createDataLoader(options)` returns a `TimescopeDataLoader`. For its role relative to a Source, see [DataLoader and DataSource](/guide/concepts#dataloader-and-datasource).
+
+| Member                        | Contract                                                                                 |
+| ----------------------------- | ---------------------------------------------------------------------------------------- |
+| `ranged`                      | Whether `load()` requires a range request.                                               |
+| `load()`                      | Snapshot acquisition; returns a Promise of normalized readonly rows.                     |
+| `load({ range, resolution })` | Range acquisition; takes an ordered range of Decimals and a positive Decimal resolution. |
+
+Each call acquires data without caching. A request is required for range Loaders and forbidden for snapshot Loaders.
 
 ```ts
 import { createDataLoader, createDataSource } from 'timescope';
@@ -235,26 +189,19 @@ const source = createDataSource({ loader, chunked: false });
 source.invalidate(); // Reacquire on the next query.
 ```
 
-A range loader uses `load({ range, resolution })`. `loader.ranged` distinguishes range acquisition from whole-snapshot acquisition. The same Loader can be used by multiple sources; their state and invalidation are independent. Configure decoding/mappings on the Loader itself when supplying a Loader instance.
+Pass via `loader`; configure transforms on the DataLoader only. Its `ranged` flag controls acquisition mode; snapshot instances use `chunked: false`. Row field names and metadata types are not preserved for Source inference.
 
-### Append-only Segment Tree
+### Appending Points {#append-only-segment-tree}
 
-```ts
-import { createDataSource } from 'timescope';
+`append(row | rows): Promise<void>` — point-aggregate only.
 
-const source = createDataSource({
-  data: [{ time: 0, value: 10 }],
-  type: 'point-aggregate',
-});
-await source.append({ time: 1 / 60, value: 12 });
-// source.replace(...) is not available.
-```
-
-This source accepts only point rows in nondecreasing time order, including the initial data and each appended batch. Equal times retain insertion order. Invalid batches are rejected before any rows are inserted. Use Simple for unaggregated points/intervals, or point-percentile for percentiles.
-
-Each point is a leaf in a segment tree. Append updates its ancestors; queries combine range aggregates without scanning every point in a bucket. Capacity grows geometrically, so occasional appends rebuild the tree. This trades additional index memory for efficient aggregation of dense ranges.
+- Initial and appended points must be in nondecreasing time order; equal times retain insertion order. Invalid batches insert nothing.
+- Direct Source `mappings` apply to appends; decoders and supplied DataLoader transforms do not.
+- Refreshes consumers automatically. The Promise confirms the data update, not frame presentation.
 
 ## Series
+
+See [Series](/guide/concepts#series) for how data, drawing, tracks, and domains relate.
 
 | Key                  | Type                                       | Behavior                                                   |
 | -------------------- | ------------------------------------------ | ---------------------------------------------------------- |
@@ -284,11 +231,15 @@ The resolver receives `{ resolution, resolutions }`:
 | `resolution`  | `Decimal`            | Display time units per pixel: `2 ** (-zoom)`. At zoom `0`, one pixel spans one time unit. |
 | `resolutions` | `readonly Decimal[]` | Output intervals published by `source.resolutions`; empty when unrestricted.              |
 
-Return a positive preferred source interval in the same time units as the rows. Timescope then snaps it to the source's available intervals. Without `resolve`, the preferred interval is the display resolution. Without a list of source intervals, snapping uses resolutions at integer zoom levels.
+Return a positive interval in row time units. Default: display resolution. Snapping uses published Source intervals, or integer-zoom intervals when none are published.
 
-`floor` selects the largest interval at or below the preferred interval; `ceil` selects the smallest at or above it. When no interval satisfies that direction, the nearest endpoint of the available range is used. `nearest` selects the closest interval on the zoom (logarithmic) scale.
+| Snap      | Selection                                             |
+| --------- | ----------------------------------------------------- |
+| `nearest` | Closest on the logarithmic zoom scale.                |
+| `floor`   | Largest interval at or below the preferred interval.  |
+| `ceil`    | Smallest interval at or above the preferred interval. |
 
-The selected output interval is passed to `source.query()`. Range-backed Simple sources pass it to their loader as `request.resolution`; snapshot sources use it for local queries. It can differ from the display resolution passed to chart callbacks.
+Directional snapping falls back to the nearest endpoint. The result is the query/loader resolution, distinct from chart callbacks' display resolution.
 
 ### Instantaneous Values
 
@@ -309,6 +260,8 @@ Setting either `tooltip: false` or `data.instantaneous: false` disables cursor s
 
 ## Using Selectors
 
+See [Using Selectors](/guide/concepts#using-selectors) for the coordinate-selection model.
+
 | Form             | Selects                                            |
 | ---------------- | -------------------------------------------------- |
 | `'value@time'`   | Named value and named time.                        |
@@ -320,7 +273,7 @@ Setting either `tooltip: false` or `data.instantaneous: false` disables cursor s
 | `'#bottom'`      | Bottom of the chart area.                          |
 | `'value#avg'`    | An aggregate produced by a point-aggregate source. |
 
-Single-value marks default to `'value@time'`. `line`, `bar`, and `section` marks default to `['min', 'max']`. Single-value links default to `'value@time'`; area links use the value and domain zero by default.
+Single-value marks default to `'value@time'`. `line`, `bar`, and `section` marks default to `['min', 'max']`. Single-value links default to `'value@time'`; area links use the value and the Track's shared baseline (`#zero`) by default.
 
 ## Chart Presets
 
@@ -332,8 +285,8 @@ Single-value marks default to `'value@time'`. `line`, `bar`, and `section` marks
 | `'points'`                                                  | Circle marks.                                              |
 | `'linespoints'`, `'curvespoints'`                           | Lines or curves with circle marks. Add `:filled` for fill. |
 | `'stepspoints-start'`, `'stepspoints'`, `'stepspoints-end'` | Steps with circle marks. Add `:filled` for fill.           |
-| `'impulses'`, `'impulsespoints'`                            | Lines from domain zero, optionally with circle marks.      |
-| `'bars'`, `'bars:filled'`                                   | Bars from domain zero.                                     |
+| `'impulses'`, `'impulsespoints'`                            | Lines from the shared baseline, optionally with circle marks. |
+| `'bars'`, `'bars:filled'`                                   | Bars from the shared baseline.                             |
 
 ## Links
 
@@ -360,9 +313,7 @@ Single-value marks default to `'value@time'`. `line`, `bar`, and `section` marks
 
 ## Style
 
-Mark style values may be callbacks receiving `{ times, values, data, resolution }`. Link callbacks receive `{ resolution }`. `values` entries are `Decimal | null`.
-
-In these callbacks, `resolution` is a `Decimal` giving display time units per pixel (`2 ** (-zoom)`), not the source interval requested by the loader. Use it to convert a time duration into a pixel width or to change appearance with zoom. `times` entries are `Decimal` values, and `data` is the row's metadata.
+Mark callbacks receive `{ times, values, data, resolution }`; link callbacks receive `{ resolution }`. Times are `Decimal`, values are `Decimal | null`, and `data` is row metadata. `resolution` is display time units per pixel (`2 ** (-zoom)`), not the loader interval.
 
 ### Stroke
 
@@ -381,32 +332,12 @@ In these callbacks, `resolution` is a `Decimal` giving display time units per pi
 | `fillOpacity` | `number`  |
 | `fillPost`    | `boolean` |
 
-When `fillColor` is omitted, a default fill is derived from the series `color`:
-marks composite that color at 25% of its alpha against the configured background,
-while links use that color at 25% of its alpha directly. Over an opaque background,
-the derived mark fill is opaque and hides underlying links, as in `linespoints`.
-Link fills use normal alpha compositing so overlapping series remain visible.
+| Color                | Marks                                                            | Links                        |
+| -------------------- | ---------------------------------------------------------------- | ---------------------------- |
+| Default              | Series color at 25% alpha, precomposited against the background. | Series color at 25% alpha.   |
+| Explicit `fillColor` | Used as-is, including alpha.                                     | Used as-is, including alpha. |
 
-An explicit `fillColor` replaces the derived fill and is used as-is, including its
-alpha, for both marks and links. It is never precomposited against the background.
-
-`fillOpacity` defaults to `1` and multiplies the alpha of the resolved fill for
-both marks and links. Values are clamped to the range `0`–`1`. It controls the
-transparency of the fill, not the strength of the default shading, and does not
-affect strokes.
-
-| Fill settings                                  | Marks                                                   | Links                  |
-| ---------------------------------------------- | ------------------------------------------------------- | ---------------------- |
-| Omitted                                        | Color at 25% alpha precomposited against the background | Color at 25% alpha     |
-| `fillOpacity: 0.5`                             | Derived fill at half its alpha                          | Color at 12.5% alpha   |
-| `fillColor: F`                                 | F, including its alpha                                  | F, including its alpha |
-| `fillColor: F, fillOpacity: 0.5`               | F at half its alpha                                     | F at half its alpha    |
-| `fillOpacity: 0` or `fillColor: 'transparent'` | Fully transparent fill                                  | Fully transparent fill |
-
-For a translucent fill in the original series color, set `fillColor` to that color
-and use `fillOpacity` to control its transparency. With no `fillColor`, setting
-`fillOpacity: 1` preserves the default shading rather than restoring the original
-color.
+`fillOpacity` multiplies the resulting fill alpha; default `1`, clamped to `0`–`1`. It affects neither strokes nor the default shading strength.
 
 ### Geometry
 
@@ -466,6 +397,8 @@ color.
 
 ### Time Axis
 
+The time axis is drawn at the Track's [shared baseline](/guide/concepts#shared-baseline). Hiding the axis does not remove the baseline used by `#zero`.
+
 | Key          | Type                                                       | Behavior                                                                             |
 | ------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | `axis`       | `false \| { color? }`                                      | Hides or styles the axis line.                                                       |
@@ -478,15 +411,7 @@ color.
 
 `TimeFormatFunc` receives `{ time, unit, level, digits, stride? }` and returns `string | undefined`. `TimeFormatLabeler` provides optional formatters for year, month, quarter, date, minutes, and seconds.
 
-Use `'local'`, `'utc'`, or an IANA time zone name for `timeZone`. `TimeFormatLabeler` receives date and time components in that time zone.
-
-```ts
-tracks: {
-  main: {
-    timeAxis: { timeZone: 'Asia/Tokyo' },
-  },
-}
-```
+`timeZone` accepts `'local'`, `'utc'`, or an IANA name (e.g. `'Asia/Tokyo'`); labelers receive components in that zone.
 
 ## Selection
 
@@ -513,22 +438,15 @@ Selection is resizable by default. Shift-drag creates a range.
 | `range`       | `TimescopeNumberLike \| [min?, max?] \| { expand?, shrink?, default? }` | Sets or configures the value range.                                 |
 | `expand`      | `boolean`                                                               | Allows the range to expand for observed values. Default: `false`.   |
 | `shrink`      | `boolean`                                                               | Allows the range to contract. Default: `true`.                      |
-| `floatingGap` | `number`                                                                | Sets the pixel gap below a same-sign floating range. Default: `20`. |
+| `floatingGap` | `number`                                                                | Sets the pixel gap between a floating range and the shared baseline. Default: `20`. |
 | `unit`        | `string`                                                                | Sets the tooltip and value-axis unit.                               |
 | `digits`      | `number`                                                                | Sets decimal places in tooltips and value axes.                     |
 
 An unbounded range follows visible values. A single numeric range value means `[0, value]`.
 
-With `shrink: true`, an automatic range follows constant data to `[v, v]` as well.
-Nonzero constants are centered in the domain's available drawing region, while
-zero lies on the shared zero axis. `linear-symmetric` retains its zero-based
-scaling for nonzero constants. Constant ranges have a single value tick.
+See [Domains](/guide/concepts#domains) for independent and shared scales, [Auto Scaling](/guide/concepts#auto-scaling) for `expand` and `shrink`, and [Floating Ranges](/guide/concepts#floating-ranges) for the relationship to the Track's shared baseline.
 
-Within a linear or logarithmic scale, the display changes smoothly when entering
-or leaving constant data. An update during a transition continues from the
-current display.
-`animation: false` applies the final display immediately. Fixed bounds and
-`shrink: false` continue to constrain the range.
+With `shrink: true`, automatic constant data yields `[v, v]` and one tick when the value axis is enabled. Nonzero constants are centered, except under `linear-symmetric`; zero stays on the [shared baseline](/guide/concepts#shared-baseline). `animation: false` disables range transitions. Fixed bounds and `shrink: false` still constrain the range.
 
 ## See Also
 

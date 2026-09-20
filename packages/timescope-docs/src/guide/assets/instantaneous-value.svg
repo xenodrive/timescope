@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 275" role="img" font-family="ui-sans-serif, system-ui, 'Segoe UI', sans-serif">
+  <title>Instantaneous value at the time cursor</title>
+  <desc>A Chart shows aggregated data with a shaded minimum-to-maximum band. At the red time cursor, an independently sampled instantaneous value lies inside that band, away from the aggregate line. A Tooltip displays the sampled value.</desc>
+  <text x="280" y="28" text-anchor="middle" font-size="17" fill="#ef4444">time cursor</text>
+
+  <!-- Aggregate min–max band and representative values. -->
+  <polygon points="50,165 125,100 205,120 280,80 355,140 435,100 510,120 510,180 435,150 355,200 280,175 205,185 125,155 50,210" fill="rgba(59,130,246,0.12)" stroke="#3b82f6" stroke-width="1"/>
+  <line x1="280" y1="40" x2="280" y2="260" stroke="#ef4444" stroke-width="1.5"/>
+  <polyline points="50,195 125,125 205,155 280,135 355,175 435,115 510,150" fill="none" stroke="#3b82f6" stroke-width="2"/>
+  <g fill="#3b82f6">
+    <circle cx="50" cy="195" r="4"/>
+    <circle cx="125" cy="125" r="4"/>
+    <circle cx="205" cy="155" r="4"/>
+    <circle cx="280" cy="135" r="4"/>
+    <circle cx="355" cy="175" r="4"/>
+    <circle cx="435" cy="115" r="4"/>
+    <circle cx="510" cy="150" r="4"/>
+  </g>
+  <text x="50" y="237" font-size="17" fill="#3b82f6">Aggregated Chart · min–max band</text>
+
+  <!-- Independent cursor sample and an example consumer. -->
+  <circle cx="280" cy="95" r="6" fill="#f59e0b"/>
+  <circle cx="280" cy="95" r="11" fill="none" stroke="#f59e0b"/>
+  <path d="M292 95 H305 V80 H320" fill="none" stroke="#f59e0b"/>
+  <rect x="320" y="40" width="200" height="55" rx="8" fill="#fffbeb" stroke="#f59e0b"/>
+  <text x="335" y="62" font-size="17" fill="#64748b">Tooltip, for example</text>
+  <text x="335" y="84" font-size="17" fill="#b45309">value: 24.8</text>
+  <text x="50" y="72" font-size="17" fill="#b45309">instantaneous value</text>
+  <path d="M220 77 L269 91" fill="none" stroke="#f59e0b"/>
+
+  <line x1="40" y1="260" x2="520" y2="260" stroke="#64748b" stroke-width="1.5"/>
+  <path d="M530 260 l-10 -5 v10 z" fill="#64748b"/>
+</svg>

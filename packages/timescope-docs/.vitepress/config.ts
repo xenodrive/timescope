@@ -35,6 +35,7 @@ export default defineConfig({
   cleanUrls: true,
   lastUpdated: false,
   markdown: {
+    math: true,
     //lineNumbers: true,
     theme: {
       light: 'github-light',
@@ -43,6 +44,7 @@ export default defineConfig({
   },
   themeConfig: {
     logo: '/logo.svg',
+    outline: 'deep',
     nav: [
       {
         text: 'Guide',
@@ -58,19 +60,7 @@ export default defineConfig({
           text: 'Guide',
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
-            {
-              text: 'Core Concepts',
-              link: '/guide/concepts',
-              items: [
-                {
-                  text: 'Infinite Time Navigation',
-                  link: '/guide/concepts#infinite-time-navigation',
-                },
-                { text: 'Marks & Links', link: '/guide/concepts#marks-and-links' },
-                { text: 'Chunk Loading', link: '/guide/concepts#chunk-loading' },
-                { text: 'Data Pipeline', link: '/guide/concepts#data-pipeline' },
-              ],
-            },
+            { text: 'Core Concepts', link: '/guide/concepts' },
             {
               text: 'Examples',
               link: '/guide/examples/',

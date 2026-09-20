@@ -1,67 +1,121 @@
 # Core Concepts
 
-- The time axis supports **infinite**, **arbitrary-precision** navigation.
-- Charts are composed of **marks** (per row) and **links** (between rows).
-- Data is loaded in viewport-driven **chunks**.
+Timescope is not only a timepicker, but also a time-series visualizer.
 
-See the [API reference](/api/timescope) for configuration details.
+- **Infinite by design** — unlimited range and precision with [Decimal](/api/decimal).
+- **Chunk loading** — loads data efficiently.
+- **Independent marks and links** — composable shapes and connections.
 
-## Infinite time navigation
+## Time, Zoom, and Resolution {#time-and-zoom}
 
-The time axis has no fixed precision or scale. By default, the past is unbounded and the future ends at the live clock. Set `timeRange: [undefined, undefined]` to navigate without bounds in either direction.
+**Time** is the selected time, marked by the time cursor at the center of the view. **Resolution** is the time span per pixel. Together they determine the visible time window.
 
-The view is centered on `time`, which follows the live clock when set to `null`. Numeric time uses seconds by default. Date and ISO string inputs are represented as Unix time. Increasing `zoom` by one halves the visible range and time per pixel; decreasing it by one doubles both.
+**Zoom level** is a convenient logarithmic expression of resolution:
 
-`timeRange` / `zoomRange` optionally clamp the navigable range and zoom levels.
+$$
+\mathit{resolution} = 2^{-\mathit{zoom}}
+$$
 
-![time, timeRange, zoom, zoomRange relationships](./assets/time-zoom.svg)
+At zoom `0`, one pixel spans one time unit. Increasing zoom by one halves the resolution and the visible time span.
 
-## Marks and links
+Timescope uses [Decimal](/api/decimal) as a common numeric representation for time, values, and resolutions, preserving precision across widely different scales.
 
-A series' chart is not chosen as a whole; it is composed from two primitive families:
+`time = null` means the current time, so the view follows the live clock. `timeRange` bounds the navigable time, and `zoomRange` bounds the zoom level.
 
-- **marks** — drawn per row: circle, bar, section, text, icon, path…
-- **links** — drawn between rows: line, curve, step, or an area between two values…
+![Time centers the visible range; zoom expresses its resolution, with navigation bounded by timeRange and zoomRange](./assets/time-zoom.svg)
 
-Primitives pick their coordinates with `using` selectors such as `'value@time'`, `'@start'`, `['min', 'max']`, and `'#zero'`. See [Using Selectors](/api/timescope-options#using-selectors).
+## DataSources {#sources}
 
-Tracks stack series vertically over a shared time axis. A domain is the value scale behind a Y axis, shared by every series that references it.
+A **DataSource** provides rows for an arbitrary time range and positive resolution. How those rows are obtained or computed depends on its implementation.
 
-![Series anatomy: marks, links, tracks, domains](./assets/series-anatomy.svg)
+### DataLoader and DataSource
 
-## Data sources
+A **DataLoader** acquires input and converts it into a common row format. It can load a complete snapshot or acquire requested ranges. A DataSource can use a DataLoader for acquisition while controlling how it produces the requested rows.
 
-Inline arrays provide nonaggregated point and interval data. Use [`createDataSource({ type: 'point-aggregate', data })`](/api/timescope-options#source-types) for append-only point aggregation. URLs and loaders can provide either complete snapshots or requested ranges.
+![A DataLoader acquires canonical rows; a DataSource answers Series requests by range and resolution](./assets/data-pipeline.svg)
 
-`decoder` converts loaded payloads to Timescope rows. `mappings` maps payload paths to named time and value fields. Point-aggregate sources provide fields such as `value#avg`, `value#min`, and `value#max`. Simple sources preserve point and interval rows without aggregation.
+#### Range Loader
 
-## Chunk loading
+A [range-based loader](/api/timescope-options#range-loader) accepts an arbitrary time range and positive resolution. It returns complete rows intersecting the range.
 
-The timeline is tiled into chunks of `chunkSize` selected-resolution intervals. For each visible region, Timescope resolves the current time per pixel through the series' `data.resolution` option, then snaps it to a resolution available from the source. Zooming can therefore re-request the same region at a different source interval.
+The loader **SHOULD** return **extra rows** needed for connections — one on each side for a straight line, two for a curve, as available — even when the range contains no points. For example, a very narrow request can return only the surrounding rows.
 
-A range loader receives the requested `range` and `resolution`. Return rows at a density matching that resolution. Views share a ChunkStore that caches `source.query({ range, resolution })` results; direct Source queries bypass that cache and accept arbitrary ranges and resolutions. Call `source.invalidate([start, end])` when data changes, or `source.invalidate([latestDataTime, undefined])` to refresh the live tail.
+![A loader returns rows intersecting the requested range together with extra rows needed for connections](./assets/query-context.svg)
 
-Return rows overlapping the half-open range `[start, end)`. Points at `end` belong to the next chunk. For rows with multiple named times, the interval from the earliest to the latest time determines overlap; include a complete interval row in every chunk it overlaps.
+### Canonical Rows
 
-For links, also return the nearest row on each side, or the two nearest on each side for curves. These neighboring rows are needed even when the requested range contains no points but a link crosses it. See [Chunk Loader](/api/timescope-options#chunk-loader) for the full response contract.
+A **canonical row** is a record in this common format: named times, named values, and optional metadata. DataSources and their consumers work with these records regardless of the original input format.
 
-![Chunk loader: inbound range versus outbound rows](./assets/chunk-context.svg)
+![Coordinates of one row: a point, multiple values at one time, or a value spanning a time interval](./assets/row-anatomy.svg)
 
-## Data pipeline
+In an input row, equal times describe a point; different times describe the interval from earliest to latest. Either can carry one or several values. Metadata accompanies the row without defining its coordinates.
 
-Sources provide rows with `time` or named `times`, `value` or named `values`, and optional `data` metadata:
+## Series
 
-![Data pipeline: acquisition, transform, canonical rows, source](./assets/data-pipeline.svg)
+A **Series** brings together data from a DataSource, a value Domain, and shared attributes such as its name and color. **Charts** and **Tooltips**, for example, are consumers of this information. Several Series can share a DataSource while using different Domains or presentation attributes.
 
-- Built-in source configuration uses one of `data`, `url`, or `loader`.
-- Snapshot acquisition supports point-aggregate and point-percentile sources.
-- Chunked sources load visible ranges as needed — see [Chunk loading](#chunk-loading).
-- `decoder` or `mappings` optionally transform payloads into canonical rows (mutually exclusive).
+![Example Series consumers: Charts use series data and Tooltips use instantaneous values](./assets/series-consumers.svg)
 
-Series bind those rows to charts on tracks — see [Marks and links](#marks-and-links).
+### Chunk Loading
 
-## Frame synchronization
+For a Series, the display resolution and the DataSource's resolution hints guide the requested [data resolution](/api/timescope-options#resolution), which may differ from the display resolution.
 
-`latchFrame()` groups time, zoom, and playback-time changes so they appear together. It is available after mounting and only one latch can be active at a time.
+At that resolution, the timeline is divided into chunks of width **`chunkSize × resolution`**, anchored to **`chunkOrigin`**. The visible range selects the chunks to request. Each selected chunk is queried from the DataSource using its full time range and the chosen resolution. These display requests share cached results for the same DataSource.
 
-Call the setters after creating the latch, then call `commit()` to apply the grouped change. `commit()` returns a Promise. Call `abort()` to discard a pending change. Starting an incompatible operation may also abort the latch; use its `signal` or handle an `AbortError` when cancellation matters.
+![Chunks aligned to chunkOrigin; the visible range selects full chunks to query at the chosen resolution](./assets/chunk-loading.svg)
+
+### Instantaneous Value
+
+A Series also provides an **[instantaneous value](/api/timescope-options#instantaneous-values)** — a value sampled at the time cursor. It can use its own sampling resolution, allowing detailed values to be read alongside a broader view of the series. A Tooltip consumes this value to display information at the cursor.
+
+![A Series samples an instantaneous value at the time cursor, which a Tooltip can display alongside a broader Chart view](./assets/instantaneous-value.svg)
+
+## Charts
+
+A **Chart** visualizes the data of a Series using marks and links.
+
+### Marks and Links
+
+**Marks** draw individual rows. **Links** connect consecutive rows. A Chart can combine any number of either independently. [Chart presets](/api/timescope-options#chart-presets) are combinations of these same primitives, so preset and custom Charts share one model.
+
+![Circle marks, a line link, and an area link compose a chart](./assets/marks-and-links.svg)
+
+### `using` specifier {#using-selectors}
+
+The [`using` specifier](/api/timescope-options#using-selectors) binds a primitive to the row's fields: a time supplies the horizontal coordinate and a value supplies the vertical coordinate. Different primitives can select different fields from the same row; this selects drawing coordinates without changing the row's time range.
+
+Primitives take one or two positions, each defined by a time and a value. They can also refer to the Track's shared baseline (`#zero`) or the edges of its chart area (`#top`, `#bottom`).
+
+![Selecting coordinates from row fields or Track baseline and chart-area references](./assets/using-selectors.svg)
+
+## Tracks
+
+A **[Track](/api/timescope-options#tracks)** provides a drawing region for Series consumers such as Charts and Tooltips. Tracks stack vertically, while Charts on the same Track are overlaid. All Tracks share time and display resolution, preserving temporal alignment across separate drawing regions.
+
+![Charts overlay within a Track; vertically stacked Tracks share time and display resolution](./assets/tracks.svg)
+
+## Domains
+
+A **[Domain](/api/timescope-options#domains)** determines how values map to vertical positions through a scale and range. A value axis is an optional display of that mapping; a Domain works without one.
+
+Each Series has its own Domain unless it shares one explicitly. Inline Domain settings belong to that Series, so auto-scaled Series can have different ranges even on the same Track. Equal heights need not mean equal values. Sharing a Domain gives Series a common scale and range, independently of their Track.
+
+![Independent Domains can place different values at equal heights; a shared Domain gives Series a common scale, without requiring a visible value axis](./assets/domains.svg)
+
+### Shared Baseline
+
+Each Track has a **shared baseline** — the position where its time axis is drawn when enabled — referenced by `#zero`. Linear Domains that include zero align it there, even with different scales. Bars and areas can use this common reference without sharing a Domain.
+
+![Two independently scaled Domains align zero to the same Track baseline](./assets/shared-baseline.svg)
+
+### Floating Ranges
+
+A range away from zero can **float** above or below the shared baseline, magnifying local differences. A [**`floatingGap`**](/api/timescope-options#domains) separates the range from the baseline; bars and areas extending to the baseline fade through it.
+
+![A zero-inclusive linear range reaches the shared baseline; a floating positive range magnifies local differences and fades toward the baseline across a gap](./assets/domain-floating.svg)
+
+### Auto Scaling
+
+A Domain can follow visible data. Unspecified bounds adjust automatically; [**`expand`** and **`shrink`**](/api/timescope-options#domains) control whether the range can grow beyond specified bounds and contract again.
+
+![With a default range of zero to ten, expand allows wider data to enlarge the range, while shrink controls whether it contracts again](./assets/domain-auto-scaling.svg)

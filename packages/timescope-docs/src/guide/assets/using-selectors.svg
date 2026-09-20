@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 320" role="img" font-family="ui-sans-serif, system-ui, 'Segoe UI', sans-serif">
+  <title>Using selectors: how primitives pick coordinates from a row</title>
+
+  <!-- panel frames: value axes, time axes, Track baseline -->
+  <g stroke="#94a3b8" stroke-width="1.5">
+    <line x1="40" y1="42" x2="40" y2="190"/>
+    <line x1="40" y1="190" x2="180" y2="190"/>
+    <line x1="230" y1="42" x2="230" y2="190"/>
+    <line x1="230" y1="190" x2="370" y2="190"/>
+    <line x1="420" y1="42" x2="420" y2="190"/>
+    <line x1="420" y1="190" x2="560" y2="190"/>
+    <line x1="610" y1="42" x2="610" y2="190"/>
+    <line x1="610" y1="190" x2="750" y2="190"/>
+  </g>
+  <g stroke="#94a3b8" stroke-dasharray="4 3" opacity="0.45">
+    <line x1="40" y1="150" x2="180" y2="150"/>
+    <line x1="230" y1="150" x2="370" y2="150"/>
+    <line x1="420" y1="150" x2="560" y2="150"/>
+  </g>
+
+  <!-- panel 1: 'value@time' -->
+  <g stroke="#94a3b8" stroke-dasharray="3 3" opacity="0.7">
+    <line x1="115" y1="190" x2="115" y2="80"/>
+    <line x1="40" y1="80" x2="115" y2="80"/>
+  </g>
+  <circle cx="115" cy="80" r="5" fill="#3b82f6"/>
+  <g font-size="21" fill="#3b82f6">
+    <text x="46" y="72">value</text>
+    <text x="121" y="184">time</text>
+  </g>
+  <text x="110" y="246" text-anchor="middle" font-size="22" fill="#3b82f6">'value@time'</text>
+  <text x="110" y="274" text-anchor="middle" font-size="21" fill="#64748b">named value</text>
+  <text x="110" y="301" text-anchor="middle" font-size="21" fill="#64748b">at named time</text>
+
+  <!-- panel 2: '@start' -->
+  <rect x="270" y="185" width="65" height="10" fill="rgba(245,158,11,0.25)" stroke="#f59e0b"/>
+  <line x1="270" y1="180" x2="270" y2="86" stroke="#94a3b8" stroke-dasharray="3 3" opacity="0.7"/>
+  <circle cx="270" cy="80" r="5" fill="#3b82f6"/>
+  <g font-size="21" fill="#f59e0b" text-anchor="middle">
+    <text x="270" y="212">start</text>
+    <text x="335" y="212">end</text>
+  </g>
+  <text x="300" y="246" text-anchor="middle" font-size="22" fill="#3b82f6">'@start'</text>
+  <text x="300" y="274" text-anchor="middle" font-size="21" fill="#64748b">x from a</text>
+  <text x="300" y="301" text-anchor="middle" font-size="21" fill="#64748b">named time</text>
+
+  <!-- panel 3: ['min','max'] -->
+  <line x1="495" y1="190" x2="495" y2="128" stroke="#94a3b8" stroke-dasharray="3 3" opacity="0.7"/>
+  <line x1="495" y1="62" x2="495" y2="128" stroke="#f59e0b" stroke-width="3"/>
+  <circle cx="495" cy="62" r="4.5" fill="#f59e0b"/>
+  <circle cx="495" cy="128" r="4.5" fill="#f59e0b"/>
+  <g font-size="21" fill="#f59e0b">
+    <text x="505" y="60">max</text>
+    <text x="505" y="134">min</text>
+  </g>
+  <text x="490" y="246" text-anchor="middle" font-size="22" fill="#f59e0b">['min','max']</text>
+  <text x="490" y="274" text-anchor="middle" font-size="21" fill="#64748b">two values</text>
+  <text x="490" y="301" text-anchor="middle" font-size="21" fill="#64748b">at one time</text>
+
+  <!-- panel 4: '#zero', '#top', '#bottom' -->
+  <g stroke="#94a3b8" stroke-dasharray="4 3" opacity="0.55">
+    <line x1="610" y1="48" x2="750" y2="48"/>
+    <line x1="610" y1="125" x2="750" y2="125"/>
+    <line x1="610" y1="182" x2="750" y2="182"/>
+  </g>
+  <g font-size="21" fill="#64748b">
+    <text x="616" y="44">#top</text>
+    <text x="616" y="121">#zero</text>
+    <text x="616" y="178">#bottom</text>
+  </g>
+  <line x1="685" y1="125" x2="685" y2="70" stroke="#3b82f6" stroke-width="2"/>
+  <circle cx="685" cy="70" r="5" fill="#3b82f6"/>
+  <circle cx="685" cy="125" r="3" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="680" y="246" text-anchor="middle" font-size="22" fill="#3b82f6">'#zero'</text>
+  <text x="680" y="274" text-anchor="middle" font-size="21" fill="#64748b">Track baseline</text>
+  <text x="680" y="301" text-anchor="middle" font-size="21" fill="#64748b">and edges</text>
+</svg>

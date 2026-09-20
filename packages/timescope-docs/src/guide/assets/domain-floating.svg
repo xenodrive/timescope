@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" role="img" font-family="ui-sans-serif, system-ui, 'Segoe UI', sans-serif">
+  <title>Zero-inclusive and floating linear ranges</title>
+  <desc>In both positive-range examples, the upper range bound maps to #top, the top of the chart area. The shaded strip above #top is Track padding, not a gap within the value range. A zero-inclusive range of zero to ten uses the baseline as numeric zero. A positive floating range of one thousand to one thousand and ten separates its lower bound from the baseline by floatingGap. Bars fade through that gap, which is not drawn to the value scale.</desc>
+  <defs>
+    <linearGradient id="floating-bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f59e0b" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#f59e0b" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <g font-size="17" fill="#64748b" text-anchor="middle">
+    <text x="130" y="27">Zero-inclusive</text>
+    <text x="430" y="27">Floating positive range</text>
+    <text x="130" y="53">range [0, 10]</text>
+    <text x="430" y="53">range [1000, 1010]</text>
+  </g>
+  <g fill="rgba(148,163,184,0.04)" stroke="#94a3b8">
+    <rect x="40" y="85" width="180" height="160"/>
+    <rect x="340" y="85" width="180" height="160"/>
+  </g>
+  <!-- Track padding is outside the chart area, above #top. -->
+  <g fill="rgba(148,163,184,0.18)">
+    <rect x="40" y="85" width="180" height="20"/>
+    <rect x="340" y="85" width="180" height="20"/>
+  </g>
+  <g stroke="#64748b" stroke-dasharray="4 3">
+    <line x1="40" y1="105" x2="220" y2="105"/>
+    <line x1="340" y1="105" x2="520" y2="105"/>
+  </g>
+  <g font-size="17" fill="#64748b" text-anchor="middle">
+    <text x="280" y="75">Track padding</text>
+  </g>
+  <g fill="none" stroke="#64748b">
+    <path d="M215 71 L205 95"/>
+    <path d="M345 71 L355 95"/>
+  </g>
+  <g fill="#64748b">
+    <circle cx="205" cy="95" r="2"/>
+    <circle cx="355" cy="95" r="2"/>
+  </g>
+  <text x="228" y="111" font-size="17" fill="#64748b">#top</text>
+  <text x="528" y="111" font-size="17" fill="#64748b">#top</text>
+  <text x="32" y="111" text-anchor="end" font-size="17" fill="#3b82f6">10</text>
+  <text x="332" y="111" text-anchor="end" font-size="17" fill="#b45309">1010</text>
+  <!-- Ordinary bars reach numeric zero. -->
+  <g fill="rgba(59,130,246,0.2)" stroke="#3b82f6">
+    <rect x="70" y="189" width="24" height="56"/>
+    <rect x="125" y="133" width="24" height="112"/>
+    <rect x="180" y="105" width="24" height="140"/>
+  </g>
+  <text x="32" y="251" text-anchor="end" font-size="17" fill="#3b82f6">0</text>
+
+  <!-- Floating bars retain a visual baseline but fade across its gap. -->
+  <g fill="rgba(245,158,11,0.2)" stroke="#f59e0b">
+    <rect x="360" y="189" width="24" height="36"/>
+    <rect x="415" y="141" width="24" height="84"/>
+    <rect x="470" y="105" width="24" height="120"/>
+  </g>
+  <g fill="url(#floating-bar)">
+    <rect x="360" y="225" width="24" height="20"/>
+    <rect x="415" y="225" width="24" height="20"/>
+    <rect x="470" y="225" width="24" height="20"/>
+  </g>
+  <line x1="340" y1="225" x2="520" y2="225" stroke="#f59e0b" stroke-dasharray="4 3"/>
+  <text x="332" y="231" text-anchor="end" font-size="17" fill="#b45309">1000</text>
+  <path d="M500 225 H510 V245 H500 M510 235 L525 280 H490" fill="none" stroke="#b45309"/>
+  <text x="480" y="286" text-anchor="end" font-size="17" fill="#b45309">floatingGap</text>
+  <g stroke="#64748b" stroke-width="1.5">
+    <line x1="40" y1="245" x2="220" y2="245"/>
+    <line x1="340" y1="245" x2="520" y2="245"/>
+  </g>
+  <g font-size="17" fill="#64748b">
+    <text x="228" y="251">#zero</text>
+    <text x="528" y="251">#zero</text>
+  </g>
+</svg>

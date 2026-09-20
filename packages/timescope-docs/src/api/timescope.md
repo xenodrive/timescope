@@ -54,25 +54,25 @@ When omitted, Timescope loads fonts declared by accessible `@font-face` rules in
 
 ## Methods
 
-| Method                       | Purpose                                                                                                              |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `setTime(value, animation?)` | Update the cursor time. Pass `null` to follow "now". See [Animation](#animation).                                    |
-| `setTimeRange(range?)`       | Constrain the time domain. Pass `undefined` to restore defaults.                                                     |
-| `setZoom(value, animation?)` | Set zoom programmatically. See [Animation](#animation).                                                              |
-| `setZoomRange(range?)`       | Clamp zoom to `[min, max]`.                                                                                          |
-| `fitTo(range, options?)`     | Center and zoom to show `[start, end]` fully.                                                                        |
-| `setPlaybackTime(value)`     | Set the live-clock value used while `time` is `null`.                                                                |
-| `latchFrame()`               | Apply time, zoom, and playback changes together. See [Frame synchronization](/guide/concepts#frame-synchronization). |
-| `setSelectionRange(range)`   | Highlight `[start, end]` on the canvas. Pass `null` to clear it.                                                     |
-| `clearSelectionRange()`      | Remove the selection overlay.                                                                                        |
-| `setOptions(next)`           | Replace style, sources, or series at runtime.                                                                        |
-| `updateOptions(next)`        | Merge partial option changes (e.g., swap a single chart) without recreating the whole Timescope instance.            |
-| `reload(sources?)`           | Invalidate all cached chunks for selected sources. Mutable sources normally invalidate themselves.                   |
-| `redraw()`                   | Request a renderer redraw.                                                                                           |
-| `mount(target)`              | Append the canvas to a selector or element. Returns `this`.                                                          |
-| `unmount()`                  | Remove the canvas from its mount target.                                                                             |
-| `dispose()`                  | Release resources when Timescope is no longer needed.                                                                |
-| `on(event, handler)`         | Subscribe to events. Returns an unsubscribe function.                                                                |
+| Method                       | Purpose                                                                                                   |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `setTime(value, animation?)` | Update the cursor time. Pass `null` to follow "now". See [Animation](#animation).                         |
+| `setTimeRange(range?)`       | Constrain the time domain. Pass `undefined` to restore defaults.                                          |
+| `setZoom(value, animation?)` | Set zoom programmatically. See [Animation](#animation).                                                   |
+| `setZoomRange(range?)`       | Clamp zoom to `[min, max]`.                                                                               |
+| `fitTo(range, options?)`     | Center and zoom to show `[start, end]` fully.                                                             |
+| `setPlaybackTime(value)`     | Set the live-clock value used while `time` is `null`.                                                     |
+| `latchFrame()`               | Apply time, zoom, and playback changes together. See [Frame synchronization](#frame-synchronization).     |
+| `setSelectionRange(range)`   | Highlight `[start, end]` on the canvas. Pass `null` to clear it.                                          |
+| `clearSelectionRange()`      | Remove the selection overlay.                                                                             |
+| `setOptions(next)`           | Replace style, sources, or series at runtime.                                                             |
+| `updateOptions(next)`        | Merge partial option changes (e.g., swap a single chart) without recreating the whole Timescope instance. |
+| `reload(sources?)`           | Invalidate all cached chunks for selected sources. Mutable sources normally invalidate themselves.        |
+| `redraw()`                   | Request a renderer redraw.                                                                                |
+| `mount(target)`              | Append the canvas to a selector or element. Returns `this`.                                               |
+| `unmount()`                  | Remove the canvas from its mount target.                                                                  |
+| `dispose()`                  | Release resources when Timescope is no longer needed.                                                     |
+| `on(event, handler)`         | Subscribe to events. Returns an unsubscribe function.                                                     |
 
 `setOptions()` replaces the current configurable options. `updateOptions()` applies partial changes while retaining omitted options.
 
@@ -87,6 +87,12 @@ When omitted, Timescope loads fonts declared by accessible `@font-face` rules in
 | `{ animation, duration, lazy? }` | Set easing and duration in milliseconds. |
 
 When omitted, `setTime()` uses `'out'` for 500 ms and `setZoom()` uses `'linear'` for 200 ms. Explicit easing strings use 500 ms.
+
+### Frame synchronization
+
+`time`, `zoom`, and the playback clock are independent state, and setting them one by one can present intermediate frames. `latchFrame()` groups the changes so they appear together: create the latch, call the setters, then call `commit()`. Setters called while the latch is open are queued instead of applied, and `commit()` applies them as one frame.
+
+Latches are available after mounting, and only one can be active at a time. `commit()` returns a Promise that resolves when the grouped change has been presented; `abort()` discards a pending change. Starting an incompatible operation — such as `setOptions()`, `setTimeRange()`, or user interaction — also aborts the latch; use its `signal` or handle an `AbortError` when cancellation matters.
 
 ## Events
 

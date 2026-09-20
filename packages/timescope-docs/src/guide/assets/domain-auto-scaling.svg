@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 355" role="img" font-family="ui-sans-serif, system-ui, 'Segoe UI', sans-serif">
+  <title>Expand and shrink control automatic range changes</title>
+  <desc>With specified bounds zero to ten, visible data changes from two to eight, to minus five to twenty, then to three to seven. Without expand the range stays zero to ten. With expand and shrink it grows to minus five to twenty, then returns to zero to ten. With expand but no shrink it retains minus five to twenty.</desc>
+  <defs>
+    <!-- Each column uses identical data across settings, projected into its effective range. -->
+    <symbol id="initial-data" viewBox="0 0 100 42" overflow="hidden">
+      <polyline points="5,33.6 27.5,8.4 50,25.2 72.5,12.6 95,29.4"/>
+    </symbol>
+    <symbol id="wider-fixed" viewBox="0 0 100 42" overflow="hidden">
+      <polyline points="5,33.6 27.5,-42 50,63 72.5,-21 95,12.6"/>
+    </symbol>
+    <symbol id="wider-expanded" viewBox="0 0 100 42" overflow="hidden">
+      <polyline points="5,30.24 27.5,0 50,42 72.5,8.4 95,21.84"/>
+    </symbol>
+    <symbol id="narrower-shrunk" viewBox="0 0 100 42" overflow="hidden">
+      <polyline points="5,29.4 27.5,12.6 50,25.2 72.5,16.8 95,21"/>
+    </symbol>
+    <symbol id="narrower-retained" viewBox="0 0 100 42" overflow="hidden">
+      <polyline points="5,28.56 27.5,21.84 50,26.88 72.5,23.52 95,25.2"/>
+    </symbol>
+  </defs>
+  <text x="280" y="28" text-anchor="middle" font-size="18" fill="#64748b">Specified range: [0, 10]</text>
+  <g font-size="17" fill="#64748b" text-anchor="middle">
+    <text x="235" y="65">Initial</text>
+    <text x="360" y="65">Wider</text>
+    <text x="485" y="65">Narrower</text>
+    <text x="298" y="65">→</text>
+    <text x="423" y="65">→</text>
+  </g>
+  <text x="20" y="95" font-size="17" fill="#64748b">Visible data</text>
+  <g font-size="17" fill="#64748b" text-anchor="middle">
+    <text x="235" y="95">[2, 8]</text>
+    <text x="360" y="95">[−5, 20]</text>
+    <text x="485" y="95">[3, 7]</text>
+  </g>
+  <g stroke="#94a3b8" opacity="0.3">
+    <line x1="20" y1="110" x2="540" y2="110"/>
+    <line x1="20" y1="190" x2="540" y2="190"/>
+    <line x1="20" y1="270" x2="540" y2="270"/>
+  </g>
+  <g font-size="17" fill="#64748b">
+    <text x="20" y="142">expand: false</text>
+    <text x="20" y="167">fixed bounds</text>
+    <text x="20" y="222">expand: true</text>
+    <text x="20" y="247">shrink: true</text>
+    <text x="20" y="302">expand: true</text>
+    <text x="20" y="327">shrink: false</text>
+  </g>
+  <!-- Thumbnail frames are the effective range shown below each chart. -->
+  <g fill="rgba(148,163,184,0.04)" stroke="#94a3b8">
+    <rect x="185" y="120" width="100" height="42"/>
+    <rect x="310" y="120" width="100" height="42"/>
+    <rect x="435" y="120" width="100" height="42"/>
+    <rect x="185" y="200" width="100" height="42"/>
+    <rect x="310" y="200" width="100" height="42"/>
+    <rect x="435" y="200" width="100" height="42"/>
+    <rect x="185" y="280" width="100" height="42"/>
+    <rect x="310" y="280" width="100" height="42"/>
+    <rect x="435" y="280" width="100" height="42"/>
+  </g>
+  <!-- Baselines map value zero within each thumbnail's effective range. -->
+  <g stroke="#64748b" stroke-width="2">
+    <line x1="185" y1="162" x2="285" y2="162"/>
+    <line x1="310" y1="162" x2="410" y2="162"/>
+    <line x1="435" y1="162" x2="535" y2="162"/>
+    <line x1="185" y1="242" x2="285" y2="242"/>
+    <line x1="310" y1="233.6" x2="410" y2="233.6"/>
+    <line x1="435" y1="242" x2="535" y2="242"/>
+    <line x1="185" y1="322" x2="285" y2="322"/>
+    <line x1="310" y1="313.6" x2="410" y2="313.6"/>
+    <line x1="435" y1="313.6" x2="535" y2="313.6"/>
+  </g>
+  <g fill="none" stroke="#3b82f6" stroke-width="1.5" stroke-linejoin="round">
+    <use href="#initial-data" x="185" y="120" width="100" height="42"/>
+    <use href="#wider-fixed" x="310" y="120" width="100" height="42"/>
+    <use href="#narrower-shrunk" x="435" y="120" width="100" height="42"/>
+    <use href="#initial-data" x="185" y="200" width="100" height="42"/>
+    <use href="#wider-expanded" x="310" y="200" width="100" height="42"/>
+    <use href="#narrower-shrunk" x="435" y="200" width="100" height="42"/>
+    <use href="#initial-data" x="185" y="280" width="100" height="42"/>
+    <use href="#wider-expanded" x="310" y="280" width="100" height="42"/>
+    <use href="#narrower-retained" x="435" y="280" width="100" height="42"/>
+  </g>
+  <g font-size="17" fill="#64748b" text-anchor="middle">
+    <text x="235" y="183">[0, 10]</text>
+    <text x="360" y="183">[0, 10]</text>
+    <text x="485" y="183">[0, 10]</text>
+    <text x="235" y="263">[0, 10]</text>
+    <text x="360" y="263">[−5, 20]</text>
+    <text x="485" y="263">[0, 10]</text>
+    <text x="235" y="343">[0, 10]</text>
+    <text x="360" y="343">[−5, 20]</text>
+    <text x="485" y="343">[−5, 20]</text>
+  </g>
+</svg>

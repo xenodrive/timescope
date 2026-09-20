@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 290" role="img" font-family="ui-sans-serif, system-ui, 'Segoe UI', sans-serif">
+  <title>Canonical row shapes in time and value coordinates</title>
+  <desc>Each panel shows one row. Left: one value at one time. Middle: min and max values at the same time. Right: one value over a start-to-end interval. These are data coordinates, not prescribed chart styles.</desc>
+
+  <g font-size="24" fill="#64748b" text-anchor="middle">
+    <text x="140" y="28">one row</text>
+    <text x="400" y="28">one row</text>
+    <text x="660" y="28">one row</text>
+  </g>
+
+  <!-- Identical time/value axes make the independent dimensions visible. -->
+  <g stroke="#94a3b8" stroke-width="1.5" fill="none">
+    <path d="M40 55 V225 H235"/>
+    <path d="M300 55 V225 H495"/>
+    <path d="M560 55 V225 H755"/>
+  </g>
+  <g font-size="21" fill="#64748b">
+    <text x="46" y="64">value</text>
+    <text x="306" y="64">value</text>
+    <text x="566" y="64">value</text>
+    <text x="211" y="250">time</text>
+    <text x="471" y="250">time</text>
+    <text x="731" y="215">time</text>
+  </g>
+
+  <!-- A single coordinate. -->
+  <path d="M40 130 H140 V225" fill="none" stroke="#94a3b8" stroke-dasharray="4 3"/>
+  <circle cx="140" cy="130" r="6" fill="#3b82f6"/>
+  <text x="151" y="122" font-size="22" fill="#3b82f6">value</text>
+  <text x="140" y="250" text-anchor="middle" font-size="22" fill="#3b82f6">time</text>
+
+  <!-- Multiple values do not make a time interval. -->
+  <g stroke="#94a3b8" stroke-dasharray="4 3" fill="none">
+    <path d="M300 95 H400 V225"/>
+    <path d="M300 170 H400"/>
+  </g>
+  <g fill="#3b82f6">
+    <circle cx="400" cy="95" r="6"/>
+    <circle cx="400" cy="170" r="6"/>
+  </g>
+  <g font-size="22" fill="#3b82f6">
+    <text x="411" y="91">max</text>
+    <text x="411" y="175">min</text>
+    <text x="400" y="250" text-anchor="middle">time</text>
+  </g>
+
+  <!-- Temporal support of an interval, with an excluded end. -->
+  <rect x="600" y="80" width="110" height="145" fill="rgba(245,158,11,0.08)"/>
+  <g stroke="#94a3b8" stroke-dasharray="4 3" fill="none">
+    <path d="M560 130 H600 V225"/>
+    <path d="M710 130 V225"/>
+  </g>
+  <line x1="600" y1="130" x2="703" y2="130" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 3"/>
+  <circle cx="600" cy="130" r="6" fill="#f59e0b"/>
+  <circle cx="710" cy="130" r="6" fill="none" stroke="#f59e0b" stroke-width="2"/>
+  <g font-size="22" fill="#f59e0b" text-anchor="middle">
+    <text x="655" y="117">value</text>
+    <text x="600" y="250">start</text>
+    <text x="710" y="250">end</text>
+  </g>
+  <g font-size="21" fill="#64748b" text-anchor="middle">
+    <text x="140" y="282">point</text>
+    <text x="400" y="282">point</text>
+    <text x="660" y="282">interval [start, end)</text>
+  </g>
+</svg>

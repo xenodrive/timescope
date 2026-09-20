@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 325" role="img" font-family="ui-sans-serif, system-ui, 'Segoe UI', sans-serif">
+  <title>Range loader: requested range and returned rows</title>
+  <desc>A range loader returns rows intersecting an arbitrary requested range, plus neighboring rows needed for connections. These extra rows are needed even when there are no points inside the requested range.</desc>
+
+  <!-- arbitrary requested range -->
+  <rect x="260" y="120" width="200" height="60" fill="rgba(59,130,246,0.08)" stroke="#3b82f6"/>
+  <text x="360" y="136" text-anchor="middle" font-size="21" fill="#3b82f6">requested range</text>
+
+  <!-- timeline -->
+  <line x1="30" y1="150" x2="678" y2="150" stroke="#64748b" stroke-width="1.5"/>
+  <path d="M688 150 l-10 -5 v10 z" fill="#64748b"/>
+  <text x="696" y="154" font-size="23" fill="#64748b">t</text>
+
+  <!-- start / end ticks -->
+  <line x1="260" y1="112" x2="260" y2="188" stroke="#3b82f6"/>
+  <line x1="460" y1="112" x2="460" y2="188" stroke="#3b82f6"/>
+  <text x="260" y="104" text-anchor="middle" font-size="22" fill="#3b82f6">start</text>
+  <text x="460" y="104" text-anchor="middle" font-size="22" fill="#3b82f6">end</text>
+
+  <!-- inbound bracket -->
+  <path d="M260 84 V74 H460 V84" fill="none" stroke="#3b82f6"/>
+  <text x="360" y="58" text-anchor="middle" font-size="23" fill="#3b82f6">request — range [start, end) · resolution</text>
+
+  <!-- intersecting rows -->
+  <circle cx="285" cy="150" r="5" fill="#3b82f6"/>
+  <circle cx="322" cy="150" r="5" fill="#3b82f6"/>
+  <circle cx="358" cy="150" r="5" fill="#3b82f6"/>
+  <circle cx="396" cy="150" r="5" fill="#3b82f6"/>
+  <circle cx="432" cy="150" r="5" fill="#3b82f6"/>
+
+  <!-- context rows -->
+  <circle cx="226" cy="150" r="5" fill="none" stroke="#f59e0b" stroke-width="2"/>
+  <circle cx="246" cy="150" r="5" fill="none" stroke="#f59e0b" stroke-width="2"/>
+  <circle cx="480" cy="150" r="5" fill="none" stroke="#f59e0b" stroke-width="2"/>
+  <circle cx="502" cy="150" r="5" fill="none" stroke="#f59e0b" stroke-width="2"/>
+  <text x="210" y="173" text-anchor="middle" font-size="21" fill="#f59e0b">1–2 rows</text>
+  <text x="520" y="173" text-anchor="middle" font-size="21" fill="#f59e0b">1–2 rows</text>
+
+  <!-- response bracket -->
+  <path d="M218 194 v8 h292 v-8" fill="none" stroke="#64748b"/>
+  <text x="364" y="230" text-anchor="middle" font-size="23" fill="#64748b">response — rows returned by the loader</text>
+
+  <!-- legend -->
+  <circle cx="160" cy="264" r="5" fill="#3b82f6"/>
+  <text x="176" y="272" font-size="22" fill="#64748b">rows intersecting the range</text>
+  <circle cx="160" cy="300" r="5" fill="none" stroke="#f59e0b" stroke-width="2"/>
+  <text x="176" y="308" font-size="22" fill="#64748b">extra rows for connections</text>
+</svg>
