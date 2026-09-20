@@ -90,6 +90,33 @@ export type WorkerMessagePort = {
 };
 
 export function defineCalls<C extends Commands>(target: WorkerMessagePort, signal?: AbortSignal) {
+  const pending = new Map<
+    number,
+    { command: CommandNames<C>; resolve: (payload: unknown) => void; reject: (reason: unknown) => void }
+  >();
+  const handler = ({ data }: MessageEvent<WorkerMessage<C, unknown>>) => {
+    if (data.type !== 'rpc:ack') return;
+    const request = pending.get(data.seq);
+    if (!request || request.command !== data.command) return;
+    pending.delete(data.seq);
+    if (data.error) {
+      const error = new Error(data.error.message);
+      error.name = data.error.name;
+      request.reject(error);
+    } else {
+      request.resolve(data.payload);
+    }
+  };
+  const abort = () => {
+    target.removeEventListener('message', handler);
+    for (const request of pending.values()) request.reject(signal?.reason);
+    pending.clear();
+  };
+  if (!signal?.aborted) {
+    target.addEventListener('message', handler);
+    signal?.addEventListener('abort', abort, { once: true });
+  }
+
   function call<K extends CommandNames<C>>(
     command: K,
     payload: CommandPayload<C, K>,
@@ -121,32 +148,11 @@ export function defineCalls<C extends Commands>(target: WorkerMessagePort, signa
     }
 
     return new Promise<CommandResult<C, K>>((resolve, reject) => {
-      const cleanup = () => {
-        target.removeEventListener('message', handler);
-        signal?.removeEventListener('abort', abort);
-      };
-      const abort = () => {
-        cleanup();
-        reject(signal?.reason);
-      };
-      const handler = (ev: MessageEvent<WorkerMessage<C, CommandResult<C, K>>>) => {
-        if (ev.data.type === 'rpc:ack' && ev.data.command === command && ev.data.seq === seq) {
-          cleanup();
-          if (ev.data.error) {
-            const error = new Error(ev.data.error.message);
-            error.name = ev.data.error.name;
-            reject(error);
-          } else {
-            resolve(unserialize(ev.data.payload));
-          }
-        }
-      };
-      target.addEventListener('message', handler);
-      signal?.addEventListener('abort', abort, { once: true });
+      pending.set(seq, { command, resolve: (payload) => resolve(unserialize(payload)), reject });
       try {
         target.postMessage(message, opts.transfer ?? []);
       } catch (error) {
-        cleanup();
+        pending.delete(seq);
         reject(error);
       }
     });
