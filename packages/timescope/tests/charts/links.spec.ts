@@ -193,11 +193,35 @@ describe('link geometry', () => {
     expect(compile([row(0, 1)], 'area')).toBe('');
   });
 
-  it('closes vector areas and preserves cubic top boundaries', () => {
+  it('closes vector areas and preserves cubic boundaries', () => {
     expect(compile([row(0, 1), row(2, 2), row(4, 1)], 'area')).toBe('M0 1 L2 2 L4 1 L4 0 L2 0 L0 0 Z');
     const curve = compile([row(0, 1), row(2, 2), row(4, 1)], 'curve-area');
     expect(curve).toMatch(/^M0 1 C/);
-    expect(curve).toMatch(/L4 0 L2 0 L0 0 Z$/);
+    expect(curve).toMatch(/L4 0 C[^C]+ 2 0 C[^C]+ 0 0 Z$/);
+  });
+
+  it.each([
+    {
+      name: 'unclipped',
+      range: [-100, 100],
+      expected: 'M0 3 C1 4 2 6 3 6 C4 6 5 4 6 3 L6 -3 C5 -4 4 -6 3 -6 C2 -6 1 -4 0 -3 Z',
+    },
+    {
+      name: 'clipped',
+      range: [1.5, 4.5],
+      expected:
+        'M1.5 4.875 C2 5.5 2.5 6 3 6 C3.5 6 4 5.5 4.5 4.875 L4.5 -4.875 C4 -5.5 3.5 -6 3 -6 C2.5 -6 2 -5.5 1.5 -4.875 Z',
+    },
+  ])('preserves both curved area boundaries when $name', ({ range, expected }) => {
+    expectPathClose(
+      compileLinkGeometry({
+        rows: [row(0, 3, -3), row(3, 6, -6), row(6, 3, -3)],
+        kind: 'curve-area',
+        using: ['value@time', '#zero@time'],
+        target: { xRange: [Decimal(range[0]), Decimal(range[1])] },
+      }),
+      expected,
+    );
   });
 
   it('keeps independently positioned area boundaries', () => {
@@ -393,8 +417,8 @@ describe('link geometry', () => {
       target: { xRange: [Decimal(1), Decimal(3)], yRange: [Decimal(-1), Decimal(4)] },
     });
     expect(d).toMatch(/^M1 /);
-    expect(d.match(/C/g)).toHaveLength(2);
-    expect(d).toMatch(/L3 0 L2 0 L1 0 Z$/);
+    expect(d.match(/C/g)).toHaveLength(4);
+    expectPathClose(d.slice(d.indexOf('L')), `L3 0 C${8 / 3} 0 ${7 / 3} 0 2 0 C${5 / 3} 0 ${4 / 3} 0 1 0 Z`);
     expect(d).not.toMatch(/NaN|Infinity/);
   });
 

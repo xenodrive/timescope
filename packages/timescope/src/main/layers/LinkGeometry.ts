@@ -1074,16 +1074,17 @@ function compileAreaRun(
         );
       }
     }
-    for (let index = bottom.end - 1; index >= bottom.start; index--) {
-      writer.pointValues(
-        PathCommand.lineTo,
-        bottom.columns.x[index],
-        bottom.columns.y[index],
-        bottom.columns.nx[index],
-        bottom.columns.ny[index],
-        bottom.columns.yRole[index],
-        target,
-      );
+    writeStoredPoint(writer, PathCommand.lineTo, bottom.columns, bottom.end - 1, target);
+    if (kind === 'curve-area' && length >= 3) {
+      const segments = cubicSegments(pointsFromRange(bottom), target);
+      for (let index = segments.length - 1; index >= 0; index--) {
+        const segment = segments[index];
+        writer.cubic({ kind: 'cubic', p0: segment.p1, c1: segment.c2, c2: segment.c1, p1: segment.p0 }, target);
+      }
+    } else {
+      for (let index = bottom.end - 2; index >= bottom.start; index--) {
+        writeStoredPoint(writer, PathCommand.lineTo, bottom.columns, index, target);
+      }
     }
     writer.close();
     return;
@@ -1092,7 +1093,7 @@ function compileAreaRun(
     left: neighbors.leftTop,
     right: neighbors.rightTop,
   });
-  const bottomRuns = areaBoundaryBuffer(bottom, kind === 'curve-area' ? 'area' : kind, target, {
+  const bottomRuns = areaBoundaryBuffer(bottom, kind, target, {
     left: neighbors.leftBottom,
     right: neighbors.rightBottom,
   });
