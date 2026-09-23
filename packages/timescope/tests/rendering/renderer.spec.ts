@@ -120,6 +120,46 @@ describe('renderer integration', () => {
     expect(loader).not.toHaveBeenCalled();
   });
 
+  it('removes cached marks when a chart is disabled and draws them again when restored', async () => {
+    const surface = canvas();
+    const fillText = vi.fn();
+    surface.getContext('2d')!.fillText = fillText;
+    const renderer = new TimescopeMainThreadRenderer({ canvas: surface, fonts: [] });
+    cleanups.push(() => renderer.dispose());
+    const marks = [{ draw: 'text' as const, style: { text: 'annotation' } }];
+    renderer.setOptions({
+      sources: {
+        events: [
+          { time: 0, value: 1 },
+          { time: 10, value: 2 },
+          { time: 20, value: 3 },
+        ],
+      },
+      series: {
+        events: {
+          data: { source: 'events', instantaneous: false, domain: { axis: false, animation: false } },
+          chart: { marks },
+          tooltip: false,
+        },
+      },
+      tracks: { default: { timeAxis: false } },
+      indicator: false,
+    });
+    renderer.resize({ size: { width: 200, height: 100 }, context: { dpr: 1 } });
+    renderer.sync({ time: { type: 'restore', value: Decimal(10), domain: [undefined, undefined] } });
+    for (let i = 0; i < 5; i++) await frame();
+    expect(fillText).toHaveBeenCalledWith('annotation', 0, 0);
+
+    fillText.mockClear();
+    renderer.updateOptions({ series: { events: { data: { source: 'events' }, chart: { marks: [] } } } });
+    for (let i = 0; i < 3; i++) await frame();
+    expect(fillText).not.toHaveBeenCalled();
+
+    renderer.updateOptions({ series: { events: { data: { source: 'events' }, chart: { marks } } } });
+    for (let i = 0; i < 5; i++) await frame();
+    expect(fillText).toHaveBeenCalledWith('annotation', 0, 0);
+  });
+
   it('redraws for each loaded font without waiting for slower fonts and releases only owned fonts', async () => {
     const pending = new Map<string, () => void>();
     class TestFontFace {

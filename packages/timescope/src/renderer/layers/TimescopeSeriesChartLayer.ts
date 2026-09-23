@@ -730,9 +730,8 @@ export class TimescopeSeriesChartLayer extends TimescopeLayer {
   #prepareRenderOps(timescope: TimescopeRenderingContext) {
     if (!timescope.options.series) return;
 
-    const activeSeries = new Set(Object.keys(timescope.options.series));
     for (const key of Object.keys(this.#plotData)) {
-      if (!activeSeries.has(key)) delete this.#plotData[key];
+      if (!timescope.dataCaches[`series:${key}:chart`]) delete this.#plotData[key];
     }
 
     const renderResolution = timescope.timeAxis.current.resolution;
