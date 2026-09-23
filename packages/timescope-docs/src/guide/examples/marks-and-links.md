@@ -249,7 +249,11 @@ function highlightTypeScript(code) {
 
 # Marks & Links
 
-## Example
+Build a chart from per-row marks and links between rows, then inspect the resulting configuration.
+
+## Try it
+
+Change the line link to a curve, add a mark, and change its shape. For an area link, choose `min` and `max` in **using** to shade the range between those fields. Open **Details** to adjust stroke and fill settings.
 
 <div class="fill-playground">
 <div class="chart-preview">
@@ -313,6 +317,17 @@ function highlightTypeScript(code) {
 ## Options
 
 <pre class="code-block"><code class="language-typescript" v-html="highlightedOptions"></code></pre>
+
+## How it works
+
+- Marks draw individual rows; links connect adjacent rows. Each layer chooses its own `draw`, `using`, and `style`.
+- `using` selects named value fields. `#zero` is the zero baseline; `#top` and `#bottom` refer to drawing-region edges.
+- The Options panel reflects your current choices. It is configuration, not a complete initialization script: pass it to a mounted Timescope instance with a target and dispose the instance on teardown.
+- Layers are drawn together within the same chart. Use Tracks for separate drawing regions and Domains to control value scales.
+
+## Next steps
+
+Start with [Chart Presets](./chart-presets) for ready-made combinations. [Gantt Chart](./gantt-chart) uses named time fields, while [Styling](./styling) customizes axes and backgrounds. See [Core Concepts](/guide/concepts) for selectors and drawing layers.
 
 <style scoped>
 @import url('https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css');

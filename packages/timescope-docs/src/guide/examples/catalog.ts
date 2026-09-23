@@ -1,0 +1,30 @@
+export const examples = [
+  { name: 'events', title: 'Events', caption: 'Every interaction has a signal.', tag: 'Time' },
+  { name: 'timezones', title: 'Time Zones', caption: 'One instant, three perspectives.', tag: 'Time' },
+  { name: 'domains', title: 'Domains', caption: 'Let the scale follow the story.', tag: 'Data' },
+  { name: 'log-scale', title: 'Log Scale', caption: 'Reveal detail across orders of magnitude.', tag: 'Data' },
+  { name: 'live-stream', title: 'Live Stream', caption: 'Follow a signal as new samples arrive.', tag: 'Data' },
+  { name: 'track-comparison', title: 'Tracks & Scales', caption: 'Separate the lanes. Share the moment.', tag: 'Data' },
+  {
+    name: 'dynamic-loader',
+    title: 'Dynamic Loader',
+    caption: 'An endless landscape, arriving in pieces.',
+    tag: 'Data',
+  },
+  { name: 'decimation', title: 'Decimation', caption: 'Keep the impact. Reveal the detail.', tag: 'Data' },
+  { name: 'intervals', title: 'Intervals', caption: 'A bar can stretch through time.', tag: 'Drawing' },
+  { name: 'annotations', title: 'Annotations', caption: 'Put the events next to the signal.', tag: 'Drawing' },
+  {
+    name: 'chart-playground',
+    title: 'Chart Playground',
+    caption: 'Points, ribbons, symbols. Make it yours.',
+    tag: 'Drawing',
+  },
+  {
+    name: 'financial-chart',
+    title: 'Financial Chart',
+    caption: 'Candles, volume, and a moving market.',
+    tag: 'Applications',
+  },
+  { name: 'audio-waveform', title: 'Audio Waveform', caption: 'See what you hear.', tag: 'Applications' },
+];

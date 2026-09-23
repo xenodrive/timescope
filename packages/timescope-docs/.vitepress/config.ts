@@ -1,6 +1,7 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitepress';
+import { examples } from '../src/guide/examples/catalog.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = resolve(__dirname, '..');
@@ -61,57 +62,12 @@ export default defineConfig({
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Core Concepts', link: '/guide/concepts' },
-            {
-              text: 'Examples',
-              link: '/guide/examples/',
-              items: [
-                {
-                  text: 'Simple Timeline',
-                  link: '/guide/examples/simple-timeline',
-                },
-                { text: 'Events', link: '/guide/examples/events' },
-                { text: 'Basic Chart', link: '/guide/examples/basic-chart' },
-                { text: 'Decimation', link: '/guide/examples/decimation' },
-                { text: 'Log Scale', link: '/guide/examples/log-scale' },
-                {
-                  text: 'Chart Presets',
-                  link: '/guide/examples/chart-presets',
-                },
-                {
-                  text: 'Marks & Links',
-                  link: '/guide/examples/marks-and-links',
-                },
-                {
-                  text: 'Multiple Tracks',
-                  link: '/guide/examples/multiple-tracks',
-                },
-                { text: 'Time Zones', link: '/guide/examples/timezones' },
-                { text: 'Gantt Chart', link: '/guide/examples/gantt-chart' },
-                {
-                  text: 'Dynamic Loader',
-                  link: '/guide/examples/dynamic-loader',
-                },
-                {
-                  text: 'Realtime Data',
-                  link: '/guide/examples/realtime-data',
-                },
-                {
-                  text: 'System Metrics',
-                  link: '/guide/examples/system-metrics',
-                },
-                { text: 'Log Viewer', link: '/guide/examples/log-viewer' },
-                {
-                  text: 'Financial Chart',
-                  link: '/guide/examples/financial-chart',
-                },
-                {
-                  text: 'Audio Waveform',
-                  link: '/guide/examples/audio-waveform',
-                },
-                { text: 'Styling', link: '/guide/examples/styling' },
-              ],
-            },
           ],
+        },
+        {
+          text: 'Examples',
+          link: '/guide/examples/',
+          items: examples.map(({ name, title }) => ({ text: title, link: `/guide/examples/#${name}` })),
         },
         {
           text: 'API Reference',

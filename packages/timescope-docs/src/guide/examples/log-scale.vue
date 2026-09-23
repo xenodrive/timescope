@@ -1,96 +1,67 @@
----
-title: Log Scale
----
-
-<template>
-  <!-- #region html -->
-  <div id="timescope-example-log-scale">
-    <button>Toggle</button>
-  </div>
-  <!-- #endregion html -->
-</template>
-
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue';
-
-// #region code
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Timescope } from 'timescope';
+import { decaySamples } from './decay-data.js';
+import sampleCode from './decay-data.js?raw';
+import { expression, vanillaCode } from './vanilla';
 
-// #region docs-ignore
+const target = ref<HTMLElement>();
+const scale = ref<'linear' | 'log'>('log');
+const points = ref(false);
+const samples = decaySamples();
+let timescope: Timescope | undefined;
+const options = computed(() => ({
+  style: { height: '340px' },
+  sources: { samples },
+  series: {
+    response: {
+      data: {
+        source: 'samples',
+        name: 'Response time',
+        color: '#d97706',
+        domain: {
+          scale: scale.value,
+          range: [0.01, 20000] as [number, number],
+          unit: 'ms',
+          digits: 2,
+          axis: 'left' as const,
+        },
+      },
+      chart: points.value ? ('linespoints' as const) : ('lines' as const),
+    },
+  },
+  tracks: { default: { timeAxis: { relative: true } } },
+}));
 onMounted(() => {
-  // #endregion docs-ignore
-
-  const timescope = new Timescope({
-    target: '#timescope-example-log-scale',
-    style: { height: '220px' },
-    time: 2,
-    zoom: 6,
-    sources: {
-      samples: [
-        { time: 0, value: 1 },
-        { time: 1, value: 10 },
-        { time: 2, value: 100 },
-        { time: 3, value: 1_000 },
-        { time: 4, value: 10_000 },
-      ],
-    },
-    series: {
-      growth: {
-        data: {
-          source: 'samples',
-          domain: { scale: 'log', range: [undefined, undefined], axis: true },
-          color: '#f59e0b',
-        },
-        chart: 'curvespoints',
-        track: 'main',
-      },
-    },
-    tracks: {
-      main: {
-        timeAxis: {
-          relative: true,
-        },
-      },
-    },
-  });
-
-  const button = document.querySelector('#timescope-example-log-scale button');
-
-  let logscale = true;
-  button?.addEventListener('click', () => {
-    logscale = !logscale;
-    timescope.updateOptions({
-      series: {
-        growth: {
-          data: {
-            domain: {
-              scale: logscale ? 'log' : 'linear',
-              range: [undefined, undefined],
-            },
-          },
-        },
-      },
-    });
-  });
-  // #endregion code
-
-  onBeforeUnmount(() => timescope?.dispose());
+  timescope = new Timescope({ ...options.value, target: target.value!, time: 30, zoom: 4 });
+  timescope.fitTo([0, 60], { animation: false });
+});
+watch(options, (value) => timescope?.updateOptions(value));
+onBeforeUnmount(() => timescope?.dispose());
+defineExpose({
+  exportCode: () =>
+    vanillaCode(
+      { ...options.value, time: 30, zoom: 4, sources: { samples: expression('decaySamples()') } },
+      sampleCode,
+      'timescope.fitTo([0, 60], { animation: false });',
+    ),
 });
 </script>
 
-<style scoped>
-/* #region style */
-#timescope-example-log-scale {
-  position: relative;
+<template>
+  <div class="demo">
+    <div class="demo-controls">
+      <button :aria-pressed="scale === 'linear'" @click="scale = 'linear'">Linear</button>
+      <button :aria-pressed="scale === 'log'" @click="scale = 'log'">Logarithmic</button>
+      <label><input v-model="points" type="checkbox" /> Show samples</label>
+      <button @click="timescope?.fitTo([0, 60], { animation: false })">Fit recording</button>
+    </div>
+    <div ref="target"></div>
+    <p class="demo-note">
+      Same positive samples, same bounds. Log reveals the small retry spike at 44 s as the response time falls from
+      seconds to fractions of a millisecond.
+    </p>
+  </div>
+</template>
 
-  button {
-    position: absolute;
-    right: 0.125rem;
-    top: 0.125rem;
-    background: #eee;
-    padding: 0 0.5rem;
-    border-radius: 0.25rem;
-  }
-}
-/* #endregion style */
-</style>
+<style src="./demo.css"></style>

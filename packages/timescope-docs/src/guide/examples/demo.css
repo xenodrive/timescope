@@ -1,0 +1,66 @@
+.demo {
+  color: #263449;
+  font:
+    13px/1.5 system-ui,
+    sans-serif;
+}
+.demo-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 0;
+}
+.demo button,
+.demo select,
+.demo input[type='number'] {
+  border: 1px solid #dce2ea;
+  border-radius: 8px;
+  padding: 6px 12px;
+  background: white;
+  color: #334155;
+  font: inherit;
+  cursor: pointer;
+}
+.demo button[aria-pressed='true'] {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: white;
+}
+.demo button:hover {
+  border-color: #0f766e;
+}
+.demo label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.demo input[type='range'] {
+  width: 110px;
+  accent-color: #0f766e;
+}
+.demo input[type='number'] {
+  width: 80px;
+}
+.demo input[type='checkbox'] {
+  accent-color: #0f766e;
+}
+.demo-note {
+  color: #64748b;
+  font-size: 12px;
+}
+.demo-config {
+  overflow: auto;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font: 11px/1.6 monospace;
+  white-space: pre-wrap;
+}
+.demo button:focus-visible,
+.demo input:focus-visible,
+.demo select:focus-visible {
+  outline: 2px solid #0f766e;
+  outline-offset: 2px;
+}

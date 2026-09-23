@@ -9,7 +9,11 @@ const color = ref('#0d9488');
 
 # Chart Presets
 
-## Example
+Choose a built-in chart style before composing your own marks and links.
+
+## Try it
+
+Switch from `linespoints` to `stepspoints`, then try a `:filled` variant. Change the series color and compare the result with the primitive combinations in the table below.
 
 <div class="chart-controls">
 <div class="control-panel">
@@ -89,6 +93,12 @@ function setChart(chart: TimescopeChartType, color: string) {
 }
 ```
 
+## How it works
+
+- A preset is a combination of marks (drawn per row) and links (connecting rows).
+- `updateOptions()` changes the chart and color while retaining other options.
+- The minimal code above uses relative seconds. Provide a container with `id="timescope"`, create the instance after it mounts, and register `timescope.dispose()` on teardown.
+
 ## Presets
 
 | Chart preset               | Marks                                              | Links                           |
@@ -118,6 +128,10 @@ function setChart(chart: TimescopeChartType, color: string) {
 | `impulsespoints`           | `line` (using `value`, `#zero`), `circle`          | –                               |
 | `bars`                     | `bar` (using `value`, `#zero`; fill `transparent`) | –                               |
 | `bars:filled`              | `bar` (using `value`, `#zero`)                     | –                               |
+
+## Next steps
+
+Compose your own layers in [Marks & Links](./marks-and-links), or style the surrounding axes in [Styling](./styling). See [Chart presets](/api/timescope-options#chart-presets) for the API reference.
 
 <style scoped>
 @import './chart-controls.css';

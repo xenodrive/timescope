@@ -80,6 +80,9 @@ importers:
       oxlint:
         specifier: ^1.82.0
         version: 1.82.0
+      shiki:
+        specifier: ^4.4.3
+        version: 4.4.3
       timescope:
         specifier: workspace:*
         version: link:../timescope
