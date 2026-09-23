@@ -12,6 +12,7 @@ export class TimescopeWorkerRenderer extends TimescopeRenderer {
       this.attach(
         {
           call: connection.call,
+          notify: connection.notify,
           dispose() {
             connection.dispose();
             worker.terminate();

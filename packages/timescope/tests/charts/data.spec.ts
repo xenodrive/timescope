@@ -4,7 +4,7 @@ import { TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
 import { createDataSource, type TimescopeDataSource } from '#src/main/TimescopeDataSource';
 import { TimescopeDomain } from '#src/main/TimescopeDomain';
 import { TimescopeViewRegistry } from '#src/main/TimescopeView';
-import { describe, expect, it, onTestFinished } from 'vitest';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { yAtX } from '../helpers/geometry';
 import { viewState } from '../helpers/view';
 
@@ -40,6 +40,27 @@ function fixture(
 }
 
 describe('chart data', () => {
+  it('skips extent collection for fixed domains and resumes it when autoscaling is enabled', async () => {
+    const view = fixture(
+      createDataSource([
+        { time: 1, value: 0.25 },
+        { time: 2, value: 0.75 },
+      ]),
+      'lines',
+    );
+    const report = vi.spyOn(view.domain, 'reportExtent');
+    const range: [Decimal, Decimal] = [Decimal(0), Decimal(3)];
+
+    await view.render(range);
+    expect(report).not.toHaveBeenCalled();
+    expect(view.domain.dataRange?.map(Number)).toEqual([0, 1]);
+
+    view.domain.updateOptions({});
+    await view.render(range);
+    expect(report).toHaveBeenCalled();
+    expect(view.domain.dataRange?.map(Number)).toEqual([0.25, 0.75]);
+  });
+
   it.each(['line', 'curve', 'area', 'curve-area'] as const)(
     'keeps the left %s segment when settling releases a retained chunk',
     async (draw) => {

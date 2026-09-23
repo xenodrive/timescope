@@ -20,6 +20,12 @@ export type RenderCall<C extends Commands> = <K extends keyof C>(
   payload: CommandPayload<C, K>,
 ) => Promise<Awaited<ReturnType<C[K]>>>;
 
+/** A notification does not wait for the remote handler to complete. */
+export type RenderNotify<C extends Commands> = <K extends keyof C>(
+  command: K,
+  payload: CommandPayload<C, K>,
+) => Promise<void>;
+
 export function copyRenderPayload<T>(value: T): T {
   return unserialize(structuredClone(value));
 }

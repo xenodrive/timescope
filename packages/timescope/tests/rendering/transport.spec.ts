@@ -1,4 +1,5 @@
-import { dataBuffers } from '#src/bridge/renderEngine';
+import type { RenderEngineCommandsWire, RendererCommands } from '#src/bridge/protocol';
+import { connectWorkerRenderer, dataBuffers } from '#src/bridge/renderEngine';
 import { defineCalls, defineLocalCalls, listenCalls, type RenderCall, type WorkerMessagePort } from '#src/bridge/rpc';
 import { Decimal } from '#src/core/decimal';
 import { describe, expect, it } from 'vitest';
@@ -190,6 +191,53 @@ describe('worker buffer ownership', () => {
       expect([...result.data.links[0].commands.values]).toEqual([1, NaN, Infinity]);
     } finally {
       lifetime.abort();
+      channel.port1.close();
+      channel.port2.close();
+    }
+  });
+});
+
+describe('worker render notifications', () => {
+  it('delivers data changes without an acknowledgement while other commands still wait for one', async () => {
+    const channel = new MessageChannel();
+    channel.port1.start();
+    channel.port2.start();
+    const received: string[] = [];
+    const replies: string[] = [];
+    const listener = (event: MessageEvent<{ type: string; command: string }>) => {
+      if (event.data.type === 'rpc:ack') replies.push(event.data.command);
+    };
+    channel.port2.addEventListener('message', listener);
+    const lifetime = new AbortController();
+    listenCalls<Pick<RenderEngineCommandsWire, 'init' | 'data:changed' | 'redraw'>>(
+      channel.port1 as unknown as WorkerMessagePort,
+      {
+        init: () => {},
+        'data:changed': (key) => {
+          received.push(key);
+        },
+        redraw: () => {
+          received.push('redraw');
+        },
+      },
+      undefined,
+      lifetime.signal,
+    );
+    const connection = connectWorkerRenderer(
+      channel.port2 as unknown as WorkerMessagePort,
+      {} as RendererCommands,
+      new ArrayBuffer(1) as unknown as OffscreenCanvas,
+    );
+    try {
+      await connection.notify('data:changed', 'chart');
+      await connection.call('data:changed', 'chart-rpc');
+      await connection.call('redraw', undefined);
+      expect(received).toEqual(['chart', 'chart-rpc', 'redraw']);
+      expect(replies).toEqual(['init', 'data:changed', 'redraw']);
+    } finally {
+      connection.dispose();
+      lifetime.abort();
+      channel.port2.removeEventListener('message', listener);
       channel.port1.close();
       channel.port2.close();
     }

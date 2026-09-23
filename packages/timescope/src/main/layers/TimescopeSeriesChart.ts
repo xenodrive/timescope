@@ -355,12 +355,14 @@ export class TimescopeSeriesChart<O extends TimescopeSeriesLayerDataOptions> ext
       projectionFields.times.add('_minTime');
       projectionFields.times.add('_maxTime');
     }
-    const extentInputs = links.flatMap((link) => visibleRows.map((row) => ({ row, using: linkUsing(link) })));
-    for (let index = 0; index < markRows.length; index++) {
-      for (const mark of marks[index]) extentInputs.push({ row: markRows[index], using: mark.using });
+    if (series.domain.autoscale) {
+      const extentInputs = links.flatMap((link) => visibleRows.map((row) => ({ row, using: linkUsing(link) })));
+      for (let index = 0; index < markRows.length; index++) {
+        for (const mark of marks[index]) extentInputs.push({ row: markRows[index], using: mark.using });
+      }
+      const { extent, positiveExtent } = collectExtent(extentInputs);
+      series.domain.reportExtent(series, extent, positiveExtent);
     }
-    const { extent, positiveExtent } = collectExtent(extentInputs);
-    series.domain.reportExtent(series, extent, positiveExtent);
     const { projection, wire: projectionWire } = series.domain.createProjection();
     const geometryKey = JSON.stringify(links.map((link) => [link.draw, linkUsing(link)]));
     const reuseGeometry =

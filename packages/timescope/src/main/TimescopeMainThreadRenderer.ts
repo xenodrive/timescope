@@ -20,6 +20,7 @@ export class TimescopeMainThreadRenderer extends TimescopeRenderer {
       {
         call: (command, payload) =>
           command === 'init' ? Promise.reject(new Error('Render engine already initialized')) : call(command, payload),
+        notify: (command, payload) => call(command, payload).then(() => {}),
         dispose() {
           lifetime.abort(new DOMException('Renderer disposed', 'AbortError'));
           engine.dispose();

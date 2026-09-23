@@ -8,7 +8,7 @@ import type {
   TimescopeSyncMessage,
   TimescopeViewportChangedMessage,
 } from '#src/bridge/protocol';
-import type { RenderCall } from '#src/bridge/rpc';
+import type { RenderCall, RenderNotify } from '#src/bridge/rpc';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
 import { mergeOptions } from '#src/core/options';
 import { resolutionFor } from '#src/core/zoom';
@@ -82,6 +82,7 @@ function interactionForEngine(info: InteractionInfo): InteractionInfoWire {
 
 export type TimescopeRendererConnection = {
   call: RenderCall<RenderEngineCommands>;
+  notify: RenderNotify<RenderEngineCommands>;
   dispose: () => void;
 };
 
@@ -98,7 +99,16 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
   protected call: RenderCall<RenderEngineCommands> = (command, payload) => {
     if (!this.#connection || this.#disposed) return Promise.reject(new DOMException('Renderer disposed', 'AbortError'));
     const result = this.#connection.call(command, payload);
-    // Commands used as notifications still report failures without creating unhandled rejections.
+    // Report failures without creating unhandled rejections.
+    void result.catch((error) => {
+      if (!this.#disposed) console.error(`Render engine ${command} failed`, error);
+    });
+    return result;
+  };
+
+  protected notify: RenderNotify<RenderEngineCommands> = (command, payload) => {
+    if (!this.#connection || this.#disposed) return Promise.reject(new DOMException('Renderer disposed', 'AbortError'));
+    const result = this.#connection.notify(command, payload);
     void result.catch((error) => {
       if (!this.#disposed) console.error(`Render engine ${command} failed`, error);
     });
@@ -406,7 +416,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
             delete old[key];
 
             this.#layerData[key].on('change', () => {
-              if (!this.#disposed) this.call('data:changed', key);
+              if (!this.#disposed) this.notify('data:changed', key);
             });
 
             if (cacheOpts) optionsForWorker.dataCacheOptions[key] = cacheOpts;

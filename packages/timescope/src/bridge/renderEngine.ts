@@ -1,7 +1,7 @@
 import type { RenderEngineCommandsWire } from '#src/bridge/protocol';
 import type { RenderEngineCommands, RendererCommands } from '#src/bridge/protocol';
 import { defineCalls, listenCalls, type WorkerMessagePort } from '#src/bridge/rpc';
-import type { RenderCall } from '#src/bridge/rpc';
+import type { RenderCall, RenderNotify } from '#src/bridge/rpc';
 import { TimescopeRenderEngine, type TimescopeRenderEngineEnvironment } from '#src/renderer/TimescopeRenderEngine';
 
 export function dataBuffers(result: unknown): ArrayBuffer[] {
@@ -47,8 +47,14 @@ export function connectWorkerRenderer(port: WorkerMessagePort, callbacks: Render
     const result = rpc(command, payload as never, { rpc: true });
     return Promise.all([initialized, result]).then(([, value]) => value) as never;
   };
+  const notify: RenderNotify<RenderEngineCommands> = (command, payload) => {
+    if (command === 'init') return Promise.reject(new Error('Render engine already initialized'));
+    const result = rpc(command, payload as never, { rpc: false });
+    return Promise.all([initialized, result]).then(() => {});
+  };
   return {
     call,
+    notify,
     dispose() {
       lifetime.abort(new DOMException('Renderer disposed', 'AbortError'));
     },
