@@ -4,9 +4,9 @@ import { createLiveSignal } from './live-signal.js';
 import sourceCode from './live-signal.js?raw';
 
 const target = ref<HTMLElement>();
-const running = ref(true);
+const running = ref(false);
 const speed = ref(1);
-const following = ref(true);
+const following = ref(false);
 const progress = ref({ samples: 600, time: 5.99 });
 let demo: ReturnType<typeof createLiveSignal> | undefined;
 let unsubscribe: (() => void) | undefined;
@@ -39,7 +39,7 @@ defineExpose({
 <template>
   <div class="demo">
     <div class="demo-controls">
-      <button :aria-pressed="running" @click="running = !running">{{ running ? 'Pause' : 'Resume' }}</button>
+      <button :aria-pressed="running" @click="running = !running">{{ running ? 'Pause' : 'Start' }}</button>
       <button :aria-pressed="following" @click="demo?.follow()">Follow live</button>
       <label
         >Speed

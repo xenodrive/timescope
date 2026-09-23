@@ -13,7 +13,7 @@ function pulse(time) {
   );
 }
 
-export function createLiveSignal(target, { running = true, speed = 1, onProgress = () => {} } = {}) {
+export function createLiveSignal(target, { running = false, speed = 1, onProgress = () => {} } = {}) {
   const sampleRate = 100;
   const frameInterval = 1 / 60;
   let index = 600;
@@ -26,7 +26,7 @@ export function createLiveSignal(target, { running = true, speed = 1, onProgress
   });
   const options = {
     target,
-    time: null,
+    time: running ? null : playbackTime,
     zoom: 6,
     style: { height: '300px' },
     sources: { signal: source },
@@ -52,6 +52,7 @@ export function createLiveSignal(target, { running = true, speed = 1, onProgress
   const timescope = new Timescope(options);
   timescope.setPlaybackTime(playbackTime);
   onProgress({ samples: index, time: playbackTime });
+  let initialPause = !running;
   const timer = setInterval(async () => {
     if (!running || disposed || appending) return;
     appending = true;
@@ -79,6 +80,8 @@ export function createLiveSignal(target, { running = true, speed = 1, onProgress
   return {
     timescope,
     setRunning(value) {
+      if (value && initialPause && timescope.time?.eq(playbackTime)) timescope.setTime(null, false);
+      if (value) initialPause = false;
       running = value;
     },
     setSpeed(value) {
