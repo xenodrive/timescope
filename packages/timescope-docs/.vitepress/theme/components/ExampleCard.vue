@@ -59,10 +59,6 @@ function wheel(event: WheelEvent) {
   if (!wheelEnabled.value && event.target instanceof HTMLCanvasElement) event.stopPropagation();
 }
 
-function touchStart(event: TouchEvent) {
-  if (event.target instanceof HTMLCanvasElement) event.stopPropagation();
-}
-
 async function tabKeydown(event: KeyboardEvent) {
   if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' && event.key !== 'Home' && event.key !== 'End') return;
   event.preventDefault();
@@ -110,7 +106,7 @@ async function copy() {
         Code
       </button>
     </header>
-    <div class="example-stage" @touchstart.capture="touchStart">
+    <div class="example-stage">
       <component :is="demo" v-if="ready" ref="instance" />
     </div>
     <Teleport to="body">
@@ -216,9 +212,6 @@ async function copy() {
 .example-stage {
   padding: 8px 28px 28px;
   min-width: 0;
-}
-.example-stage canvas {
-  touch-action: pan-y pinch-zoom !important;
 }
 .example-code-overlay {
   position: fixed;
