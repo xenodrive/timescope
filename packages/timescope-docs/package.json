@@ -24,6 +24,6 @@
     "oxlint": "^1.82.0",
     "shiki": "^4.4.3",
     "timescope": "workspace:*",
-    "vitepress": "2.0.0-alpha.19"
+    "vitepress": "2.0.0-alpha.20"
   }
 }
