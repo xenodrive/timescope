@@ -277,16 +277,16 @@ Single-value marks default to `'value@time'`. `line`, `bar`, and `section` marks
 
 ## Chart Presets
 
-| Preset                                                      | Result                                                     |
-| ----------------------------------------------------------- | ---------------------------------------------------------- |
-| `'lines'`, `'lines:filled'`                                 | Line chart, optionally filled.                             |
-| `'curves'`, `'curves:filled'`                               | Monotone cubic chart, optionally filled.                   |
-| `'steps-start'`, `'steps'`, `'steps-end'`                   | Step chart. Add `:filled` for a filled chart.              |
-| `'points'`                                                  | Circle marks.                                              |
-| `'linespoints'`, `'curvespoints'`                           | Lines or curves with circle marks. Add `:filled` for fill. |
-| `'stepspoints-start'`, `'stepspoints'`, `'stepspoints-end'` | Steps with circle marks. Add `:filled` for fill.           |
+| Preset                                                      | Result                                                        |
+| ----------------------------------------------------------- | ------------------------------------------------------------- |
+| `'lines'`, `'lines:filled'`                                 | Line chart, optionally filled.                                |
+| `'curves'`, `'curves:filled'`                               | Monotone cubic chart, optionally filled.                      |
+| `'steps-start'`, `'steps'`, `'steps-end'`                   | Step chart. Add `:filled` for a filled chart.                 |
+| `'points'`                                                  | Circle marks.                                                 |
+| `'linespoints'`, `'curvespoints'`                           | Lines or curves with circle marks. Add `:filled` for fill.    |
+| `'stepspoints-start'`, `'stepspoints'`, `'stepspoints-end'` | Steps with circle marks. Add `:filled` for fill.              |
 | `'impulses'`, `'impulsespoints'`                            | Lines from the shared baseline, optionally with circle marks. |
-| `'bars'`, `'bars:filled'`                                   | Bars from the shared baseline.                             |
+| `'bars'`, `'bars:filled'`                                   | Bars from the shared baseline.                                |
 
 ## Links
 
@@ -430,17 +430,17 @@ Selection is resizable by default. Shift-drag creates a range.
 
 ## Domains
 
-| Key           | Type                                                                    | Behavior                                                            |
-| ------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `scale`       | `'linear' \| 'linear-symmetric' \| 'log'`                               | Sets the value scale.                                               |
-| `axis`        | `boolean \| 'left' \| 'right' \| TimescopeYAxisOptions`                 | Shows and configures a value axis.                                  |
-| `animation`   | `boolean`                                                               | Animates range changes. Default: `true`.                            |
-| `range`       | `TimescopeNumberLike \| [min?, max?] \| { expand?, shrink?, default? }` | Sets or configures the value range.                                 |
-| `expand`      | `boolean`                                                               | Allows the range to expand for observed values. Default: `false`.   |
-| `shrink`      | `boolean`                                                               | Allows the range to contract. Default: `true`.                      |
+| Key           | Type                                                                    | Behavior                                                                            |
+| ------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `scale`       | `'linear' \| 'linear-symmetric' \| 'log'`                               | Sets the value scale.                                                               |
+| `axis`        | `boolean \| 'left' \| 'right' \| TimescopeYAxisOptions`                 | Shows and configures a value axis.                                                  |
+| `animation`   | `boolean`                                                               | Animates range changes. Default: `true`.                                            |
+| `range`       | `TimescopeNumberLike \| [min?, max?] \| { expand?, shrink?, default? }` | Sets or configures the value range.                                                 |
+| `expand`      | `boolean`                                                               | Allows the range to expand for observed values. Default: `false`.                   |
+| `shrink`      | `boolean`                                                               | Allows the range to contract. Default: `true`.                                      |
 | `floatingGap` | `number`                                                                | Sets the pixel gap between a floating range and the shared baseline. Default: `20`. |
-| `unit`        | `string`                                                                | Sets the tooltip and value-axis unit.                               |
-| `digits`      | `number`                                                                | Sets decimal places in tooltips and value axes.                     |
+| `unit`        | `string`                                                                | Sets the tooltip and value-axis unit.                                               |
+| `digits`      | `number`                                                                | Sets decimal places in tooltips and value axes.                                     |
 
 An unbounded range follows visible values. A single numeric range value means `[0, value]`.
 
