@@ -44,6 +44,8 @@ type SegmentRun = { segments: Segment[]; start: Point; end: Point };
 type ClipTarget = {
   xRange: readonly [Decimal, Decimal];
   yRange: readonly [Decimal, Decimal];
+  numericXRange: readonly [number, number];
+  numericYRange: readonly [number, number];
 };
 
 const DEFAULT_Y_RANGE = [Decimal(-16_384), Decimal(16_384)] as const;
@@ -258,6 +260,18 @@ function sameY(a: Point, b: Point) {
 }
 
 function inside(point: Point, target: ClipTarget) {
+  // Strict numeric bounds are safe for cached projected coordinates. Values at
+  // a boundary still need Decimal comparisons to distinguish rounded values.
+  if (
+    point.nx !== undefined &&
+    point.ny !== undefined &&
+    point.nx > target.numericXRange[0] &&
+    point.nx < target.numericXRange[1] &&
+    point.ny > target.numericYRange[0] &&
+    point.ny < target.numericYRange[1]
+  ) {
+    return true;
+  }
   return (
     point.x.ge(target.xRange[0]) &&
     point.x.le(target.xRange[1]) &&
@@ -862,8 +876,13 @@ function areaBoundaryBuffer(
     source = { columns: expanded, start: 0, end: expanded.length };
   }
   output = createStoredSegmentBuffer(Math.max(0, rangeLength(source) - 1));
-  const precision = targetPrecisionRange(source, target);
+  let precision: number | undefined;
   const processSegment = (segment: Segment) => {
+    if (segment.kind === 'line' && inside(segment.p0, target) && inside(segment.p1, target)) {
+      appendStoredSegment(output, segment);
+      return;
+    }
+    precision ??= targetPrecisionRange(source, target);
     const clipped = trimSegmentX(segment, target.xRange, precision);
     if (!clipped) return;
     forEachClampedSegmentY(clipped, target.yRange, precision, (part) => appendStoredSegment(output, part));
@@ -1110,10 +1129,12 @@ export function compileLinkGeometry(options: {
   const yRange = options.target.yRange ?? DEFAULT_Y_RANGE;
   if (!options.target.xRange[0].lt(options.target.xRange[1])) throw new RangeError('Invalid link geometry X range');
   if (yRange[0].gt(yRange[1])) throw new RangeError('Invalid link geometry Y range');
-  const target: ClipTarget = { xRange: options.target.xRange, yRange };
-  if (![...target.xRange, ...target.yRange].every((value) => Number.isFinite(value.number()))) {
+  const numericXRange = options.target.xRange.map((value) => value.number()) as [number, number];
+  const numericYRange = yRange.map((value) => value.number()) as [number, number];
+  if (![...numericXRange, ...numericYRange].every(Number.isFinite)) {
     throw new RangeError('Link geometry clipping range must be finite');
   }
+  const target: ClipTarget = { xRange: options.target.xRange, yRange, numericXRange, numericYRange };
 
   const [[topKey, topTime], [bottomKey, bottomTime]] = parseUsing(using);
   const area = kind.includes('area');

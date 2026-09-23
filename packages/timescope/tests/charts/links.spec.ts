@@ -200,6 +200,22 @@ describe('link geometry', () => {
     expect(curve).toMatch(/L4 0 C[^C]+ 2 0 C[^C]+ 0 0 Z$/);
   });
 
+  it('keeps interior area segments between clipped boundary segments', () => {
+    const cached = (value: number) => ({ value: Decimal(value), number: value });
+    const rows: TestRow[] = [1, 1, 2, 1, 2, 2].map((value, index) => ({
+      x: { time: cached(index - 1) },
+      y: { value: cached(value), '#zero': cached(0) },
+    }));
+    expect(
+      compileLinkGeometry({
+        rows,
+        kind: 'area',
+        using: ['value@time', '#zero@time'],
+        target: { xRange: [Decimal(0), Decimal(3)] },
+      }),
+    ).toBe('M0 1 L1 2 L2 1 L3 2 L3 0 L2 0 L1 0 L0 0 Z');
+  });
+
   it.each([
     {
       name: 'unclipped',
@@ -297,6 +313,21 @@ describe('link geometry', () => {
     });
     expect(curve.match(/C/g)).toHaveLength(2);
     expect(curve).not.toMatch(/NaN|Infinity/);
+  });
+
+  it('clips cached coordinates whose numbers round to the clip boundary', () => {
+    const cached = (value: Decimal) => ({ value, number: value.number() });
+    expect(
+      compileLinkGeometry({
+        rows: [
+          { x: { time: cached(Decimal('0.9999999999999999999999')) }, y: { value: cached(Decimal(0)) } },
+          { x: { time: cached(Decimal('1.0000000000000000000001')) }, y: { value: cached(Decimal(1)) } },
+        ],
+        kind: 'line',
+        using: 'value@time',
+        target: { xRange: [Decimal(1), Decimal(2)] },
+      }),
+    ).toBe('M1 0.5 L1 1');
   });
 
   it('keeps representable short lines inside narrow non-zero clipping ranges', () => {
