@@ -43,12 +43,13 @@ onMounted(() => {
   }
   input.addEventListener('change', selectTime);
 
-  // Register cleanup with your application's teardown lifecycle.
+  // #region docs-ignore
   function cleanup() {
     input.removeEventListener('change', selectTime);
     unsubscribe();
     timescope.dispose();
   }
+  // #endregion docs-ignore
   // #endregion code
   onBeforeUnmount(cleanup);
 });

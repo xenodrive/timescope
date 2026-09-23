@@ -31,7 +31,7 @@ onBeforeUnmount(() => {
 defineExpose({
   exportCode: () => ({
     html: '<div id="timescope"></div>',
-    javascript: `${sourceCode.replace(/^export /gm, '')}\n\nconst demo = createLiveSignal('#timescope', ${JSON.stringify({ running: running.value, speed: speed.value }, null, 2)});\n\n// Call when removing the visualization.\nfunction cleanup() { demo.cleanup(); }\n`,
+    javascript: `${sourceCode.replace(/^export /gm, '')}\n\nconst demo = createLiveSignal('#timescope', ${JSON.stringify({ running: running.value, speed: speed.value }, null, 2)});\n`,
   }),
 });
 </script>

@@ -23,6 +23,6 @@ export function javascript(value: unknown, depth = 0): string {
 export function vanillaCode(options: object, helpers = '', after = '') {
   return {
     html: '<div id="timescope"></div>',
-    javascript: `import { Timescope } from 'timescope';\n\n${helpers.replace(/^export /gm, '').trim()}\n\nconst options = ${javascript({ ...options, target: '#timescope' })};\n\nconst timescope = new Timescope(options);\n${after}\n\n// Call when removing the visualization.\nfunction cleanup() {\n  timescope.dispose();\n}\n`,
+    javascript: `import { Timescope } from 'timescope';\n\n${helpers.replace(/^export /gm, '').trim()}\n\nconst options = ${javascript({ ...options, target: '#timescope' })};\n\nconst timescope = new Timescope(options);\n${after}\n`,
   };
 }

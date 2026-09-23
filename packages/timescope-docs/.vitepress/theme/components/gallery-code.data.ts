@@ -40,9 +40,7 @@ export default {
       await Promise.all(
         ['events', 'timezones', 'financial-chart', 'audio-waveform'].map(async (name) => {
           const source = readFileSync(new URL(`../../../src/guide/examples/${name}.vue`, import.meta.url), 'utf8');
-          const teardown =
-            source.match(/onBeforeUnmount\(\(\) => \{([\s\S]*?)\n  \}\);/)?.[1] ?? '\n  timescope.dispose();';
-          const code = `${region(source, 'code')}\n\n// Call when removing the visualization.\nfunction cleanup() {${teardown}\n}`;
+          const code = region(source, 'code');
           return [
             name,
             {
