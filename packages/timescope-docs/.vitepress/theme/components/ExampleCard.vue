@@ -4,6 +4,7 @@ import codeTags from '@iconify-icons/mdi/code-tags';
 import contentCopy from '@iconify-icons/mdi/content-copy';
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch, type Component } from 'vue';
 import { data as examplesCode, type VanillaExample } from './gallery-code.data';
+import { highlight } from './gallery-highlight';
 
 const props = defineProps<{
   name: string;
@@ -35,7 +36,6 @@ watch(
     highlightedCode.value = '';
     if (!source) return;
     try {
-      const { highlight } = await import('./gallery-highlight');
       const html = await highlight(source.code, source.lang);
       if (!cancelled) highlightedCode.value = html;
     } catch (error) {
