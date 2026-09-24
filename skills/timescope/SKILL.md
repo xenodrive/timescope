@@ -39,7 +39,8 @@ Assume Timescope has already been chosen; focus on implementing the requested UI
    map below to choose APIs and read their contracts.
 4. Start with the relevant minimal example. Add the requested data, presentation,
    and interactions using explicit time units.
-5. Integrate creation, updates, and cleanup with the application's lifecycle.
+5. Integrate creation and updates with the application's lifecycle; clean up
+   when the instance outlives a module or view.
 
 ## Task to implementation map
 
@@ -74,9 +75,10 @@ Provide a mount target in the page:
 ```
 
 Run either example on the client after the target exists, with a non-zero
-container width. These examples are independent. Register each example's
-`cleanup` function with the application's teardown lifecycle; do not call it
-immediately after creation.
+container width. These examples are independent. Full-page navigation needs
+no explicit cleanup; register `cleanup` for HMR (e.g.
+`import.meta.hot?.dispose(cleanup)`) or a lifecycle you manage yourself.
+Framework bindings handle their own cleanup.
 
 ### Timepicker: select a time and synchronize an external control
 
@@ -140,7 +142,7 @@ const timescope = new Timescope({
   tracks: { default: { timeAxis: { relative: true } } },
 });
 
-// Register this with the application's unmount/teardown lifecycle.
+// Register only if the instance needs explicit teardown (e.g. HMR).
 function cleanup() {
   timescope.dispose();
 }
@@ -171,7 +173,8 @@ and presentation to the requested data; keep time units consistent throughout.
 - `setOptions` replaces configurable options; `updateOptions` retains omitted
   options. Runtime time and zoom changes use their dedicated setters.
 - `on` returns an unsubscribe function. Value events such as `timechanged` expose
-  their value as `event.value`. Dispose owned instances during teardown.
+  their value as `event.value`. Dispose directly owned instances when explicitly
+  tearing down their view or module.
 
 ## Framework integration
 
@@ -180,8 +183,8 @@ Bindings are available as `@timescope/vue`, `@timescope/react`,
 
 Use the binding matching the project's framework when appropriate. Inspect its
 installed exports and types before using component names, props, events, or refs;
-do not assume the bindings all have identical APIs. For direct class integration,
-create the instance after the DOM target exists and dispose it during teardown.
+do not assume the bindings all have identical APIs. Bindings handle disposal;
+for direct class integration, create the instance after the DOM target exists.
 In server-rendered applications, initialize the visualization on the client.
 
 ## Additional documentation
