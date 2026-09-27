@@ -110,7 +110,7 @@ function createTimescopeRef<T extends Combination>(...args: T) {
 }
 
 const timescope = markRaw(
-  new Timescope({
+  new Timescope<Sources, Series, Track>({
     renderThread: props.renderThread,
     ...(props.fit !== undefined ? { fit: props.fit } : { time: props.time ?? null, zoom: props.zoom ?? 0 }),
     timeRange: props.timeRange,
@@ -211,7 +211,10 @@ watch(
   () => props.sources,
   () => {
     const sources =
-      props.sources && Object.fromEntries(Object.entries(props.sources).map(([key, source]) => [key, toRaw(source)]));
+      props.sources &&
+      (Object.fromEntries(
+        Object.entries(props.sources).map(([key, source]) => [key, toRaw(source)]),
+      ) as typeof props.sources);
     timescope.updateOptions({ sources });
   },
   { immediate: true, deep: true },
@@ -219,7 +222,7 @@ watch(
 
 watch(
   () => props.series,
-  () => timescope.updateOptions({ series: props.series } as TimescopeOptions),
+  () => timescope.updateOptions({ series: props.series }),
   { immediate: true, deep: true },
 );
 

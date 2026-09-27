@@ -63,7 +63,7 @@ function TimescopeComponent<
   Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
 >(props: TimescopeProps<Sources, Series, Track>) {
-  const timescope = new Timescope({
+  const timescope = new Timescope<Sources, Series, Track>({
     renderThread: untrack(() => props.renderThread),
     time: untrack(() => props.time ?? null),
     timeRange: untrack(() => props.timeRange),
@@ -139,7 +139,7 @@ function TimescopeComponent<
     timescope.updateOptions({ sources: props.sources });
   });
   createEffect(() => {
-    timescope.updateOptions({ series: props.series } as TimescopeOptions);
+    timescope.updateOptions({ series: props.series });
   });
   createEffect(() => {
     timescope.updateOptions({ tracks: props.tracks });

@@ -65,7 +65,7 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
   Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
 >(props: TimescopeProps<Sources, Series, Track>, ref: ForwardedRef<TimescopeAPI>) {
-  const timescopeRef = useRef<Timescope | null>(null);
+  const timescopeRef = useRef<Timescope<Sources, Series, Track> | null>(null);
   const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
   const initialPropsRef = useRef({
     renderThread: props.renderThread,
@@ -127,7 +127,7 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
 
   useEffect(() => {
     const initialProps = initialPropsRef.current;
-    const instance = new Timescope({
+    const instance = new Timescope<Sources, Series, Track>({
       renderThread: initialProps.renderThread,
       time: initialProps.time ?? null,
       timeRange: initialProps.timeRange,
@@ -213,7 +213,7 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
   }, [props.sources]);
 
   useEffect(() => {
-    timescopeRef.current?.updateOptions({ series: props.series } as TimescopeOptions);
+    timescopeRef.current?.updateOptions({ series: props.series });
   }, [props.series]);
 
   useEffect(() => {
