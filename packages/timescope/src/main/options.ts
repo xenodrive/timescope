@@ -1,3 +1,5 @@
+import type { TimescopeRange } from '#src/core/range';
+import type { TimeLike } from '#src/core/time';
 import type { TimescopeStateOptions } from '#src/core/TimescopeState';
 import type { TimescopeOptionsSelection } from '#src/main/chart';
 import type { TimescopeFont } from '#src/main/font';
@@ -22,8 +24,7 @@ export type TimescopeOptions<
   /** Thread used by the render engine. Selected on mount; defaults to 'worker'. */
   renderThread?: 'worker' | 'main';
   showFps?: boolean;
-  padding?: number[];
-  indicator?: boolean;
+  cursor?: boolean | { color?: string; borderColor?: string };
   sources?: TimescopeOptionsSources<Sources>;
   series?: TimescopeOptionsSeries<Sources, Series, Track>;
   tracks?: TimescopeOptionsTracks<Track>;
@@ -31,16 +32,25 @@ export type TimescopeOptions<
   selection?: TimescopeOptionsSelection;
 };
 
-export interface TimescopeOptionsInitial<
+export type TimescopeOptionsInitial<
   Sources extends Record<string, TimescopeSourceInput>,
   Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
->
-  extends TimescopeOptions<Sources, Series, Track>, TimescopeStateOptions {
-  target?: HTMLElement | string;
-  fonts?: (string | TimescopeFont)[];
-  wheelSensitivity?: number;
-}
+> = TimescopeOptions<Sources, Series, Track> &
+  Omit<TimescopeStateOptions, 'time' | 'zoom'> & {
+    target?: HTMLElement | string;
+    fonts?: (string | TimescopeFont)[];
+    wheelSensitivity?: number;
+  } & (
+    | { time?: TimeLike; zoom?: TimescopeStateOptions['zoom']; fit?: never }
+    | {
+        fit:
+          | TimescopeRange<TimeLike<never>>
+          | { range: TimescopeRange<TimeLike<never>>; padding?: number | [number, number] };
+        time?: never;
+        zoom?: never;
+      }
+  );
 
 export function createDefineTimescopeOptions(wrapper?: (opts: object) => object) {
   return function <

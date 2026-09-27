@@ -19,7 +19,6 @@ export interface TimescopeLayerData<D = any> extends TimescopeObservable {
   ): Promise<D> | undefined;
   waitForTarget?(): Promise<void>;
   cancelTargetWaiters?(): void;
-  dispose?(): void;
 }
 
 export type TimescopeLayerDataClass = new (options: any) => TimescopeLayerData;
@@ -52,6 +51,7 @@ export abstract class TimescopeLayerDataBase<D = any, O = any>
   dispose() {
     for (const unsub of this.#unsubs) unsub?.();
     this.#unsubs = [];
+    super.dispose();
   }
 }
 

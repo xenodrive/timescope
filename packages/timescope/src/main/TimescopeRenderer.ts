@@ -46,8 +46,7 @@ const colorPresets = ['#080', '#800', '#008', '#880', '#088', '#808'];
 
 const defaultRendererOptions: TimescopeOptions = {
   style: undefined,
-  indicator: true,
-  padding: [5, 5, 5, 5],
+  cursor: true,
 
   sources: undefined,
   series: undefined,
@@ -221,6 +220,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
     this.#series = {};
     this.#connection?.dispose();
     this.#connection = undefined;
+    super.dispose();
   }
 
   setOptions(options: TimescopeOptions) {
@@ -260,8 +260,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
 
     const optionsForWorker: TimescopeRenderEngineOptions = {};
     if ('showFps' in options) optionsForWorker.showFps = options.showFps;
-    if ('padding' in options) optionsForWorker.padding = options.padding;
-    if ('indicator' in options) optionsForWorker.indicator = options.indicator;
+    if ('cursor' in options) optionsForWorker.cursor = options.cursor;
     if ('style' in options) optionsForWorker.background = this.#options.style?.background ?? '#fff';
     if ('selection' in options) optionsForWorker.selection = options.selection;
 

@@ -308,6 +308,7 @@ export class TimescopeDataCache<V extends DataLike = any> extends TimescopeObser
     this.#loadingRequestId = undefined;
     this.#stageGeneration++;
     this.#staged = undefined as unknown as V;
+    super.dispose();
   }
 
   get name() {

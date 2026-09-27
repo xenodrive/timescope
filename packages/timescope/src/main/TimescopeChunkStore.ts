@@ -179,6 +179,7 @@ export class TimescopeChunkStore<T> extends TimescopeObservable<
     this.#disposed = true;
     this.#unsubscribe?.();
     this.#entries.clear();
+    super.dispose();
   }
 
   #touch(entry: TimescopeChunkStoreEntry<T>) {

@@ -3,22 +3,23 @@ import { Icon } from '@iconify/vue';
 import codeTags from '@iconify-icons/mdi/code-tags';
 import contentCopy from '@iconify-icons/mdi/content-copy';
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch, type Component } from 'vue';
-import { data as examplesCode, type VanillaExample } from './gallery-code.data';
+import { data as examplesCode } from './gallery-code.data';
 import { highlight } from './gallery-highlight';
+import { withBase } from 'vitepress';
+import PresetPreview from './PresetPreview.vue';
 
 const props = defineProps<{
   name: string;
   title: string;
-  caption: string;
   tag: string;
   ready: boolean;
   active: boolean;
+  preset?: string;
 }>();
 defineEmits(['open', 'close']);
 const modules = import.meta.glob<Component>('../../../src/guide/examples/*.vue', { import: 'default' });
-const demo = defineAsyncComponent(modules[`../../../src/guide/examples/${props.name}.vue`]);
-const instance = ref<{ exportCode?: () => VanillaExample }>();
-const code = computed(() => instance.value?.exportCode?.() ?? examplesCode[props.name]);
+const demo = props.preset ? undefined : defineAsyncComponent(modules[`../../../src/guide/examples/${props.name}.vue`]);
+const code = computed(() => examplesCode[props.name]);
 const file = ref<'javascript' | 'html'>('javascript');
 const copied = ref(false);
 const wheelEnabled = ref(false);
@@ -99,15 +100,18 @@ async function copy() {
       <div>
         <span class="example-tag">{{ tag }}</span>
         <h2>{{ title }}</h2>
-        <p>{{ caption }}</p>
       </div>
-      <button class="example-code-button" :aria-label="`View code for ${title}`" @click="$emit('open')">
+      <a v-if="preset" class="example-code-button" :href="withBase(`/guide/playground?preset=${preset}`)"
+        >→ Playground</a
+      >
+      <button v-else class="example-code-button" :aria-label="`View code for ${title}`" @click="$emit('open')">
         <Icon :icon="codeTags" aria-hidden="true" />
         Code
       </button>
     </header>
     <div class="example-stage">
-      <component :is="demo" v-if="ready" ref="instance" />
+      <PresetPreview v-if="ready && preset" :preset="preset" />
+      <component :is="demo" v-else-if="ready" />
     </div>
     <Teleport to="body">
       <div v-if="active" class="example-code-overlay" @click.self="$emit('close')">
@@ -184,11 +188,6 @@ async function copy() {
   font-size: 20px;
   font-weight: 650;
 }
-.example-panel-header p {
-  margin: 5px 0 0;
-  color: var(--vp-c-text-2);
-  font-size: 13px;
-}
 .example-tag {
   color: var(--vp-c-text-2);
   font-size: 10px;
@@ -208,6 +207,14 @@ async function copy() {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+.vp-doc a.example-code-button {
+  color: inherit;
+  text-decoration: none;
+  font-weight: inherit;
+}
+.vp-doc a.example-code-button:hover {
+  color: var(--vp-c-brand-1);
 }
 .example-stage {
   padding: 8px 28px 28px;
@@ -304,6 +311,7 @@ async function copy() {
   color: var(--vp-c-brand-1);
 }
 .example-panel button:focus-visible,
+.example-panel a:focus-visible,
 .example-code-dialog button:focus-visible,
 .example-code-dialog select:focus-visible {
   outline: 2px solid var(--vp-c-brand-1);

@@ -18,15 +18,18 @@ Creates a new Timescope instance with the provided options.
 
 All other option fields are defined in [Timescope Options](/api/timescope-options).
 
-| Key                | Type                                           | Description                                           |
-| ------------------ | ---------------------------------------------- | ----------------------------------------------------- |
-| `time`             | `TimescopeTimeLike`                            | Initial cursor time (use `setTime()` later).          |
-| `timeRange`        | `[TimescopeTimeLike?, TimescopeTimeLike?]`     | Initial timeline bounds (use `setTimeRange()` later). |
-| `zoom`             | `TimescopeNumberLike`                          | Initial zoom (use `setZoom()` later).                 |
-| `zoomRange`        | `[TimescopeNumberLike?, TimescopeNumberLike?]` | Initial zoom limits (use `setZoomRange()` later).     |
-| `target`           | `HTMLElement \| string`                        | Mount target.                                         |
-| `fonts`            | `(string \| { family, source, desc? })[]`      | CSS stylesheets or font definitions to load.          |
-| `wheelSensitivity` | `number`                                       | Wheel delta per zoom level (default: `200`).          |
+| Key                | Type                                                                         | Description                                                       |
+| ------------------ | ---------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `time`             | `TimescopeTimeLike`                                                          | Initial cursor time (use `setTime()` later).                      |
+| `fit`              | `[start, end] \| { range: [start, end], padding?: number \| [left, right] }` | Initial visible time range. Specify instead of `time` and `zoom`. |
+| `timeRange`        | `[TimescopeTimeLike?, TimescopeTimeLike?]`                                   | Initial timeline bounds (use `setTimeRange()` later).             |
+| `zoom`             | `TimescopeNumberLike`                                                        | Initial zoom (use `setZoom()` later).                             |
+| `zoomRange`        | `[TimescopeNumberLike?, TimescopeNumberLike?]`                               | Initial zoom limits (use `setZoomRange()` later).                 |
+| `target`           | `HTMLElement \| string`                                                      | Mount target.                                                     |
+| `fonts`            | `(string \| { family, source, desc? })[]`                                    | CSS stylesheets or font definitions to load.                      |
+| `wheelSensitivity` | `number`                                                                     | Wheel delta per zoom level (default: `200`).                      |
+
+`fit` is applied once when the canvas first has a size. `padding` is in CSS pixels: a number applies to both sides, or use `[left, right]`.
 
 #### Fonts
 
@@ -122,4 +125,4 @@ Value events call the handler with `{ type, value, origin? }`. Lifecycle and `ch
 
 - [Timescope Options](/api/timescope-options)
 - [Chunk Loading](/guide/concepts#chunk-loading)
-- [Events example](/guide/examples/events)
+- [Events example](/guide/examples/#events)

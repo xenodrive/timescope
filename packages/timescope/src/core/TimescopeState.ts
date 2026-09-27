@@ -136,5 +136,6 @@ export class TimescopeState extends TimescopeObservable<
   dispose() {
     this.time.dispose();
     this.zoom.dispose();
+    super.dispose();
   }
 }

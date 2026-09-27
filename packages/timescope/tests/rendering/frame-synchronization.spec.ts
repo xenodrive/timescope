@@ -53,7 +53,7 @@ function fixture() {
   const commands = engine.commands;
   commands.init({ canvas: { ...canvas, getContext: () => ctx } as unknown as HTMLCanvasElement });
   commands['options:update']({
-    padding: [0, 0, 0, 0],
+    cursor: false,
     dataCacheOptions: { a: { immediate: true }, b: { immediate: true } },
   });
   commands.sync({ time: { type: 'set:nullvalue', nullValue: Decimal(10) } });

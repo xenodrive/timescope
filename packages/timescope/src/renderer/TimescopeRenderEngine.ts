@@ -22,7 +22,7 @@ import { TimescopeSeriesChartLayer } from '#src/renderer/layers/TimescopeSeriesC
 import { TimescopeSeriesTooltipLayer } from '#src/renderer/layers/TimescopeSeriesTooltipLayer';
 import { TimescopeTimeAxisLayer } from '#src/renderer/layers/TimescopeTimeAxisLayer';
 import { TimescopeYAxisLayer } from '#src/renderer/layers/TimescopeYAxisLayer';
-import { clipToTrack, renderIndicator, renderTimeRangeInverse } from '#src/renderer/rendering';
+import { clipToTrack, renderCursor, renderTimeRangeInverse } from '#src/renderer/rendering';
 import { TimescopeDataCache, type TimescopeDataCacheOptions } from '#src/renderer/TimescopeDataCache';
 import { TimescopeTrack } from '#src/renderer/TimescopeTrack';
 import { TimescopeViewport } from '#src/renderer/TimescopeViewport';
@@ -757,6 +757,7 @@ export class TimescopeRenderEngine {
 
     let frames = 0;
     let fpsTime = 0;
+    let renderSequence = 0;
     function fpsTick() {
       frames++;
     }
@@ -811,15 +812,27 @@ export class TimescopeRenderEngine {
         layer.render(renderingContext);
       });
 
-      // indicator
-      if (renderingContext.options.indicator !== false) {
-        clipToTrack(renderingContext, null, () => renderIndicator(renderingContext));
+      // cursor
+      if (renderingContext.options.cursor !== false) {
+        clipToTrack(renderingContext, null, () => renderCursor(renderingContext));
       }
 
       // post-render
       forEachLayer((layer) => {
         layer.postRender(renderingContext);
       });
+
+      if (renderingContext.options.showFps) {
+        // Temporary frame marker for inspecting screen recordings. Draw it on the
+        // same canvas, after the chart, so it identifies completed renderSync calls.
+        ctx.save();
+        ctx.fillStyle = '#111';
+        ctx.fillRect(5, 20, 155, 44);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 26px monospace';
+        ctx.fillText(`#${++renderSequence}`, 10, 51);
+        ctx.restore();
+      }
     }
 
     function renderRequired() {

@@ -10,6 +10,4 @@ import ExampleGallery from '../../../.vitepress/theme/components/ExampleGallery.
 
 # Examples
 
-Explore time. Interact with the examples below, or open the code to see how they work.
-
 <ExampleGallery />

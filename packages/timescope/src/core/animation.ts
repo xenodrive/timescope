@@ -163,5 +163,6 @@ export class TimescopeAnimatedValue extends TimescopeObservable {
   dispose() {
     this.#anim.cancel();
     this.#ratio = 1;
+    super.dispose();
   }
 }

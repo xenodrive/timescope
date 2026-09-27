@@ -30,8 +30,4 @@ export class TimescopeLayer<E extends TimescopeEvent<string, unknown> | string =
   pointerStyle(_info: InteractionInfoWire, _timescope: TimescopeRenderingContext): string | void {
     /* noop */
   }
-
-  dispose(): void {
-    /* noop */
-  }
 }

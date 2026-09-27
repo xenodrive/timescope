@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { transformWithOxc } from 'vite';
+import { mountedCode } from '../../../src/guide/examples/module-code.ts';
 
 export interface VanillaExample {
   html: string;
@@ -7,51 +7,40 @@ export interface VanillaExample {
 }
 export declare const data: Record<string, VanillaExample>;
 
-function region(source: string, name: string) {
-  let included = false;
-  let ignored = false;
-  const lines: string[] = [];
-  for (const line of source.split('\n')) {
-    if (line.includes(`#region ${name}`)) {
-      included = true;
-      continue;
-    }
-    if (line.includes(`#endregion ${name}`)) {
-      included = false;
-      continue;
-    }
-    if (line.includes('#region docs-ignore')) {
-      ignored = true;
-      continue;
-    }
-    if (line.includes('#endregion docs-ignore')) {
-      ignored = false;
-      continue;
-    }
-    if (included && !ignored) lines.push(line.replace(/^  /, ''));
-  }
-  return lines.join('\n').trim();
+function source(name: string) {
+  return readFileSync(new URL(`../../../src/guide/examples/${name}`, import.meta.url), 'utf8');
 }
 
 export default {
-  watch: ['../../../src/guide/examples/*.vue'],
-  async load() {
+  watch: ['../../../src/guide/examples/*.vue', '../../../src/guide/examples/*.js'],
+  load() {
+    const examples = [
+      ['events', 'events-demo', '#example-intermediate-values'],
+      ['timezones', 'timezones-demo', '#example-timezones'],
+      ['live-stream', 'live-signal', '#example-live-stream'],
+      ['dynamic-loader', 'dynamic-terrain', '#example-dynamic-loader'],
+      ['decimation', 'decimation-demo', '#example-decimation'],
+      ['financial-chart', 'financial-chart-demo', '#example-financial-chart'],
+      ['audio-waveform', 'audio-waveform-demo', '#example-audio-waveform'],
+    ];
     return Object.fromEntries(
-      await Promise.all(
-        ['events', 'timezones', 'financial-chart', 'audio-waveform'].map(async (name) => {
-          const source = readFileSync(new URL(`../../../src/guide/examples/${name}.vue`, import.meta.url), 'utf8');
-          const code = region(source, 'code');
-          return [
-            name,
-            {
-              html: region(source, 'html')
-                .replace(/<(span|audio)([^>]*?)\s*\/>/g, '<$1$2></$1>')
-                .replace(/\s:class="[^"]*"/g, ''),
-              javascript: (await transformWithOxc(code, `${name}.ts`)).code.replace(/\t/g, '  '),
-            },
-          ];
-        }),
-      ),
+      examples.map(([name, module, target]) => {
+        let javascript = source(`${module}.js`);
+        if (name === 'decimation') {
+          javascript = javascript.replace(
+            "import { vibrationSamples } from './vibration-data.js';",
+            source('vibration-data.js').replace(/^export /gm, ''),
+          );
+        }
+        const html = source(`${name}.vue`)
+          .split('<!-- #region html -->')[1]
+          .split('<!-- #endregion html -->')[0]
+          .replace(/^  /gm, '')
+          .trim()
+          .replace(/<(span|audio)([^>]*?)\s*\/>/g, '<$1$2></$1>')
+          .replace(/\s:class="[^"]*"/g, '');
+        return [name, { html, javascript: mountedCode(javascript, target) }];
+      }),
     );
   },
 };

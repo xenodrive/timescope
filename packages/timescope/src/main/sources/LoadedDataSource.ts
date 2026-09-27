@@ -65,5 +65,6 @@ export abstract class LoadedDataSource<Index, Row = TimescopeDataRowInput> exten
     this.#generation++;
     this.#snapshot = undefined;
     this.notifyChanged();
+    super.dispose();
   }
 }

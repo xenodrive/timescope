@@ -52,6 +52,7 @@ export default defineConfig({
         link: '/guide/getting-started',
       },
       { text: 'Examples', link: '/guide/examples/' },
+      { text: 'Playground', link: '/guide/playground' },
       { text: 'API', link: '/api/timescope' },
     ],
     socialLinks: [{ icon: 'github', link: 'https://github.com/xenodrive/timescope' }],
@@ -62,6 +63,7 @@ export default defineConfig({
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Core Concepts', link: '/guide/concepts' },
+            { text: 'Playground', link: '/guide/playground' },
           ],
         },
         {

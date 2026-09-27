@@ -431,6 +431,7 @@ export class TimescopeView<T extends TimescopeViewPoint> extends TimescopeObserv
     this.#unsubs = [];
     for (const entry of this.#entries.values()) this.#store.releaseChunk(entry);
     this.#entries.clear();
+    super.dispose();
   }
 
   #update(state: TimescopeViewState) {

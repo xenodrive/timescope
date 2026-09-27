@@ -13,7 +13,11 @@ function pulse(time) {
   );
 }
 
-export function createLiveSignal(target, { running = false, speed = 1, onProgress = () => {} } = {}) {
+export function mountLiveSignal(target) {
+  // #region example
+  const toggle = document.getElementById('live-toggle');
+  const follow = document.getElementById('live-follow');
+  let running = false;
   const sampleRate = 100;
   const frameInterval = 1 / 60;
   let index = 600;
@@ -51,13 +55,12 @@ export function createLiveSignal(target, { running = false, speed = 1, onProgres
   };
   const timescope = new Timescope(options);
   timescope.setPlaybackTime(playbackTime);
-  onProgress({ samples: index, time: playbackTime });
   let initialPause = !running;
   const timer = setInterval(async () => {
     if (!running || disposed || appending) return;
     appending = true;
     try {
-      const nextTime = playbackTime + frameInterval * speed;
+      const nextTime = playbackTime + frameInterval;
       const nextIndex = Math.floor(nextTime * sampleRate) + 1;
       const rows = Array.from({ length: nextIndex - index }, () => {
         const time = index++ / sampleRate;
@@ -67,34 +70,33 @@ export function createLiveSignal(target, { running = false, speed = 1, onProgres
       if (disposed) return;
       playbackTime = nextTime;
       timescope.setPlaybackTime(playbackTime);
-      onProgress({ samples: index, time: playbackTime });
     } catch (error) {
       if (!disposed) {
         running = false;
+        toggle.textContent = 'Start';
         console.error('Failed to append signal samples', error);
       }
     } finally {
       appending = false;
     }
   }, frameInterval * 1000);
-  return {
-    timescope,
-    setRunning(value) {
-      if (value && initialPause && timescope.time?.eq(playbackTime)) timescope.setTime(null, false);
-      if (value) initialPause = false;
-      running = value;
-    },
-    setSpeed(value) {
-      speed = value;
-    },
-    follow() {
-      timescope.setTime(null, false);
-    },
-    cleanup() {
-      disposed = true;
-      clearInterval(timer);
-      timescope.dispose();
-      source.dispose?.();
-    },
+  function onToggle() {
+    running = !running;
+    if (running && initialPause && timescope.time?.eq(playbackTime)) timescope.setTime(null, false);
+    if (running) initialPause = false;
+    toggle.textContent = running ? 'Pause' : 'Start';
+  }
+  function onFollow() {
+    timescope.setTime(null, false);
+  }
+  toggle.addEventListener('click', onToggle);
+  follow.addEventListener('click', onFollow);
+  // #endregion example
+  return () => {
+    disposed = true;
+    clearInterval(timer);
+    toggle.removeEventListener('click', onToggle);
+    follow.removeEventListener('click', onFollow);
+    timescope.dispose();
   };
 }

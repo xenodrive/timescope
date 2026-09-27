@@ -19,7 +19,6 @@ export type TimescopeRenderingContext = {
   options: TimescopeRenderEngineOptions;
   tracks: TimescopeTrack[];
   dataCaches: Record<string, TimescopeDataCache<any>>;
-  chart: { ox: number; oy: number; width: number; height: number };
   size: { width: number; height: number };
   symmetric: boolean;
   timeAxis: TimescopeViewport;
@@ -39,8 +38,7 @@ export type TimescopeDataCacheOptionsWire = {
 
 export type TimescopeRenderEngineOptions = {
   showFps?: boolean;
-  padding?: number[];
-  indicator?: boolean;
+  cursor?: boolean | { color?: string; borderColor?: string };
   background?: string;
   selection?: TimescopeOptionsSelection;
   series?: Record<string, { track?: string; tooltip?: false }>;

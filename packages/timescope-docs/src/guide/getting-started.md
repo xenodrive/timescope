@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ExampleSimple from '@/guide/examples/simple-timeline.vue'
+import ExampleSimple from './getting-started-demo.vue'
 </script>
 
 # Getting Started

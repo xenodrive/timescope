@@ -60,12 +60,13 @@ const props = withDefaults(
     ];
     zoom?: number;
     zoomRange?: [number | undefined, number | undefined];
+    fit?: Extract<TimescopeOptionsInitial<Sources, Series, Track>, { fit: unknown }>['fit'];
 
     sources?: TimescopeOptionsSources<Sources>;
     series?: TimescopeOptionsSeries<Sources, Series, Track>;
     tracks?: TimescopeOptionsTracks<Track>;
 
-    indicator?: boolean;
+    cursor?: TimescopeOptions['cursor'];
     selection?: TimescopeOptionsSelection;
 
     selectionRange?: TimescopeRange<Decimal> | null;
@@ -78,7 +79,7 @@ const props = withDefaults(
   {
     width: '100%',
     height: '36px',
-    indicator: true,
+    cursor: true,
     selection: undefined,
   },
 );
@@ -111,9 +112,8 @@ function createTimescopeRef<T extends Combination>(...args: T) {
 const timescope = markRaw(
   new Timescope({
     renderThread: props.renderThread,
-    time: props.time ?? null,
+    ...(props.fit !== undefined ? { fit: props.fit } : { time: props.time ?? null, zoom: props.zoom ?? 0 }),
     timeRange: props.timeRange,
-    zoom: props.zoom ?? 0,
     zoomRange: props.zoomRange,
 
     fonts: props.fonts,
@@ -230,8 +230,8 @@ watch(
 );
 
 watch(
-  () => props.indicator,
-  () => timescope.updateOptions({ indicator: props.indicator } as TimescopeOptions),
+  () => props.cursor,
+  () => timescope.updateOptions({ cursor: props.cursor } as TimescopeOptions),
   { immediate: true, deep: true },
 );
 

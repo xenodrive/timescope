@@ -64,7 +64,7 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
         const time = tooltipData.t[idx];
         if (!time) continue;
         const x = timescope.timeAxis.p(time);
-        const placement = tooltipXPlacement(x, timescope.chart.ox, timescope.chart.ox + timescope.chart.width, sideX);
+        const placement = tooltipXPlacement(x, 5, timescope.size.width - 5, sideX);
 
         /*
         if (s.options.label === false) continue;
@@ -115,7 +115,7 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
         sideX = -sideX;
       }
 
-      disperse(labels, timescope.chart.oy, timescope.chart.oy + timescope.chart.height);
+      disperse(labels, 5, timescope.size.height - 5);
 
       for (const p of labels) {
         p.point.x = p.sticky ? p.cx : p.cx + p.sideX * (p.point.x + 20);

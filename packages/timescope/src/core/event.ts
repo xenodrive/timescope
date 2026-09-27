@@ -9,8 +9,10 @@ export class TimescopeEventEmitter<E extends TimescopeEvent<string, unknown> | s
   uid = setUid(this);
 
   #eventHandlers: Record<string, ((e: ExtractEventValue<E, string>) => void)[]> = {} as any;
+  #disposing = false;
 
   dispatchEvent<T extends string>(event: ExtractEventValue<E, T>) {
+    if (this.#disposing) return;
     const type = typeof event === 'string' ? event : event.type;
     const handlers = this.#eventHandlers[type];
     if (!handlers) return;
@@ -21,6 +23,7 @@ export class TimescopeEventEmitter<E extends TimescopeEvent<string, unknown> | s
   }
 
   on<T extends ExtractEventName<E>>(type: T, cb: (e: ExtractEventValue<E, T>) => void) {
+    if (this.#disposing) return () => {};
     const handlers = this.#eventHandlers[type] ?? [];
     handlers.push(cb as unknown as (x: ExtractEventValue<E, string>) => void);
     this.#eventHandlers[type] = handlers;
@@ -34,6 +37,15 @@ export class TimescopeEventEmitter<E extends TimescopeEvent<string, unknown> | s
 
     const idx = handlers.indexOf(cb as (x: unknown) => void);
     if (idx >= 0) handlers.splice(idx, 1);
+  }
+
+  dispose() {
+    if (this.#disposing) return;
+    this.#disposing = true;
+    // Deliver events already queued before releasing their handlers.
+    queueMicrotask(() => {
+      this.#eventHandlers = {};
+    });
   }
 }
 

@@ -12,7 +12,7 @@ let previousInert = false;
 const filters = ['All', 'Time', 'Data', 'Drawing', 'Applications'];
 
 function syncUrl() {
-  const name = decodeURIComponent(location.hash.slice(1)) || new URL(location.href).searchParams.get('example');
+  const name = decodeURIComponent(location.hash.slice(1));
   if (name && examples.some((example) => example.name === name)) {
     filter.value = 'All';
     void nextTick(() => document.getElementById(name)?.scrollIntoView());
@@ -66,12 +66,10 @@ watch(active, async (name, previous) => {
 onMounted(() => {
   ready.value = true;
   syncUrl();
-  window.addEventListener('popstate', syncUrl);
   window.addEventListener('hashchange', syncUrl);
   document.addEventListener('keydown', keyboard);
 });
 onBeforeUnmount(() => {
-  window.removeEventListener('popstate', syncUrl);
   window.removeEventListener('hashchange', syncUrl);
   document.removeEventListener('keydown', keyboard);
   if (active.value) {

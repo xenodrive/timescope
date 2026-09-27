@@ -11,8 +11,7 @@ titleTemplate: Timescope API
 | Key            | Type                                                 | Behavior                                                       |
 | -------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
 | `style`        | `{ width?, height?, background? }`                   | Sets canvas size and background.                               |
-| `padding`      | `number[]`                                           | Sets canvas padding as `[top, right, bottom, left]`.           |
-| `indicator`    | `boolean`                                            | Shows the cursor indicator. Default: `true`.                   |
+| `cursor`       | `boolean \| { color?, borderColor? }`                | Shows and styles the time cursor. Default: `true`.             |
 | `showFps`      | `boolean`                                            | Shows the FPS overlay.                                         |
 | `renderThread` | `'worker' \| 'main'`                                 | Selects the drawing thread when mounting. Default: `'worker'`. |
 | `sources`      | `Record<string, TimescopeSourceInput>`               | Defines data sources.                                          |
@@ -20,6 +19,8 @@ titleTemplate: Timescope API
 | `series`       | `Record<string, TimescopeSeriesInput>`               | Defines series.                                                |
 | `tracks`       | `Record<string, { height?, symmetric?, timeAxis? }>` | Defines track layout.                                          |
 | `selection`    | `boolean \| { resizable?, color?, invert?, range? }` | Configures range selection.                                    |
+
+The cursor colors default to `color: 'white'` and `borderColor: 'red'`.
 
 ## Rendering Thread
 

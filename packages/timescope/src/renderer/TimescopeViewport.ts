@@ -82,6 +82,7 @@ type TimescopeViewportOptions = {
 export class TimescopeViewport extends TimescopeObservable<TimescopeViewportEvent> {
   dispose() {
     this.#timezoom.dispose();
+    super.dispose();
   }
 
   #timezoom: TimescopeState;

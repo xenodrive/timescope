@@ -1,5 +1,0 @@
----
-titleTemplate: Timescope Examples
----
-
-<!-- @content -->

@@ -116,6 +116,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
 
   dispose() {
     this.#timeAnimation.cancel();
+    super.dispose();
   }
 
   get candidate() {

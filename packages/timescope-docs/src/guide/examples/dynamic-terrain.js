@@ -22,39 +22,22 @@ function terrain(time, resolution) {
   return height;
 }
 
-export function createTerrainDemo(target, { latency = 450, time = 512, zoom = -1, onProgress = () => {} } = {}) {
+export function mountTerrain(target) {
+  // #region example
   let alive = true;
-  let pending = 0;
-  let sequence = 0;
   const timers = new Map();
-  let publishFrame = 0;
-
-  function publish() {
-    // Batch UI notifications only. Completing a load never invalidates a source.
-    if (publishFrame || !alive) return;
-    publishFrame = requestAnimationFrame(() => {
-      publishFrame = 0;
-      if (!alive) return;
-      onProgress({ pending, total: sequence });
-    });
-  }
 
   function delayed(loader) {
     return async (request) => {
       if (!alive) return [];
-      sequence++;
-      pending++;
-      publish();
       await new Promise((resolve) => {
         const timer = setTimeout(() => {
           timers.delete(timer);
           resolve();
-        }, latency);
+        }, 450);
         timers.set(timer, resolve);
       });
-      pending--;
       if (!alive) return [];
-      publish();
       return loader(request);
     };
   }
@@ -89,8 +72,8 @@ export function createTerrainDemo(target, { latency = 450, time = 512, zoom = -1
   const options = {
     target,
     style: { height: '350px' },
-    time,
-    zoom,
+    time: 512,
+    zoom: -1,
     zoomRange: [-6, 12],
     sources: { terrain: source, chunks },
     series: {
@@ -133,26 +116,14 @@ export function createTerrainDemo(target, { latency = 450, time = 512, zoom = -1
     },
   };
   const timescope = new Timescope(options);
-  return {
-    timescope,
-    setLatency(value) {
-      latency = value;
-    },
-    reload() {
-      source.invalidate();
-      chunks.invalidate();
-    },
-    cleanup() {
-      alive = false;
-      cancelAnimationFrame(publishFrame);
-      for (const [timer, resolve] of timers) {
-        clearTimeout(timer);
-        resolve();
-      }
-      timers.clear();
-      timescope.dispose();
-      source.dispose?.();
-      chunks.dispose?.();
-    },
+  // #endregion example
+  return () => {
+    alive = false;
+    for (const [timer, resolve] of timers) {
+      clearTimeout(timer);
+      resolve();
+    }
+    timers.clear();
+    timescope.dispose();
   };
 }

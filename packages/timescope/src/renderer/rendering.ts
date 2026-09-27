@@ -19,10 +19,6 @@ export function clipToTrack(
   } else {
     renderingContext.renderingTrack = null;
   }
-  renderingContext.chart.ox = renderingContext.options.padding![3] ?? 0;
-  renderingContext.chart.oy = renderingContext.options.padding![0] ?? 0;
-  renderingContext.chart.width = size.width - renderingContext.chart.ox - renderingContext.options.padding![1];
-  renderingContext.chart.height = size.height - renderingContext.chart.oy - renderingContext.options.padding![2];
   renderingContext.size.width = size.width;
   renderingContext.size.height = size.height;
   ctx.beginPath();
@@ -71,13 +67,14 @@ export function renderTimeRangeInverse(
   if (r < width) ctx.fillRect(r, 0, width - r, height);
 }
 
-export function renderIndicator(timescope: TimescopeRenderingContext) {
+export function renderCursor(timescope: TimescopeRenderingContext) {
   const ctx = timescope.ctx;
   const height = timescope.size.height;
   const x = Math.round(timescope.timeAxis.cursor.p);
 
-  ctx.fillStyle = 'white';
-  ctx.strokeStyle = 'red';
+  const cursor = timescope.options.cursor;
+  ctx.fillStyle = typeof cursor === 'object' ? (cursor.color ?? 'white') : 'white';
+  ctx.strokeStyle = typeof cursor === 'object' ? (cursor.borderColor ?? 'red') : 'red';
   ctx.lineWidth = 1;
   ctx.fillRect(x - 1, 0, 3, height);
 

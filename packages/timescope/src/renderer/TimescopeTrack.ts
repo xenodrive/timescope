@@ -47,6 +47,7 @@ export class TimescopeTrack extends TimescopeObservable {
       state.fade.dispose();
     }
     this.#states.clear();
+    super.dispose();
   }
 
   id: string;

@@ -77,7 +77,7 @@ describe('renderer integration', () => {
         b: { data: { source: 'b' } },
       },
     });
-    renderer.updateOptions({ padding: [10] });
+    renderer.updateOptions({ cursor: { color: '#fff', borderColor: '#f00' } });
     expect(disposed).not.toHaveBeenCalled();
     expect(seriesDisposed).not.toHaveBeenCalled();
     renderer.updateOptions({ series: { a: { data: { source: 'a' }, tooltip: { format: makeFormat('second') } } } });
@@ -143,7 +143,7 @@ describe('renderer integration', () => {
         },
       },
       tracks: { default: { timeAxis: false } },
-      indicator: false,
+      cursor: false,
     });
     renderer.resize({ size: { width: 200, height: 100 }, context: { dpr: 1 } });
     renderer.sync({ time: { type: 'restore', value: Decimal(10), domain: [undefined, undefined] } });
@@ -261,7 +261,7 @@ describe('renderer integration', () => {
     const engine = new TimescopeRenderEngine({ call, layers: [layer] });
     cleanups.push(() => engine.dispose());
     engine.commands.init({ canvas: canvas() });
-    engine.commands['options:update']({ padding: [0, 0, 0, 0], dataCacheOptions: { sample: {} } });
+    engine.commands['options:update']({ cursor: false, dataCacheOptions: { sample: {} } });
     engine.commands['frame:latch']();
     const captured = await engine.commands['frame:capture']({ time: Decimal(10) });
     if (!captured.ok) throw new Error(captured.message);

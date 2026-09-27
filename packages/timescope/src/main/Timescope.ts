@@ -115,6 +115,8 @@ export class Timescope<
 
   #loaded = false;
   #frameLatch: ActiveFrameLatch | null = null;
+  #disposing = false;
+  #initialFit: { range: TimescopeRange<TimeLike<never>>; padding?: TimescopeFitOptions['padding'] } | null = null;
 
   get time(): Decimal | null {
     return this.#state.time.committing?.clone() ?? null;
@@ -125,6 +127,7 @@ export class Timescope<
   }
 
   setTime(v: TimeLike | null, animation?: TimescopeAnimationInput) {
+    this.#initialFit = null;
     if (this.#frameLatch?.state === 'committing') this.#supersedeFrameLatch();
     else if (this.#frameLatch?.state === 'finished') this.#frameLatch.superseded = true;
     if (this.#frameLatch?.state === 'open') {
@@ -174,6 +177,7 @@ export class Timescope<
   }
 
   setZoom(v: ZoomLike, animation?: TimescopeAnimationInput) {
+    this.#initialFit = null;
     if (this.#frameLatch?.state === 'committing') this.#supersedeFrameLatch();
     else if (this.#frameLatch?.state === 'finished') this.#frameLatch.superseded = true;
     if (this.#frameLatch?.state === 'open') {
@@ -280,12 +284,9 @@ export class Timescope<
   fitTo(range: TimescopeRange<TimeLike<never>>, opts?: TimescopeFitOptions) {
     if (!this.#size.width) return false;
 
-    const padding =
-      typeof opts?.padding === 'number'
-        ? opts.padding * 2
-        : Array.isArray(opts?.padding)
-          ? opts.padding.reduce((acc, val) => acc + val)
-          : 0;
+    const [left, right] = typeof opts?.padding === 'number' ? [opts.padding, opts.padding] : (opts?.padding ?? [0, 0]);
+    const padding = left + right;
+    if (!Number.isFinite(padding) || padding < 0 || this.#size.width <= padding) return false;
 
     const rangeDecimal = range.map((t) => parseTimeLike(t));
     const resolution = rangeDecimal[1]
@@ -294,7 +295,10 @@ export class Timescope<
       .abs();
 
     const zoom = zoomFor(resolution);
-    const time = rangeDecimal[0].add(rangeDecimal[1]).divExact(2);
+    const time = rangeDecimal[0]
+      .add(rangeDecimal[1])
+      .divExact(2)
+      .add(resolution.mul((right - left) / 2));
 
     let r = true;
     r &&= this.setZoom(zoom, opts?.animation !== false ? undefined : false);
@@ -429,6 +433,15 @@ export class Timescope<
 
     this.#renderer.resize({ size: { width, height }, context: { dpr } });
 
+    if (
+      this.#initialFit &&
+      width > 0 &&
+      height > 0 &&
+      this.fitTo(this.#initialFit.range, { padding: this.#initialFit.padding, animation: false })
+    ) {
+      this.#initialFit = null;
+    }
+
     this.dispatchEvent('resize');
 
     if (!this.#loaded && width > 0 && height > 0) {
@@ -467,7 +480,25 @@ export class Timescope<
     super();
 
     const _opts = opts ?? {};
-    this.#state = new TimescopeState(_opts);
+    if (_opts.fit !== undefined) {
+      if ('time' in _opts || 'zoom' in _opts) throw new TypeError('fit cannot be combined with time or zoom');
+      const fit = Array.isArray(_opts.fit) ? { range: _opts.fit } : _opts.fit;
+      const [start, end] = fit.range.map((value) => parseTimeLike(value));
+      if (!end.gt(start)) throw new RangeError('fit range must be increasing');
+      const padding = fit.padding;
+      if (
+        padding !== undefined &&
+        (typeof padding === 'number'
+          ? !Number.isFinite(padding) || padding < 0
+          : padding.length !== 2 || padding.some((value) => !Number.isFinite(value) || value < 0))
+      ) {
+        throw new RangeError('fit padding must be non-negative and finite');
+      }
+      this.#initialFit = { range: fit.range, padding };
+      this.#state = new TimescopeState({ ..._opts, time: start.add(end).divExact(2) });
+    } else {
+      this.#state = new TimescopeState(_opts);
+    }
     this.#installTimeZoomEventHandler();
 
     this.#options = { style: undefined, ..._opts } as TimescopeOptions;
@@ -476,7 +507,7 @@ export class Timescope<
     this.#wheelSensitivity = _opts.wheelSensitivity ?? 200;
 
     queueMicrotask(() => {
-      if (_opts.target) this.mount(_opts.target);
+      if (_opts.target && !this.#disposing) this.mount(_opts.target);
     });
   }
 
@@ -489,6 +520,7 @@ export class Timescope<
   }
 
   mount(target: HTMLElement | string) {
+    if (this.#disposing) throw new Error('Timescope is disposed');
     const el = typeof target === 'string' ? document.querySelector(target) : target;
     if (!el) throw new Error('mount failed');
 
@@ -598,7 +630,12 @@ export class Timescope<
   }
 
   dispose() {
+    if (this.#disposing) return;
     this.unmount();
-    this.#state.dispose();
+    this.#disposing = true;
+    queueMicrotask(() => {
+      this.#state.dispose();
+      super.dispose();
+    });
   }
 }

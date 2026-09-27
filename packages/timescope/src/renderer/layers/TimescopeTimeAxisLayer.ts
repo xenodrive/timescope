@@ -69,6 +69,7 @@ export class TimescopeTimeAxisLayer extends TimescopeLayer {
 
   override dispose(): void {
     this.#labelY.dispose();
+    super.dispose();
   }
 
   #renderLabels(timescope: TimescopeRenderingContext): void {
