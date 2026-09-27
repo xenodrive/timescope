@@ -10,7 +10,7 @@ import type {
 } from '#src/bridge/protocol';
 import type { RenderCall, RenderNotify } from '#src/bridge/rpc';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
-import { mergeOptions } from '#src/core/options';
+import type { TimescopeRange } from '#src/core/range';
 import { resolutionFor } from '#src/core/zoom';
 import { resolveDocumentFonts, resolveFonts } from '#src/main/font';
 import type { TimescopeFont } from '#src/main/font';
@@ -20,7 +20,8 @@ import { TimescopeSeriesChart } from '#src/main/layers/TimescopeSeriesChart';
 import { TimescopeSeriesTooltip } from '#src/main/layers/TimescopeSeriesTooltip';
 import { TimescopeTimeAxis } from '#src/main/layers/TimescopeTimeAxis';
 import { TimescopeYAxis } from '#src/main/layers/TimescopeYAxis';
-import type { TimescopeDomainOptions, TimescopeOptions } from '#src/main/options';
+import { mergeTimescopeOptions } from '#src/main/optionRuntime';
+import { type TimescopeDomainOptions, type TimescopeOptions, type TimescopeUpdateOptions } from '#src/main/options';
 import { createDataSeries, type TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
 import { createDataSource, type TimescopeDataSource } from '#src/main/TimescopeDataSource';
 import { TimescopeDomain } from '#src/main/TimescopeDomain';
@@ -47,11 +48,13 @@ const colorPresets = ['#080', '#800', '#008', '#880', '#088', '#808'];
 const defaultRendererOptions: TimescopeOptions = {
   style: undefined,
   cursor: true,
+  showFps: false,
 
   sources: undefined,
   series: undefined,
   tracks: undefined,
-  selection: undefined,
+  domains: undefined,
+  selection: true,
 };
 
 export type TimescopeRendererOptions = {
@@ -225,7 +228,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
 
   setOptions(options: TimescopeOptions) {
     this.#options = {};
-    this.updateOptions({ ...defaultRendererOptions, ...options });
+    this.updateOptions({ ...defaultRendererOptions, ...options }, true);
   }
 
   #options: TimescopeOptions = {};
@@ -249,30 +252,43 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
     return (this.#domainsBySeries[seriesKey] = new TimescopeDomain(options, seriesName ?? seriesKey));
   }
 
-  updateOptions(options: TimescopeOptions) {
+  setSelectionRange(range: TimescopeRange<Decimal> | null) {
+    this.call('options:update', { selectionRange: range });
+  }
+
+  updateOptions(options: TimescopeUpdateOptions, reset = false) {
     if (this.#disposed) return;
     const { sources, ...otherOptions } = options;
+    const sourcesUpdated = 'sources' in options && (reset || sources !== undefined);
+    const seriesUpdated = 'series' in options && (reset || options.series !== undefined);
+    const tracksUpdated = 'tracks' in options && (reset || options.tracks !== undefined);
+    const domainsUpdated = 'domains' in options && (reset || options.domains !== undefined);
     const previousSourceOptions = this.#options.sources;
-    mergeOptions(this.#options, otherOptions);
-    if ('sources' in options) {
-      this.#options.sources = sources === undefined ? undefined : { ...(this.#options.sources ?? {}), ...sources };
+    mergeTimescopeOptions(this.#options, otherOptions);
+    if (sourcesUpdated) {
+      if (sources === undefined) this.#options.sources = undefined;
+      else mergeTimescopeOptions(this.#options, { sources });
     }
 
     const optionsForWorker: TimescopeRenderEngineOptions = {};
     if ('showFps' in options) optionsForWorker.showFps = options.showFps;
-    if ('cursor' in options) optionsForWorker.cursor = options.cursor;
+    if ('cursor' in options) optionsForWorker.cursor = this.#options.cursor;
     if ('style' in options) optionsForWorker.background = this.#options.style?.background ?? '#fff';
     if ('selection' in options) optionsForWorker.selection = options.selection;
+    if (reset || ('selection' in options && options.selection === undefined)) optionsForWorker.selectionReset = true;
 
     let changed = false;
     const releasedSources: TimescopeDataSource<any>[] = [];
     let domainsChanged = false;
-    if ('sources' in options) {
+    if (sourcesUpdated) {
       const next: Record<string, TimescopeDataSource<any>> = {};
       const created: TimescopeDataSource<any>[] = [];
       try {
         for (const [key, value] of Object.entries(this.#options.sources ?? {})) {
-          next[key] = sources && Object.hasOwn(sources, key) ? createDataSource(value) : this.#sources[key];
+          next[key] =
+            sources && Object.hasOwn(sources, key) && sources[key] !== undefined
+              ? createDataSource(value)
+              : this.#sources[key];
           if (next[key] !== this.#sources[key]) changed = true;
           if (sources && Object.hasOwn(sources, key) && next[key] !== value) created.push(next[key]);
         }
@@ -291,7 +307,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
     }
 
     try {
-      if ('domains' in options) {
+      if (domainsUpdated) {
         const next = this.#options.domains ?? {};
         const nextKeys = new Set(Object.keys(next));
         for (const key of nextKeys) {
@@ -309,7 +325,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
         domainsChanged = true;
       }
 
-      if (changed || 'series' in options || 'tracks' in options || domainsChanged) {
+      if (changed || seriesUpdated || tracksUpdated || domainsChanged) {
         const sourcesChanged = changed;
         for (const [seriesKey, opts] of Object.entries(this.#options.series ?? {})) {
           if (
@@ -344,9 +360,9 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
           if (!seriesKeys.has(key)) delete this.#domainsBySeries[key];
         }
 
-        if ('tracks' in options) changed = true;
+        if (tracksUpdated) changed = true;
 
-        if (changed || domainsChanged || 'series' in options || 'tracks' in options) {
+        if (changed || domainsChanged || seriesUpdated || tracksUpdated) {
           const mappings: LayerDataMapping[] = [];
           for (const [trackKey, track] of Object.entries(this.#options.tracks ?? { default: {} })) {
             if (!TimescopeTimeAxis.isEnabled(track.timeAxis)) continue;
@@ -429,7 +445,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
         }
       }
 
-      if ('series' in options) {
+      if (seriesUpdated) {
         if (this.#options.series === undefined) {
           optionsForWorker.series = undefined;
         } else {
@@ -443,7 +459,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
           optionsForWorker.series = seriesForWorker;
         }
       }
-      if ('tracks' in options) {
+      if (tracksUpdated) {
         if (this.#options.tracks === undefined) {
           optionsForWorker.tracks = undefined;
         } else {

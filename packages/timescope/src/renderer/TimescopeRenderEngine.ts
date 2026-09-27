@@ -433,6 +433,8 @@ export class TimescopeRenderEngine {
       if ('series' in options) renderingContext.options.series = options.series;
       if ('tracks' in options) renderingContext.options.tracks = options.tracks;
       if ('dataCacheOptions' in options) renderingContext.options.dataCacheOptions = options.dataCacheOptions;
+      if ('cursor' in options) renderingContext.options.cursor = options.cursor;
+      if ('selection' in options) renderingContext.options.selection = options.selection;
       mergeOptions(renderingContext.options, options);
 
       if (options.dataCacheOptions) maintainDataCaches(renderingContext);
@@ -465,6 +467,8 @@ export class TimescopeRenderEngine {
       if ('series' in options) deferredOptions.series = options.series;
       if ('tracks' in options) deferredOptions.tracks = options.tracks;
       if ('dataCacheOptions' in options) deferredOptions.dataCacheOptions = options.dataCacheOptions;
+      if ('cursor' in options) deferredOptions.cursor = options.cursor;
+      if ('selection' in options) deferredOptions.selection = options.selection;
     }
 
     function applyDeferredFrameChanges() {

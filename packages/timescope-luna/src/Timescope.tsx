@@ -32,6 +32,7 @@ type TimescopeProps<
   >;
   zoom?: MaybeAccessor<number | undefined>;
   zoomRange?: MaybeAccessor<[number | undefined, number | undefined] | undefined>;
+  fit?: MaybeAccessor<Extract<TimescopeOptionsInitial<Sources, Series, Track>, { fit: unknown }>['fit'] | undefined>;
 
   sources?: MaybeAccessor<TimescopeOptionsSources<Sources> | undefined>;
   series?: MaybeAccessor<TimescopeOptionsSeries<Sources, Series, Track> | undefined>;
@@ -72,11 +73,23 @@ function TimescopeComponent<
   const props = props_;
   const timescope = new Timescope<Sources, Series, Track>({
     renderThread: readProp(props.renderThread),
-    time: readProp(props.time) ?? null,
+    ...(readProp(props.fit) !== undefined
+      ? { fit: readProp(props.fit)! }
+      : { time: readProp(props.time) ?? null, zoom: readProp(props.zoom) ?? 0 }),
     timeRange: readProp(props.timeRange),
-    zoom: readProp(props.zoom) ?? 0,
     zoomRange: readProp(props.zoomRange),
     fonts: readProp(props.fonts),
+    sources: readProp(props.sources),
+    series: readProp(props.series),
+    tracks: readProp(props.tracks),
+    domains: readProp(props.domains),
+    selection:
+      readProp(props.selectionRange) === undefined || readProp(props.selection) === false
+        ? readProp(props.selection)
+        : {
+            ...(typeof readProp(props.selection) === 'object' ? (readProp(props.selection) as object) : {}),
+            range: readProp(props.selectionRange),
+          },
   });
 
   timescope.on('timeanimating', (e) => props.onTimeAnimating?.(e.value));
@@ -123,17 +136,23 @@ function TimescopeComponent<
       },
     });
   });
+  let dataPropsInitialized = false;
   effect(() => {
-    timescope.updateOptions({ sources: readProp(props.sources) });
-  });
-  effect(() => {
-    timescope.updateOptions({ series: readProp(props.series) });
-  });
-  effect(() => {
-    timescope.updateOptions({ tracks: readProp(props.tracks) });
-  });
-  effect(() => {
-    timescope.updateOptions({ domains: readProp(props.domains) });
+    const sources = readProp(props.sources);
+    const series = readProp(props.series);
+    const tracks = readProp(props.tracks);
+    const domains = readProp(props.domains);
+    if (!dataPropsInitialized) {
+      dataPropsInitialized = true;
+      return;
+    }
+    timescope.setOptions({
+      ...timescope.options,
+      sources,
+      series,
+      tracks,
+      domains,
+    } as TimescopeOptions<Sources, Series, Track>);
   });
   effect(() => {
     timescope.updateOptions({ cursor: readProp(props.cursor) ?? true });
@@ -142,7 +161,10 @@ function TimescopeComponent<
     if (props.selection !== undefined) timescope.updateOptions({ selection: readProp(props.selection) });
   });
   effect(() => {
-    timescope.updateOptions({ showFps: readProp(props.showFps), renderThread: readProp(props.renderThread) });
+    timescope.updateOptions({
+      showFps: readProp(props.showFps),
+      renderThread: readProp(props.renderThread),
+    });
   });
 
   onCleanup(() => {

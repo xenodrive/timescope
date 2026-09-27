@@ -3,6 +3,7 @@ import { createEffect, onCleanup, untrack } from 'solid-js';
 import {
   Timescope,
   TimescopeOptions,
+  TimescopeOptionsDomains,
   TimescopeOptionsInitial,
   TimescopeOptionsSelection,
   TimescopeOptionsSeries,
@@ -29,10 +30,12 @@ type TimescopeProps<
   ];
   zoom?: number;
   zoomRange?: [number | undefined, number | undefined];
+  fit?: Extract<TimescopeOptionsInitial<Sources, Series, Track>, { fit: unknown }>['fit'];
 
   sources?: TimescopeOptionsSources<Sources>;
   series?: TimescopeOptionsSeries<Sources, Series, Track>;
   tracks?: TimescopeOptionsTracks<Track>;
+  domains?: TimescopeOptionsDomains;
 
   cursor?: TimescopeOptions['cursor'];
   selection?: TimescopeOptionsSelection;
@@ -65,11 +68,24 @@ function TimescopeComponent<
 >(props: TimescopeProps<Sources, Series, Track>) {
   const timescope = new Timescope<Sources, Series, Track>({
     renderThread: untrack(() => props.renderThread),
-    time: untrack(() => props.time ?? null),
+    ...(untrack(() => props.fit) !== undefined
+      ? { fit: untrack(() => props.fit)! }
+      : { time: untrack(() => props.time ?? null), zoom: untrack(() => props.zoom ?? 0) }),
     timeRange: untrack(() => props.timeRange),
-    zoom: untrack(() => props.zoom ?? 0),
     zoomRange: untrack(() => props.zoomRange),
     fonts: untrack(() => props.fonts),
+    sources: untrack(() => props.sources),
+    series: untrack(() => props.series),
+    tracks: untrack(() => props.tracks),
+    domains: untrack(() => props.domains),
+    selection: untrack(() =>
+      props.selectionRange === undefined || props.selection === false
+        ? props.selection
+        : {
+            ...(typeof props.selection === 'object' ? props.selection : {}),
+            range: props.selectionRange,
+          },
+    ),
   });
 
   createEffect(() => {
@@ -132,17 +148,30 @@ function TimescopeComponent<
   });
   createEffect(() => {
     timescope.updateOptions({
-      style: { width: props.width ?? '100%', height: props.height ?? '36px', background: props.background },
+      style: {
+        width: props.width ?? '100%',
+        height: props.height ?? '36px',
+        background: props.background,
+      },
     });
   });
+  let dataPropsInitialized = false;
   createEffect(() => {
-    timescope.updateOptions({ sources: props.sources });
-  });
-  createEffect(() => {
-    timescope.updateOptions({ series: props.series });
-  });
-  createEffect(() => {
-    timescope.updateOptions({ tracks: props.tracks });
+    const sources = props.sources;
+    const series = props.series;
+    const tracks = props.tracks;
+    const domains = props.domains;
+    if (!dataPropsInitialized) {
+      dataPropsInitialized = true;
+      return;
+    }
+    timescope.setOptions({
+      ...timescope.options,
+      sources,
+      series,
+      tracks,
+      domains,
+    } as TimescopeOptions<Sources, Series, Track>);
   });
   createEffect(() => {
     timescope.updateOptions({ cursor: props.cursor ?? true });

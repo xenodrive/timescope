@@ -4,7 +4,7 @@ titleTemplate: Timescope API
 
 # Timescope Options
 
-`TimescopeOptions` is accepted by `setOptions()` and `updateOptions()`. The constructor accepts `TimescopeOptionsInitial`, which includes these options and the fields listed in [Timescope](/api/timescope#options-constructor-only).
+`TimescopeOptions` is accepted by `setOptions()`. `updateOptions()` accepts partial options and supports deleting named entries with `null`. The constructor accepts `TimescopeOptionsInitial`, which includes the same configurable options and the initial-only fields listed in [Timescope](/api/timescope#options-constructor-only). Configurable options have the same effect in the constructor and `setOptions()`.
 
 ## Options
 
@@ -18,7 +18,7 @@ titleTemplate: Timescope API
 | `domains`      | `Record<string, TimescopeDomainOptions>`             | Defines shared value domains.                                  |
 | `series`       | `Record<string, TimescopeSeriesInput>`               | Defines series.                                                |
 | `tracks`       | `Record<string, { height?, symmetric?, timeAxis? }>` | Defines track layout.                                          |
-| `selection`    | `boolean \| { resizable?, color?, invert?, range? }` | Configures range selection.                                    |
+| `selection`    | `boolean \| { resizable?, color?, invert? }`         | Configures range selection.                                    |
 
 The cursor colors default to `color: 'white'` and `borderColor: 'red'`.
 
@@ -163,7 +163,7 @@ source.invalidate([latestDataTime, undefined]); // The live tail, at every resol
 
 Shared Sources are disposed when their last renderer releases them; standalone Sources require `dispose()`. Renaming within one update preserves the instance.
 
-`updateOptions()` retains omitted entries, recreates explicitly configured Sources, reuses supplied Source instances, and rebuilds updated Series from merged settings. `setOptions()` replaces all settings. Callbacks retain their closures.
+`updateOptions()` retains omitted entries, recreates explicitly configured Sources, reuses supplied Source instances, and rebuilds updated Series from merged settings. Use `null` for an individual `sources`, `series`, `tracks`, or `domains` entry to remove it (for example, `updateOptions({ series: { old: null } })`). Updates that leave a Series referring to a missing Source, Track, or named Domain are rejected. `setOptions()` replaces all settings, including renderer defaults. Callbacks retain their closures.
 
 ### Reusable DataLoader
 
@@ -390,6 +390,8 @@ Mark callbacks receive `{ times, values, data, resolution }`; link callbacks rec
 
 ## Tracks
 
+Omitting `tracks` creates an implicit `default` track. Explicit `tracks: {}` is invalid, including when reached by deleting the last track with `updateOptions()`.
+
 | Key         | Type                                  | Behavior                                   |
 | ----------- | ------------------------------------- | ------------------------------------------ |
 | `height`    | `number`                              | Sets a fixed height in pixels.             |
@@ -418,16 +420,15 @@ The time axis is drawn at the Track's [shared baseline](/guide/concepts#shared-b
 
 Selection is resizable by default. Shift-drag creates a range.
 
-| Value or key | Type                         | Behavior                                   |
-| ------------ | ---------------------------- | ------------------------------------------ |
-| `false`      | `boolean`                    | Disables selection.                        |
-| `true`       | `boolean`                    | Enables default selection behavior.        |
-| `resizable`  | `boolean`                    | Enables creating and resizing a selection. |
-| `color`      | `string`                     | Sets overlay color.                        |
-| `invert`     | `boolean`                    | Shades outside the selected range.         |
-| `range`      | `[Decimal, Decimal] \| null` | Sets or clears the selected range.         |
+| Value or key | Type      | Behavior                                   |
+| ------------ | --------- | ------------------------------------------ |
+| `false`      | `boolean` | Disables selection.                        |
+| `true`       | `boolean` | Enables default selection behavior.        |
+| `resizable`  | `boolean` | Enables creating and resizing a selection. |
+| `color`      | `string`  | Sets overlay color.                        |
+| `invert`     | `boolean` | Shades outside the selected range.         |
 
-`setSelectionRange()` and `clearSelectionRange()` update the range at runtime.
+`selection.range` is accepted **only by the constructor** as the initial selected range. It is consumed during construction and does not appear in `timescope.options`. `setSelectionRange()` and `clearSelectionRange()` update the current `selectionRange` at runtime without changing `options.selection`. Replacing options without `selection` does not clear the current range; explicitly setting `selection: false` disables selection and clears it.
 
 ## Domains
 

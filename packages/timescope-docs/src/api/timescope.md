@@ -28,6 +28,7 @@ All other option fields are defined in [Timescope Options](/api/timescope-option
 | `target`           | `HTMLElement \| string`                                                      | Mount target.                                                     |
 | `fonts`            | `(string \| { family, source, desc? })[]`                                    | CSS stylesheets or font definitions to load.                      |
 | `wheelSensitivity` | `number`                                                                     | Wheel delta per zoom level (default: `200`).                      |
+| `selection.range`  | `[TimescopeTimeLike, TimescopeTimeLike] \| null`                             | Initial selection only; use `setSelectionRange()` later.          |
 
 `fit` is applied once when the canvas first has a size. `padding` is in CSS pixels: a number applies to both sides, or use `[left, right]`.
 
@@ -37,23 +38,23 @@ When omitted, Timescope loads fonts declared by accessible `@font-face` rules in
 
 ## Properties
 
-| Property                 | Type                                                           | Description                             |
-| ------------------------ | -------------------------------------------------------------- | --------------------------------------- |
-| `time`                   | `Decimal \| null`                                              | Current cursor time                     |
-| `timeChanging`           | `Decimal \| null`                                              | Cursor time during an active change     |
-| `timeAnimating`          | `Decimal \| null`                                              | Cursor time during animation            |
-| `timeRange`              | `[Decimal \| null \| undefined, Decimal \| null \| undefined]` | Time bounds                             |
-| `zoom`                   | `number`                                                       | Current zoom value                      |
-| `zoomChanging`           | `number`                                                       | Zoom during an active change            |
-| `zoomAnimating`          | `number`                                                       | Zoom during animation                   |
-| `zoomRange`              | `[number \| undefined, number \| undefined]`                   | Zoom limits                             |
-| `selectionRange`         | `[Decimal, Decimal] \| null`                                   | Current selection range                 |
-| `selectionRangeChanging` | `[Decimal, Decimal] \| null`                                   | Selection range during an active change |
-| `size`                   | `{ x, y, width, height, dpr }`                                 | Canvas position, dimensions, and DPR    |
-| `disabled`               | `boolean`                                                      | Interaction enabled/disabled            |
-| `animating`              | `boolean`                                                      | Cursor-time animation in progress       |
-| `editing`                | `boolean`                                                      | Cursor time is being edited             |
-| `options`                | `TimescopeOptions`                                             | Current reconfigurable options          |
+| Property                 | Type                                                           | Description                                                                               |
+| ------------------------ | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `time`                   | `Decimal \| null`                                              | Current cursor time                                                                       |
+| `timeChanging`           | `Decimal \| null`                                              | Cursor time during an active change                                                       |
+| `timeAnimating`          | `Decimal \| null`                                              | Cursor time during animation                                                              |
+| `timeRange`              | `[Decimal \| null \| undefined, Decimal \| null \| undefined]` | Time bounds                                                                               |
+| `zoom`                   | `number`                                                       | Current zoom value                                                                        |
+| `zoomChanging`           | `number`                                                       | Zoom during an active change                                                              |
+| `zoomAnimating`          | `number`                                                       | Zoom during animation                                                                     |
+| `zoomRange`              | `[number \| undefined, number \| undefined]`                   | Zoom limits                                                                               |
+| `selectionRange`         | `[Decimal, Decimal] \| null`                                   | Current selection range                                                                   |
+| `selectionRangeChanging` | `[Decimal, Decimal] \| null`                                   | Selection range during an active change                                                   |
+| `size`                   | `{ x, y, width, height, dpr }`                                 | Canvas position, dimensions, and DPR                                                      |
+| `disabled`               | `boolean`                                                      | Interaction enabled/disabled                                                              |
+| `animating`              | `boolean`                                                      | Cursor-time animation in progress                                                         |
+| `editing`                | `boolean`                                                      | Cursor time is being edited                                                               |
+| `options`                | `TimescopeOptions`                                             | Current reconfigurable configuration (excludes constructor-only fields and current state) |
 
 ## Methods
 
@@ -77,7 +78,7 @@ When omitted, Timescope loads fonts declared by accessible `@font-face` rules in
 | `dispose()`                  | Release resources when Timescope is no longer needed.                                                     |
 | `on(event, handler)`         | Subscribe to events. Returns an unsubscribe function.                                                     |
 
-`setOptions()` replaces the current configurable options. `updateOptions()` applies partial changes while retaining omitted options.
+`setOptions()` replaces the current configurable options; it has the same effect as supplying those options to the constructor, except for constructor-only initial state. `updateOptions()` applies partial changes while retaining omitted options. Set individual `sources`, `series`, `tracks`, or `domains` entries to `null` to remove them. Neither method changes the current selection range unless selection is explicitly disabled.
 
 ### Animation
 

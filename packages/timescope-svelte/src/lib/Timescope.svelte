@@ -23,10 +23,12 @@
     ];
     zoom?: number;
     zoomRange?: [number | undefined, number | undefined];
+    fit?: Extract<TimescopeOptionsInitial<Record<string, TimescopeSourceInput>, Record<string, TimescopeSeriesInput>, string>, { fit: unknown }>['fit'];
 
     sources?: TimescopeOptions['sources'];
     series?: TimescopeOptions['series'];
     tracks?: TimescopeOptions['tracks'];
+    domains?: TimescopeOptions['domains'];
 
     cursor?: TimescopeOptions['cursor'];
     selection?: TimescopeOptionsSelection;
@@ -67,6 +69,8 @@
     sources,
     series,
     tracks,
+    domains,
+    fit,
     cursor = true,
     selection,
     selectionRange = $bindable<TimescopeRange<Decimal> | null | undefined>(undefined),
@@ -83,11 +87,17 @@
   onMount(() => {
     timescope = new Timescope({
       renderThread,
-      time: time ?? null,
+      ...(fit !== undefined ? { fit } : { time: time ?? null, zoom: zoom ?? 0 }),
       timeRange,
-      zoom: zoom ?? 0,
       zoomRange,
       fonts,
+      sources,
+      series,
+      tracks,
+      domains,
+      selection: selectionRange === undefined || selection === false
+        ? selection
+        : { ...(typeof selection === 'object' ? selection : {}), range: selectionRange },
     });
 
     timescope.on('timechanging', (e) => dispatch('timechanging', e.value));
@@ -163,19 +173,19 @@
     timescope.updateOptions({ style: { width, height, background } });
   });
 
+  let dataPropsInitialized = false;
   $effect(() => {
     if (!timescope) return;
-    timescope.updateOptions({ sources });
-  });
-
-  $effect(() => {
-    if (!timescope) return;
-    timescope.updateOptions({ series });
-  });
-
-  $effect(() => {
-    if (!timescope) return;
-    timescope.updateOptions({ tracks });
+    const nextSources = sources;
+    const nextSeries = series;
+    const nextTracks = tracks;
+    const nextDomains = domains;
+    if (!dataPropsInitialized) {
+      dataPropsInitialized = true;
+      return;
+    }
+    timescope.setOptions({ ...timescope.options, sources: nextSources, series: nextSeries,
+      tracks: nextTracks, domains: nextDomains });
   });
 
   $effect(() => {

@@ -13,6 +13,7 @@
 import type { Decimal } from '@kikuchan/decimal';
 import type {
   TimescopeOptions,
+  TimescopeOptionsDomains,
   TimescopeOptionsInitial,
   TimescopeOptionsSelection,
   TimescopeOptionsSeries,
@@ -65,6 +66,7 @@ const props = withDefaults(
     sources?: TimescopeOptionsSources<Sources>;
     series?: TimescopeOptionsSeries<Sources, Series, Track>;
     tracks?: TimescopeOptionsTracks<Track>;
+    domains?: TimescopeOptionsDomains;
 
     cursor?: TimescopeOptions['cursor'];
     selection?: TimescopeOptionsSelection;
@@ -117,6 +119,21 @@ const timescope = markRaw(
     zoomRange: props.zoomRange,
 
     fonts: props.fonts,
+    sources:
+      props.sources &&
+      (Object.fromEntries(
+        Object.entries(props.sources).map(([key, source]) => [key, toRaw(source)]),
+      ) as typeof props.sources),
+    series: props.series,
+    tracks: props.tracks,
+    domains: props.domains,
+    selection:
+      props.selectionRange === undefined || props.selection === false
+        ? props.selection
+        : {
+            ...(typeof props.selection === 'object' ? props.selection : {}),
+            range: props.selectionRange,
+          },
   }),
 );
 
@@ -203,33 +220,30 @@ watch(
 
 watch(
   () => [props.width, props.height, props.background],
-  () => timescope.updateOptions({ style: { width: props.width, height: props.height, background: props.background } }),
+  () =>
+    timescope.updateOptions({
+      style: { width: props.width, height: props.height, background: props.background },
+    }),
   { immediate: true },
 );
 
 watch(
-  () => props.sources,
+  () => [props.sources, props.series, props.tracks, props.domains],
   () => {
     const sources =
       props.sources &&
       (Object.fromEntries(
         Object.entries(props.sources).map(([key, source]) => [key, toRaw(source)]),
       ) as typeof props.sources);
-    timescope.updateOptions({ sources });
+    timescope.setOptions({
+      ...timescope.options,
+      sources,
+      series: props.series,
+      tracks: props.tracks,
+      domains: props.domains,
+    } as TimescopeOptions<Sources, Series, Track>);
   },
-  { immediate: true, deep: true },
-);
-
-watch(
-  () => props.series,
-  () => timescope.updateOptions({ series: props.series }),
-  { immediate: true, deep: true },
-);
-
-watch(
-  () => props.tracks,
-  () => timescope.updateOptions({ tracks: props.tracks }),
-  { immediate: true, deep: true },
+  { deep: true },
 );
 
 watch(

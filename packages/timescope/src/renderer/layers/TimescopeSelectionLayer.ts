@@ -17,6 +17,7 @@ export class TimescopeSelectionLayer extends TimescopeLayer<TimescopeEvent<'rend
 
   #resizing: boolean = false;
   #resizable: boolean = true;
+  #disabled = false;
 
   #counterpart: Decimal = Decimal(0n)!;
 
@@ -32,22 +33,29 @@ export class TimescopeSelectionLayer extends TimescopeLayer<TimescopeEvent<'rend
 
   updateOptions(options: TimescopeRenderEngineOptions) {
     const opts = options.selection;
-    if (opts === undefined) return;
+    if (options.selectionReset) {
+      this.#disabled = false;
+      this.#resizable = true;
+      this.#color = 'rgba(0, 0, 255, 0.2)';
+      this.#invert = false;
+    }
 
     if (opts === false) {
+      this.#disabled = true;
       this.#resizable = false;
       this.#range = null;
     } else if (opts === true) {
+      this.#disabled = false;
       this.#resizable = true;
-    } else if (opts === null) {
-      this.#range = null;
-    } else {
+    } else if (opts) {
+      if (this.#disabled) this.#resizable = true;
+      this.#disabled = false;
       if (opts.resizable !== undefined) this.#resizable = opts.resizable;
       if (opts.color !== undefined) this.#color = opts.color;
       if (opts.invert !== undefined) this.#invert = opts.invert;
-      if (opts.range !== undefined) this.#range = opts.range;
     }
-    this.changed();
+    if ('selectionRange' in options) this.#range = options.selectionRange ?? null;
+    if (opts !== undefined || 'selectionRange' in options || options.selectionReset) this.changed();
   }
 
   #selectionDragStart({ shiftKey, buttons }: InteractionInfoWire, timescope: TimescopeRenderingContext) {

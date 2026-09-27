@@ -1,5 +1,3 @@
-import type { Decimal } from '#src/core/decimal';
-import type { TimescopeRange } from '#src/core/range';
 
 export type TextStyleOptions = {
   color?: string;
@@ -145,5 +143,4 @@ export type TimescopeOptionsSelection =
       resizable?: boolean;
       color?: string;
       invert?: boolean;
-      range?: TimescopeRange<Decimal> | null;
     };

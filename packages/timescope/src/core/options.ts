@@ -10,7 +10,7 @@ export function mergeOptions(dst: object, src: object) {
     if (Array.isArray(srcValue)) {
       (dst as any)[key] = srcValue.slice();
     } else if (srcValue && typeof srcValue === 'object' && isPlainObject(srcValue)) {
-      if (!dstValue || typeof dstValue !== 'object') (dst as any)[key] = {};
+      if (!dstValue || typeof dstValue !== 'object' || !isPlainObject(dstValue)) (dst as any)[key] = {};
       mergeOptions((dst as any)[key], srcValue);
     } else {
       (dst as any)[key] = srcValue;

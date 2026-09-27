@@ -41,6 +41,8 @@ export type TimescopeRenderEngineOptions = {
   cursor?: boolean | { color?: string; borderColor?: string };
   background?: string;
   selection?: TimescopeOptionsSelection;
+  selectionReset?: boolean;
+  selectionRange?: [Decimal, Decimal] | null;
   series?: Record<string, { track?: string; tooltip?: false }>;
   tracks?: Record<
     string,

@@ -8,16 +8,21 @@ import { TimescopeState } from '#src/core/TimescopeState';
 import { zoomFor, type ZoomLike } from '#src/core/zoom';
 import type { TimescopeFont } from '#src/main/font';
 import { InteractionManager } from '#src/main/InteractionManager';
+import { mergeTimescopeOptions, validateTimescopeOptions } from '#src/main/optionRuntime';
 import type {
   TimescopeOptions,
   TimescopeOptionsInitial,
-  TimescopeOptionsSeries,
   TimescopeSeriesInput,
   TimescopeSourceInput,
 } from '#src/main/options';
+import type { TimescopeUpdateOptions } from '#src/main/options';
 import { TimescopeMainThreadRenderer } from '#src/main/TimescopeMainThreadRenderer';
 import type { TimescopeRenderer } from '#src/main/TimescopeRenderer';
 import { TimescopeWorkerRenderer } from '#src/main/TimescopeWorkerRenderer';
+
+function copyOptions(options: TimescopeOptions): TimescopeOptions {
+  return mergeOptions({}, options) as TimescopeOptions;
+}
 
 function normalizeWheel(e: WheelEvent) {
   const delta = e.deltaY;
@@ -43,14 +48,6 @@ export type TimescopeSize = {
   height: number;
   /** Device pixel ratio used for rendering. */
   dpr: number;
-};
-
-type TimescopeUpdateOptions<
-  Sources extends Record<string, TimescopeSourceInput>,
-  Series extends Record<string, TimescopeSeriesInput>,
-  Track extends string,
-> = Omit<TimescopeOptions<Sources, Series, Track>, 'series'> & {
-  series?: TimescopeOptionsSeries<Sources, Series, Track>;
 };
 
 export type TimescopeFitOptions = {
@@ -328,11 +325,13 @@ export class Timescope<
       return;
     }
 
-    this.updateOptions({
-      selection: {
-        range,
-      },
-    });
+    this.#selectionRange = range;
+    this.#selectionRangeChanging = range;
+    this.#renderer?.setSelectionRange(range);
+    if (!this.#renderer) {
+      this.dispatchEvent(new TimescopeEvent('selectionrangechanging', range));
+      this.dispatchEvent(new TimescopeEvent('selectionrangechanged', range));
+    }
   }
 
   clearSelectionRange() {
@@ -381,19 +380,26 @@ export class Timescope<
     return this.#options;
   }
 
-  setOptions(opts: TimescopeOptions) {
+  setOptions(opts: TimescopeOptions<Sources, Series, Track>) {
+    validateTimescopeOptions(opts);
     if (this.#frameLatch) this.#supersedeFrameLatch();
-    this.#options = { style: undefined, ...opts };
+    this.#options = { style: undefined, ...opts } as TimescopeOptions;
     this.#applyOptions(this.#options, true);
   }
 
   updateOptions(opts: TimescopeUpdateOptions<Sources, Series, Track>) {
+    const next = mergeTimescopeOptions(copyOptions(this.#options), opts as TimescopeUpdateOptions);
+    validateTimescopeOptions(next);
     if (this.#frameLatch) this.#supersedeFrameLatch();
-    mergeOptions(this.#options, opts);
-    this.#applyOptions(opts, false);
+    this.#options = next;
+    this.#applyOptions(opts as TimescopeOptions, false);
   }
 
   #applyOptions(opts: TimescopeOptions | TimescopeUpdateOptions<Sources, Series, Track>, set: boolean) {
+    if ('selection' in opts && opts.selection === false) {
+      this.#selectionRange = null;
+      this.#selectionRangeChanging = null;
+    }
     if (!this.#element || !this.#renderer) return;
 
     if ('style' in opts) {
@@ -501,7 +507,33 @@ export class Timescope<
     }
     this.#installTimeZoomEventHandler();
 
-    this.#options = { style: undefined, ..._opts } as TimescopeOptions;
+    const {
+      target: _target,
+      fonts: _fonts,
+      wheelSensitivity: _wheelSensitivity,
+      time: _time,
+      timeRange: _timeRange,
+      zoom: _zoom,
+      zoomRange: _zoomRange,
+      fit: _fit,
+      selection: initialSelection,
+      ...options
+    } = _opts;
+    this.#options = {
+      style: undefined,
+      ...options,
+      ...(initialSelection !== undefined && {
+        selection:
+          typeof initialSelection === 'object'
+            ? (({ range: _range, ...settings }) => settings)(initialSelection)
+            : initialSelection,
+      }),
+    } as TimescopeOptions;
+    validateTimescopeOptions(this.#options);
+    if (typeof initialSelection === 'object' && initialSelection.range != null) {
+      this.#selectionRange = initialSelection.range.map(parseTimeLike) as TimescopeRange<Decimal>;
+      this.#selectionRangeChanging = this.#selectionRange;
+    }
     this.#fonts = _opts.fonts;
 
     this.#wheelSensitivity = _opts.wheelSensitivity ?? 200;
@@ -545,6 +577,7 @@ export class Timescope<
     });
 
     this.#renderer.setOptions(this.#options as TimescopeOptions);
+    if (this.#selectionRange) this.#renderer.setSelectionRange(this.#selectionRange);
 
     // sync the renderer
     this.#state.time.restore();

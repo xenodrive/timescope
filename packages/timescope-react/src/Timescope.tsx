@@ -4,11 +4,13 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useSta
 import {
   Timescope,
   type TimescopeOptions,
+  type TimescopeOptionsDomains,
   type TimescopeOptionsInitial,
   type TimescopeOptionsSelection,
   type TimescopeOptionsSeries,
   type TimescopeOptionsSources,
   type TimescopeOptionsTracks,
+  type TimescopeRange,
   type TimescopeSeriesInput,
   type TimescopeSourceInput,
 } from 'timescope';
@@ -29,13 +31,16 @@ type TimescopeProps<
   ];
   zoom?: number;
   zoomRange?: [number | undefined, number | undefined];
+  fit?: Extract<TimescopeOptionsInitial<Sources, Series, Track>, { fit: unknown }>['fit'];
 
   sources?: TimescopeOptionsSources<Sources>;
   series?: TimescopeOptionsSeries<Sources, Series, Track>;
   tracks?: TimescopeOptionsTracks<Track>;
+  domains?: TimescopeOptionsDomains;
 
   cursor?: TimescopeOptions['cursor'];
   selection?: TimescopeOptionsSelection;
+  selectionRange?: TimescopeRange<Decimal> | null;
 
   showFps?: boolean;
   renderThread?: TimescopeOptions['renderThread'];
@@ -74,6 +79,7 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
     zoom: props.zoom,
     zoomRange: props.zoomRange,
     fonts: props.fonts,
+    fit: props.fit,
   });
 
   const callbacksRef = useRef({
@@ -129,11 +135,23 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
     const initialProps = initialPropsRef.current;
     const instance = new Timescope<Sources, Series, Track>({
       renderThread: initialProps.renderThread,
-      time: initialProps.time ?? null,
+      ...(initialProps.fit !== undefined
+        ? { fit: initialProps.fit }
+        : { time: initialProps.time ?? null, zoom: initialProps.zoom ?? 0 }),
       timeRange: initialProps.timeRange,
-      zoom: initialProps.zoom ?? 0,
       zoomRange: initialProps.zoomRange,
       fonts: initialProps.fonts,
+      sources: props.sources,
+      series: props.series,
+      tracks: props.tracks,
+      domains: props.domains,
+      selection:
+        props.selectionRange === undefined || props.selection === false
+          ? props.selection
+          : {
+              ...(typeof props.selection === 'object' ? props.selection : {}),
+              range: props.selectionRange,
+            },
     });
 
     timescopeRef.current = instance;
@@ -187,6 +205,7 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
   }, [containerEl]);
 
   useEffect(() => {
+    if (initialPropsRef.current.fit !== undefined && props.time === undefined) return;
     timescopeRef.current?.setTime(props.time ?? null);
   }, [props.time]);
 
@@ -195,6 +214,7 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
   }, [props.timeRange]);
 
   useEffect(() => {
+    if (initialPropsRef.current.fit !== undefined && props.zoom === undefined) return;
     timescopeRef.current?.setZoom(props.zoom ?? 0);
   }, [props.zoom]);
 
@@ -204,21 +224,30 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
 
   useEffect(() => {
     timescopeRef.current?.updateOptions({
-      style: { width: props.width ?? '100%', height: props.height ?? '36px', background: props.background },
+      style: {
+        width: props.width ?? '100%',
+        height: props.height ?? '36px',
+        background: props.background,
+      },
     });
   }, [props.width, props.height, props.background]);
 
+  const dataPropsInitialized = useRef(false);
   useEffect(() => {
-    timescopeRef.current?.updateOptions({ sources: props.sources });
-  }, [props.sources]);
-
-  useEffect(() => {
-    timescopeRef.current?.updateOptions({ series: props.series });
-  }, [props.series]);
-
-  useEffect(() => {
-    timescopeRef.current?.updateOptions({ tracks: props.tracks });
-  }, [props.tracks]);
+    if (!dataPropsInitialized.current) {
+      dataPropsInitialized.current = true;
+      return;
+    }
+    const instance = timescopeRef.current;
+    if (instance)
+      instance.setOptions({
+        ...instance.options,
+        sources: props.sources,
+        series: props.series,
+        tracks: props.tracks,
+        domains: props.domains,
+      } as TimescopeOptions<Sources, Series, Track>);
+  }, [props.sources, props.series, props.tracks, props.domains]);
 
   useEffect(() => {
     timescopeRef.current?.updateOptions({ cursor: props.cursor ?? true });
@@ -227,6 +256,10 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
   useEffect(() => {
     timescopeRef.current?.updateOptions({ selection: props.selection });
   }, [props.selection]);
+
+  useEffect(() => {
+    if (props.selectionRange !== undefined) timescopeRef.current?.setSelectionRange(props.selectionRange);
+  }, [props.selectionRange]);
 
   useEffect(() => {
     timescopeRef.current?.updateOptions({

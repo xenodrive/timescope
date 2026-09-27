@@ -15,6 +15,12 @@ export type TimescopeOptionsTracks<Track extends string> = {
   [K in Track]: { height?: number; symmetric?: boolean; timeAxis?: TimescopeTimeAxisOptions | boolean };
 };
 
+type SelectionInitial =
+  | boolean
+  | (Exclude<TimescopeOptionsSelection, boolean> & {
+      range?: TimescopeRange<TimeLike<never>> | null;
+    });
+
 export type TimescopeOptions<
   Sources extends Record<string, TimescopeSourceInput> = Record<string, TimescopeSourceInput>,
   Series extends Record<string, TimescopeSeriesInput> = Record<string, TimescopeSeriesInput>,
@@ -36,8 +42,9 @@ export type TimescopeOptionsInitial<
   Sources extends Record<string, TimescopeSourceInput>,
   Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
-> = TimescopeOptions<Sources, Series, Track> &
-  Omit<TimescopeStateOptions, 'time' | 'zoom'> & {
+> = Omit<TimescopeOptions<Sources, Series, Track>, 'selection'> & {
+  selection?: SelectionInitial;
+} & Omit<TimescopeStateOptions, 'time' | 'zoom'> & {
     target?: HTMLElement | string;
     fonts?: (string | TimescopeFont)[];
     wheelSensitivity?: number;
@@ -51,6 +58,17 @@ export type TimescopeOptionsInitial<
         zoom?: never;
       }
   );
+
+export type TimescopeUpdateOptions<
+  Sources extends Record<string, TimescopeSourceInput> = Record<string, TimescopeSourceInput>,
+  Series extends Record<string, TimescopeSeriesInput> = Record<string, TimescopeSeriesInput>,
+  Track extends string = string,
+> = Omit<TimescopeOptions<Sources, Series, Track>, 'sources' | 'series' | 'tracks' | 'domains'> & {
+  sources?: { [K in keyof Sources]?: Sources[K] | null };
+  series?: { [K in keyof Series]?: TimescopeOptionsSeries<Sources, Series, Track>[K] | null };
+  tracks?: { [K in Track]?: TimescopeOptionsTracks<Track>[K] | null };
+  domains?: Record<string, TimescopeDomainOptions | null>;
+};
 
 export function createDefineTimescopeOptions(wrapper?: (opts: object) => object) {
   return function <
