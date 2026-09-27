@@ -761,7 +761,6 @@ export class TimescopeRenderEngine {
 
     let frames = 0;
     let fpsTime = 0;
-    let renderSequence = 0;
     function fpsTick() {
       frames++;
     }
@@ -825,18 +824,6 @@ export class TimescopeRenderEngine {
       forEachLayer((layer) => {
         layer.postRender(renderingContext);
       });
-
-      if (renderingContext.options.showFps) {
-        // Temporary frame marker for inspecting screen recordings. Draw it on the
-        // same canvas, after the chart, so it identifies completed renderSync calls.
-        ctx.save();
-        ctx.fillStyle = '#111';
-        ctx.fillRect(5, 20, 155, 44);
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 26px monospace';
-        ctx.fillText(`#${++renderSequence}`, 10, 51);
-        ctx.restore();
-      }
     }
 
     function renderRequired() {
