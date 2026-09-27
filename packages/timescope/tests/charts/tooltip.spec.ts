@@ -1,4 +1,4 @@
-import { createChunkList } from '#src/core/chunk';
+import { createChunkList, type TimescopeChunkSize } from '#src/core/chunk';
 import { Decimal } from '#src/core/decimal';
 import { TimescopeSeriesTooltip } from '#src/main/layers/TimescopeSeriesTooltip';
 import type { TimescopeLoadRequest } from '#src/main/TimescopeDataLoader';
@@ -10,7 +10,7 @@ import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { deferred } from '../helpers/deferred';
 import { viewState } from '../helpers/view';
 
-function fixture(immediate = false) {
+function fixture(immediate = false, chunkSize: TimescopeChunkSize = 4) {
   const rows = (chunk: TimescopeLoadRequest) =>
     [0, 1, 2, 3].map((index) => ({
       time: chunk.range[0]!.add(chunk.resolution.mul(index)),
@@ -26,7 +26,7 @@ function fixture(immediate = false) {
     pending.set(`${chunk.range[0]}:${chunk.resolution}`, { chunk, result });
     return result.promise;
   });
-  const source = createDataSource({ loader, immediate, chunkSize: 4 });
+  const source = createDataSource({ loader, immediate, chunkSize });
   const registry = new TimescopeViewRegistry();
   const series = new TimescopeDataSeries({
     sources: { source },
@@ -66,6 +66,13 @@ function fixture(immediate = false) {
 }
 
 describe('instantaneous data', () => {
+  it('expands the cursor query using the selected resolution chunk size', async () => {
+    const view = fixture(false, (resolution) => (resolution.eq('0.25') ? 8 : 4));
+    view.move();
+    const result = await view.load(false, [Decimal(10), Decimal('10.25')]);
+    expect(result.meta.time.eq('9.125')).toBe(true);
+  });
+
   it('uses the preceding cached sample while moving without loading deferred data', async () => {
     const view = fixture();
     await view.preload();

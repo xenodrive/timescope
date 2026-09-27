@@ -1,4 +1,4 @@
-import { DEFAULT_CHUNK_SIZE } from '#src/core/chunk';
+import { DEFAULT_CHUNK_SIZE, resolveChunkSize, type TimescopeChunkSize } from '#src/core/chunk';
 import { Decimal } from '#src/core/decimal';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
@@ -18,7 +18,7 @@ export abstract class TimescopeDataSourceBase<Row = TimescopeDataRowInput>
   extends TimescopeObservable<TimescopeEvent<'invalidate', TimescopeDataSourceInvalidation>>
   implements TimescopeDataSource<Row>
 {
-  readonly chunkSize: number;
+  readonly chunkSize: TimescopeChunkSize;
   readonly chunkOrigin: Decimal;
   readonly immediate: boolean;
   readonly cacheSize: number;
@@ -29,8 +29,7 @@ export abstract class TimescopeDataSourceBase<Row = TimescopeDataRowInput>
   constructor(options: TimescopeSourceCommonOptions = {}) {
     super();
     this.chunkSize = options.chunkSize ?? DEFAULT_CHUNK_SIZE;
-    if (!Number.isSafeInteger(this.chunkSize) || this.chunkSize <= 0)
-      throw new RangeError('Chunk size must be a positive integer');
+    if (typeof this.chunkSize !== 'function') resolveChunkSize(this.chunkSize, Decimal(1));
     this.chunkOrigin = Decimal(options.chunkOrigin ?? 0);
     this.loaderResolutions =
       options.resolutions?.map((value) => Decimal(value)) ?? options.zoomLevels?.map(resolutionFor);

@@ -1,4 +1,4 @@
-import { createChunkList, type TimescopeChunk } from '#src/core/chunk';
+import { createChunkList, resolveChunkSize, type TimescopeChunk, type TimescopeChunkSize } from '#src/core/chunk';
 import { Decimal, type DecimalLike } from '#src/core/decimal';
 import { TimescopeObservable, type Un } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
@@ -16,7 +16,7 @@ export type TimescopeViewRequest = {
 };
 
 export type TimescopeViewSourceOptions = {
-  chunkSize: number;
+  chunkSize: TimescopeChunkSize;
   chunkOrigin: Decimal;
   resolutions?: readonly Decimal[];
 };
@@ -481,12 +481,13 @@ export class TimescopeView<T extends TimescopeViewPoint> extends TimescopeObserv
         ) ?? window.resolution;
       if (!target.isPositive()) throw new RangeError('Resolved data resolution must be positive');
       const resolution = getConstraintedResolution(target, this.#source.resolutions, snap);
-      const left = this.#request.strategy === 'cursor-with-fallback' ? this.#source.chunkSize / 2 : undefined;
+      const chunkSize = resolveChunkSize(this.#source.chunkSize, resolution);
+      const left = this.#request.strategy === 'cursor-with-fallback' ? chunkSize / 2 : undefined;
       const range =
         left === undefined
           ? window.range
           : rangeAround(window.range[0].add(window.range[1]).divExact(2), resolution, left, left);
-      for (const chunk of createChunkList(range, resolution, this.#source.chunkSize, this.#source.chunkOrigin)) {
+      for (const chunk of createChunkList(range, resolution, chunkSize, this.#source.chunkOrigin)) {
         result.set(chunk.id, chunk);
       }
     }

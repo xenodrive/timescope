@@ -1,4 +1,4 @@
-import type { TimescopeChunk } from '#src/core/chunk';
+import { resolveChunkSize, type TimescopeChunk } from '#src/core/chunk';
 import { Decimal } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
 import { resolutionFor } from '#src/core/zoom';
@@ -104,7 +104,16 @@ export class TimescopeSeriesTooltip<O extends TimescopeSeriesLayerDataOptions> e
     _xOrigin?: Decimal,
     options: TimescopeLayerDataLoadOptions = {},
   ) {
-    return this.#loadViewData(range, resolution, options);
+    return this.#loadViewData(this.#instantRange(range, resolution), resolution, options);
+  }
+
+  #instantRange(range: TimescopeRange<Decimal>, resolution: Decimal): TimescopeRange<Decimal> {
+    const chunkSize = this.options.series.chunkSize;
+    if (typeof chunkSize !== 'function') return range;
+    const selectedResolution = this.#view.target[0]?.resolution ?? resolution;
+    const delta = selectedResolution.mul(resolveChunkSize(chunkSize, selectedResolution) / 2);
+    const center = range[0].add(range[1]).divExact(2);
+    return [center.sub(delta), center.add(delta)];
   }
 
   #loadViewData(range: TimescopeRange<Decimal>, resolution: Decimal, options: TimescopeLayerDataLoadOptions) {
@@ -147,6 +156,7 @@ export class TimescopeSeriesTooltip<O extends TimescopeSeriesLayerDataOptions> e
     range: TimescopeRange<Decimal>,
     resolution: Decimal,
   ): Promise<TimescopeSeriesTooltipData> {
+    range = this.#instantRange(range, resolution);
     const center = range[0].add(range[1]).divExact(2);
     const selected = this.#selectRow(this.#view.query(range), range, resolution, center);
     return this.#transformRows(series, selected.row ? [selected.row] : [], selected.using, range, resolution);

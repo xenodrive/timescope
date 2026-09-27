@@ -65,6 +65,37 @@ describe('source view contract', () => {
     source.releaseView(view);
   });
 
+  it('queries different chunk ranges for each selected resolution', async () => {
+    class Source extends TimescopeDataSourceBase {
+      query = vi.fn(async () => {
+        return [];
+      });
+    }
+    const source = new Source({ chunkSize: (resolution) => (resolution.eq(1) ? 4 : 8), resolutions: [1, 2] });
+    const context = new TimescopeViewRegistry();
+    context.update(state(1.1));
+    const view = source.requestView(context, { strategy: 'settled-only' });
+
+    await view.waitForTarget();
+    expect(source.query).toHaveBeenCalledWith({ range: [Decimal(0), Decimal(4)], resolution: Decimal(1) });
+    context.update(state(1.9));
+    await view.waitForTarget();
+    expect(source.query).toHaveBeenCalledWith({ range: [Decimal(0), Decimal(16)], resolution: Decimal(2) });
+    source.releaseView(view);
+  });
+
+  it('rejects an invalid chunk size returned for a selected resolution', () => {
+    class Source extends TimescopeDataSourceBase {
+      async query() {
+        return [];
+      }
+    }
+    const source = new Source({ chunkSize: () => 0, resolutions: [1] });
+    const context = new TimescopeViewRegistry();
+    context.update(state(1));
+    expect(() => source.requestView(context, { strategy: 'settled-only' })).toThrow('Chunk size');
+  });
+
   it('snaps to implicit power-of-two resolutions when the source has no candidates', () => {
     class Source extends TimescopeDataSourceBase {
       async query() {

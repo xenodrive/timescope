@@ -3,6 +3,13 @@ import type { TimescopeRange } from '#src/core/range';
 import { zoomFor } from '#src/core/zoom';
 
 export const DEFAULT_CHUNK_SIZE = 256;
+export type TimescopeChunkSize = number | ((resolution: Decimal) => number);
+
+export function resolveChunkSize(chunkSize: TimescopeChunkSize, resolution: Decimal): number {
+  const size = typeof chunkSize === 'function' ? chunkSize(resolution) : chunkSize;
+  if (!Number.isSafeInteger(size) || size <= 0) throw new RangeError('Chunk size must be a positive integer');
+  return size;
+}
 
 /**
  * Chunk descriptor with optional payload.

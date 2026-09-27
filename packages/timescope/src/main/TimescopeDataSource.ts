@@ -1,3 +1,4 @@
+import type { TimescopeChunkSize } from '#src/core/chunk';
 import type { Decimal, NumberLike } from '#src/core/decimal';
 import type { TimescopeEvent, TimescopeObservable } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
@@ -23,8 +24,8 @@ export type TimescopeSourceCommonOptions = {
   mutation?: never;
   /** Retention hint for the display-side ChunkStore. */
   cacheSize?: number;
-  /** Preferred query tiling; direct queries need not align with it. */
-  chunkSize?: number;
+  /** Preferred query tiling per selected resolution; direct queries need not align with it. */
+  chunkSize?: TimescopeChunkSize;
   chunkOrigin?: NumberLike;
   immediate?: boolean;
   /** Preferred loader resolutions; arbitrary direct queries remain valid. */
@@ -86,7 +87,7 @@ export interface TimescopeDataSource<Row = TimescopeDataRowInput> extends Pick<
   TimescopeObservable<TimescopeEvent<'invalidate', TimescopeDataSourceInvalidation>>,
   'on' | 'revision'
 > {
-  readonly chunkSize: number;
+  readonly chunkSize: TimescopeChunkSize;
   readonly chunkOrigin: Decimal;
   readonly resolutions?: readonly Decimal[];
   readonly immediate: boolean;

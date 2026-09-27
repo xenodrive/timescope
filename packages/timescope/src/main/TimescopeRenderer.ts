@@ -391,7 +391,8 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
                   instantResolution:
                     Decimal(instantaneousOptions?.resolution) ??
                     (instantaneousOptions?.zoom !== undefined ? resolutionFor(instantaneousOptions.zoom) : undefined),
-                  instantWidth: series.chunkSize,
+                  // Functions cannot cross the renderer bridge; the tooltip expands this range on the main thread.
+                  instantWidth: typeof series.chunkSize === 'number' ? series.chunkSize : 1,
                 },
               ]);
             }
