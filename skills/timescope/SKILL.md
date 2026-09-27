@@ -54,6 +54,7 @@ Use these API references for the requested feature.
 | Follow playback | Use `setPlaybackTime` to supply the live-clock value and `setTime(null)` to follow it. A fixed selected time and the playback clock are separate state. | [Timescope API](https://xenodrive.github.io/timescope/api/timescope) |
 | Set the initial visible interval | Pass `fit: [start, end]` to the constructor, or `fit: { range: [start, end], padding: [left, right] }` for pixel padding. Specify `fit` instead of initial `time` and `zoom`. | [Constructor](https://xenodrive.github.io/timescope/api/timescope#options-constructor-only) |
 | Change or constrain the visible interval | `fitTo([start, end], { padding?, animation? })` changes the current view; `setTimeRange` limits navigation. Use `setZoom` and `setZoomRange` for zoom control and limits. | [Methods](https://xenodrive.github.io/timescope/api/timescope#methods) |
+| Select a time range | Set `selection.range` only in the constructor for the initial range. Later, use `setSelectionRange(range)` or `clearSelectionRange()`; read the current `selectionRange`. | [Selection](https://xenodrive.github.io/timescope/api/timescope-options#selection) |
 | Show or style the time cursor | Set `cursor: false` to hide it, or use `cursor: { color, borderColor }` to configure its fill and outline. | [Options](https://xenodrive.github.io/timescope/api/timescope-options#options) |
 | Display existing data | Define rows in `sources`, reference the source through `series.*.data.source`, and choose a chart. Use `decoder` or `mappings` to adapt payloads. | [Sources](https://xenodrive.github.io/timescope/api/timescope-options#sources) |
 | Fetch data for the visible region | Implement a range loader receiving `{ range, resolution }`; honor the range and neighboring-row contract. | [Range loader](https://xenodrive.github.io/timescope/api/timescope-options#range-loader) |
@@ -170,6 +171,7 @@ and presentation to the requested data; keep time units consistent throughout.
 - Charts on the same Track are overlaid, but their value scales are independent
   unless they explicitly share a Domain. Use a shared Domain to compare values
   on the same scale.
+- Omitting `tracks` creates an implicit `default` Track; `tracks: {}` is invalid.
 - Inline data arrays are snapshots: mutating the original array does not update
   the visualization. Read the source update API before implementing live data.
   Only point-aggregate sources expose `append()` among the built-in source types.
@@ -178,8 +180,11 @@ and presentation to the requested data; keep time units consistent throughout.
   connections: one on each side for lines, two for curves, even if the range
   itself contains no points.
 - `setOptions` replaces configurable options; `updateOptions` retains omitted
-  options. Runtime time and zoom changes use their dedicated setters; `fit` is
-  a constructor option rather than a runtime configuration update.
+  options. To remove an individual Source, Series, Track, or Domain, pass `null`
+  for its named entry in `updateOptions`. Updates that leave a Series referring
+  to a missing Source, Track, or named Domain are rejected. Constructor-only
+  inputs such as `fit` and `selection.range` do not remain in `options`; change
+  current time, zoom, and selection range with their dedicated setters.
 - `on` returns an unsubscribe function. Value events such as `timechanged` expose
   their value as `event.value`. Dispose directly owned instances when explicitly
   tearing down their view or module.
