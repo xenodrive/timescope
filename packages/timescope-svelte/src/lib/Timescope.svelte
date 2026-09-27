@@ -28,7 +28,7 @@
     series?: TimescopeOptions['series'];
     tracks?: TimescopeOptions['tracks'];
 
-    indicator?: boolean;
+    cursor?: TimescopeOptions['cursor'];
     selection?: TimescopeOptionsSelection;
 
     selectionRange?: TimescopeRange<Decimal> | null;
@@ -67,7 +67,7 @@
     sources,
     series,
     tracks,
-    indicator = true,
+    cursor = true,
     selection,
     selectionRange = $bindable<TimescopeRange<Decimal> | null | undefined>(undefined),
     showFps,
@@ -165,32 +165,32 @@
 
   $effect(() => {
     if (!timescope) return;
-    timescope.updateOptions({ sources } as TimescopeOptions);
+    timescope.updateOptions({ sources });
   });
 
   $effect(() => {
     if (!timescope) return;
-    timescope.updateOptions({ series } as TimescopeOptions);
+    timescope.updateOptions({ series });
   });
 
   $effect(() => {
     if (!timescope) return;
-    timescope.updateOptions({ tracks } as TimescopeOptions);
+    timescope.updateOptions({ tracks });
   });
 
   $effect(() => {
     if (!timescope) return;
-    timescope.updateOptions({ indicator } as TimescopeOptions);
+    timescope.updateOptions({ cursor });
   });
 
   $effect(() => {
     if (!timescope) return;
-    timescope.updateOptions({ selection } as TimescopeOptions);
+    timescope.updateOptions({ selection });
   });
 
   $effect(() => {
     if (!timescope) return;
-    timescope.updateOptions({ showFps, renderThread } as TimescopeOptions);
+    timescope.updateOptions({ showFps, renderThread });
   });
 
   export function setTime(...args: Parameters<Timescope['setTime']>) {

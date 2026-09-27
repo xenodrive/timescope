@@ -34,7 +34,7 @@ type TimescopeProps<
   series?: TimescopeOptionsSeries<Sources, Series, Track>;
   tracks?: TimescopeOptionsTracks<Track>;
 
-  indicator?: boolean;
+  cursor?: TimescopeOptions['cursor'];
   selection?: TimescopeOptionsSelection;
 
   selectionRange?: TimescopeRange<Decimal> | null;
@@ -136,22 +136,22 @@ function TimescopeComponent<
     });
   });
   createEffect(() => {
-    timescope.updateOptions({ sources: props.sources } as TimescopeOptions);
+    timescope.updateOptions({ sources: props.sources });
   });
   createEffect(() => {
     timescope.updateOptions({ series: props.series } as TimescopeOptions);
   });
   createEffect(() => {
-    timescope.updateOptions({ tracks: props.tracks } as TimescopeOptions);
+    timescope.updateOptions({ tracks: props.tracks });
   });
   createEffect(() => {
-    timescope.updateOptions({ indicator: props.indicator ?? true } as TimescopeOptions);
+    timescope.updateOptions({ cursor: props.cursor ?? true });
   });
   createEffect(() => {
-    timescope.updateOptions({ selection: props.selection } as TimescopeOptions);
+    timescope.updateOptions({ selection: props.selection });
   });
   createEffect(() => {
-    timescope.updateOptions({ showFps: props.showFps, renderThread: props.renderThread } as TimescopeOptions);
+    timescope.updateOptions({ showFps: props.showFps, renderThread: props.renderThread });
   });
 
   onCleanup(() => {

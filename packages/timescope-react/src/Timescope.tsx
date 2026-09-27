@@ -34,7 +34,7 @@ type TimescopeProps<
   series?: TimescopeOptionsSeries<Sources, Series, Track>;
   tracks?: TimescopeOptionsTracks<Track>;
 
-  indicator?: boolean;
+  cursor?: TimescopeOptions['cursor'];
   selection?: TimescopeOptionsSelection;
 
   showFps?: boolean;
@@ -209,7 +209,7 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
   }, [props.width, props.height, props.background]);
 
   useEffect(() => {
-    timescopeRef.current?.updateOptions({ sources: props.sources } as TimescopeOptions);
+    timescopeRef.current?.updateOptions({ sources: props.sources });
   }, [props.sources]);
 
   useEffect(() => {
@@ -217,22 +217,22 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
   }, [props.series]);
 
   useEffect(() => {
-    timescopeRef.current?.updateOptions({ tracks: props.tracks } as TimescopeOptions);
+    timescopeRef.current?.updateOptions({ tracks: props.tracks });
   }, [props.tracks]);
 
   useEffect(() => {
-    timescopeRef.current?.updateOptions({ indicator: props.indicator ?? true } as TimescopeOptions);
-  }, [props.indicator]);
+    timescopeRef.current?.updateOptions({ cursor: props.cursor ?? true });
+  }, [props.cursor]);
 
   useEffect(() => {
-    timescopeRef.current?.updateOptions({ selection: props.selection } as TimescopeOptions);
+    timescopeRef.current?.updateOptions({ selection: props.selection });
   }, [props.selection]);
 
   useEffect(() => {
     timescopeRef.current?.updateOptions({
       showFps: props.showFps,
       renderThread: props.renderThread,
-    } as TimescopeOptions);
+    });
   }, [props.showFps, props.renderThread]);
 
   const containerRef = useCallback((element: HTMLDivElement | null) => {

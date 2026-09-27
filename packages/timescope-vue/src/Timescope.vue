@@ -212,7 +212,7 @@ watch(
   () => {
     const sources =
       props.sources && Object.fromEntries(Object.entries(props.sources).map(([key, source]) => [key, toRaw(source)]));
-    timescope.updateOptions({ sources } as TimescopeOptions);
+    timescope.updateOptions({ sources });
   },
   { immediate: true, deep: true },
 );
@@ -225,19 +225,19 @@ watch(
 
 watch(
   () => props.tracks,
-  () => timescope.updateOptions({ tracks: props.tracks } as TimescopeOptions),
+  () => timescope.updateOptions({ tracks: props.tracks }),
   { immediate: true, deep: true },
 );
 
 watch(
   () => props.cursor,
-  () => timescope.updateOptions({ cursor: props.cursor } as TimescopeOptions),
+  () => timescope.updateOptions({ cursor: props.cursor }),
   { immediate: true, deep: true },
 );
 
 watch(
   () => props.selection,
-  () => timescope.updateOptions({ selection: props.selection } as TimescopeOptions),
+  () => timescope.updateOptions({ selection: props.selection }),
   { immediate: true, deep: true },
 );
 watch(
@@ -250,7 +250,7 @@ watch(
 
 watch(
   () => [props.showFps, props.renderThread],
-  () => timescope.updateOptions({ showFps: props.showFps, renderThread: props.renderThread } as TimescopeOptions),
+  () => timescope.updateOptions({ showFps: props.showFps, renderThread: props.renderThread }),
   { immediate: true },
 );
 

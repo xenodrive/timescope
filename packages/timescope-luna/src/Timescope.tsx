@@ -38,7 +38,7 @@ type TimescopeProps<
   tracks?: MaybeAccessor<TimescopeOptionsTracks<Track> | undefined>;
   domains?: MaybeAccessor<TimescopeOptionsDomains | undefined>;
 
-  indicator?: MaybeAccessor<boolean | undefined>;
+  cursor?: MaybeAccessor<TimescopeOptions['cursor']>;
   selection?: MaybeAccessor<TimescopeOptionsSelection | undefined>;
 
   selectionRange?: MaybeAccessor<TimescopeRange<Decimal> | null | undefined>;
@@ -136,7 +136,7 @@ function TimescopeComponent<
     timescope.updateOptions({ domains: readProp(props.domains) });
   });
   effect(() => {
-    timescope.updateOptions({ indicator: readProp(props.indicator) ?? true });
+    timescope.updateOptions({ cursor: readProp(props.cursor) ?? true });
   });
   effect(() => {
     if (props.selection !== undefined) timescope.updateOptions({ selection: readProp(props.selection) });
