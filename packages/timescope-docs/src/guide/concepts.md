@@ -1,6 +1,6 @@
 # Core Concepts
 
-Timescope is not only a timepicker, but also a time-series visualizer.
+Timescope is a time-series visualizer with time navigation controls.
 
 - **Infinite by design** — unlimited range and precision with [Decimal](/api/decimal).
 - **Chunk loading** — loads data efficiently.
@@ -26,7 +26,7 @@ Timescope uses [Decimal](/api/decimal) as a common numeric representation for ti
 
 ## DataSources {#sources}
 
-A **DataSource** provides rows for an arbitrary time range and positive resolution. How those rows are obtained or computed depends on its implementation.
+A **DataSource** provides rows for an arbitrary time range and positive resolution.
 
 ### DataLoader and DataSource
 

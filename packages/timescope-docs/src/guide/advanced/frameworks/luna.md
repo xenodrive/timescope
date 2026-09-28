@@ -95,4 +95,4 @@ Here `source` is a stable DataSource and `color` is a signal accessor. Return a 
 
 ## Notifications and view control
 
-Use `onTimeChanging` and `onTimeAnimating` to display intermediate positions, and `onReady` or `onMount` for drawable lifecycle events. Control the view through props and signals; the Luna binding does not expose a component imperative ref.
+Use `onTimeChanging` and `onTimeAnimating` to display intermediate positions, and `onReady` or `onMount` for drawable lifecycle events. Control the view through props and signals.

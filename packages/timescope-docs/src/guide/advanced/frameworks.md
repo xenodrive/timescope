@@ -76,7 +76,7 @@ The component mounts the chart with its element and disposes it when removed. In
 - **`ready` / `onReady`:** the first mount is drawable, with a non-zero size.
 - **`mount` / `onMount`:** each mount becomes drawable.
 
-These notifications do not promise that asynchronous data has finished loading. To wait for data and pixels, use [prepared views and `nextFrame()`](/guide/advanced/views#wait-for-data-and-drawing).
+To wait for data and pixels, use [prepared views and `nextFrame()`](/guide/advanced/views#wait-for-data-and-drawing).
 
 Vue, React, and Svelte expose `setTime()`, `setZoom()`, `fitTo()`, `prepareView()`, and `nextFrame()` through their component refs. Call them after mounting; the individual guides show the ref syntax. Solid and Luna use props and callbacks for view control.
 

@@ -48,7 +48,7 @@ For the acquisition and query model, see [Sources](/guide/concepts#sources).
 | `'point-aggregate'`  | Returns point min/max/avg. Points must be in nondecreasing time order. | Snapshot          | `append()`                 |
 | `'point-percentile'` | Returns point percentiles.                                             | Snapshot          | Invalidation/reacquisition |
 
-Only point-aggregate exposes [append()](#append-only-segment-tree). No built-in Source exposes `replace()`.
+Point-aggregate sources support [append()](#append-only-segment-tree).
 
 ### Source Options
 

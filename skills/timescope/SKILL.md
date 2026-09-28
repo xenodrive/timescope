@@ -168,9 +168,8 @@ and presentation to the requested data; keep time units consistent throughout.
   `padding` is a number for both sides or `[left, right]` in CSS pixels. Do not
   combine initial `fit` with `time` or `zoom`. It is applied once when the canvas
   has a non-zero size. Resizing does not reapply it.
-- Times and values use `Decimal` internally. Preserve that precision in loader
-  requests and calculations; avoid converting to `number` unless appropriate
-  for the application's range and precision.
+- Use `Decimal` to preserve precision in time and value calculations and loader
+  requests. Convert to `number` when the application's range and precision allow it.
 - Charts on the same Track are overlaid, but their value scales are independent
   unless they explicitly share a Domain. Use a shared Domain to compare values
   on the same scale.

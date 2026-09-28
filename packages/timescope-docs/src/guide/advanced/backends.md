@@ -47,7 +47,7 @@ const timescope = new Timescope({
 
 - Omit `renderThread` to allow automatic selection.
 - Use `'main'` when your environment requires rendering on the main thread.
-- Use `'worker'` to require Worker rendering. It must be supported by the environment and target; this setting does not fall back to the main thread.
+- Use `'worker'` to require Worker rendering on a supported environment and target.
 
 `backend` and `renderThread` are constructor-only options. To change them, create a new Timescope instance.
 
@@ -90,9 +90,9 @@ try {
 }
 ```
 
-`prepareView().fetch()` loads and activates the view's data; `nextFrame()` waits for it to be drawn. `ready` alone is not an export barrier. See [Controlling Views](/guide/advanced/views#wait-for-data-and-drawing) for cancellation and view changes.
+`prepareView().fetch()` loads and activates the view's data; `nextFrame()` waits for it to be drawn. Wait for both before exporting. See [Controlling Views](/guide/advanced/views#wait-for-data-and-drawing) for cancellation and view changes.
 
-The Skia Canvas backend requires a supplied Skia Canvas and does not support `renderThread: 'worker'`.
+The Skia Canvas backend uses a supplied Skia Canvas on the current thread.
 
 ## External canvases and sizing
 
@@ -127,6 +127,6 @@ Loading a font makes it available; select its family in the relevant [text style
 
 With `backend` omitted, browser builds select Canvas; Node.js builds try Skia Canvas before standard Canvas. The target still needs to be compatible with the selected backend.
 
-To choose explicitly, pass `'canvas'` or `'skia-canvas'`, or an ordered array of these choices. Timescope selects the first compatible candidate. For example, a Node.js application that accepts different canvas types can use `backend: ['skia-canvas', 'canvas']`. The Canvas backend also accepts compatible Canvas implementations with an appropriate `environment`.
+Set `backend` to `'canvas'`, `'skia-canvas'`, or an ordered array of these choices. Timescope selects the first compatible candidate. For example, a Node.js application that accepts different canvas types can use `backend: ['skia-canvas', 'canvas']`. The Canvas backend also accepts compatible Canvas implementations with an appropriate `environment`.
 
 Subscribe to `timescope.on('error', handler)` to report backend selection or initialization failures; its event carries the `Error` in `event.value`. See [constructor options](/api/timescope#options-constructor-only) for the accepted types.

@@ -69,7 +69,7 @@ Pass **values**, such as `time={time()}`, rather than the accessor function. Kee
 
 Callbacks receive values directly. `onTimeChanging` and `onTimeAnimating` provide intermediate positions; `onReady` and `onMount` report drawable lifecycle events.
 
-To fit initially, start the time and zoom signals as undefined and pass `initialFit={[0, 30]}`. Subsequent navigation uses the signals. The binding exposes view control through props rather than a component imperative ref.
+To fit initially, start the time and zoom signals as undefined and pass `initialFit={[0, 30]}`. Use the signals for subsequent navigation.
 
 ## Derived configuration
 
