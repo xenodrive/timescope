@@ -10,6 +10,7 @@ import type {
   StrokeStyle,
   TextStyle,
 } from '#src/main/chart';
+import { resolveFont } from '#src/main/fontStyle';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
 import { clipToTrack } from '#src/renderer/rendering';
 import type {
@@ -1013,7 +1014,7 @@ function renderTextAt(
 ) {
   if (!style.text) return;
 
-  ctx.font = `${style.fontWeight ?? 'normal'} ${style.size ?? 14}px ${style.fontFamily ?? 'sans-serif'}`;
+  ctx.font = resolveFont(style.font, { weight: 'normal', size: style.size ?? 14, family: 'sans-serif' });
   ctx.textAlign = style.textAlign ?? 'center';
   ctx.textBaseline = style.textBaseline ?? 'middle';
 
@@ -1043,7 +1044,7 @@ function renderIconAt(
 ) {
   if (!style.icon) return;
 
-  ctx.font = `${style.iconFontWeight ?? 'normal'} ${style.size ?? 16}px ${style.iconFontFamily ?? 'icons'}`;
+  ctx.font = resolveFont(style.font, { weight: 'normal', size: style.size ?? 16, family: 'icons' });
   ctx.textAlign = style.iconAlign ?? 'center';
   ctx.textBaseline = style.iconBaseline ?? 'middle';
 

@@ -1,16 +1,9 @@
 import { TimescopeAnimatedValue } from '#src/core/animation';
 import { normalizeOptions } from '#src/core/options';
-import type { TextStyleOptions } from '#src/main/chart';
+import { resolveFont } from '#src/main/fontStyle';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
 import { forEachTrack } from '#src/renderer/rendering';
 import type { TimescopeRenderingContext, TimescopeTimeAxisData } from '#src/renderer/types';
-
-function parseTextStyle(style: TextStyleOptions | undefined, defaults: TextStyleOptions = {}) {
-  return {
-    font: `${style?.fontWeight ?? defaults.fontWeight ?? 'normal'} ${style?.fontSize ?? defaults.fontSize ?? '12px'} "${style?.fontFamily ?? defaults.fontFamily ?? 'BIZ UDPGothic'}"`,
-    color: style?.color ?? defaults.color,
-  };
-}
 
 export class TimescopeTimeAxisLayer extends TimescopeLayer {
   render(timescope: TimescopeRenderingContext): void {
@@ -95,9 +88,12 @@ export class TimescopeTimeAxisLayer extends TimescopeLayer {
 
     if (opts.labels === false) return;
 
-    const textStyle = parseTextStyle(opts.labels);
-    ctx.fillStyle = textStyle?.color ?? 'black'; // for labels
-    ctx.font = textStyle?.font;
+    ctx.fillStyle = (typeof opts.labels === 'object' ? opts.labels.color : undefined) ?? 'black'; // for labels
+    ctx.font = resolveFont(typeof opts.labels === 'object' ? opts.labels.font : undefined, {
+      weight: 'normal',
+      size: 12,
+      family: 'BIZ UDPGothic',
+    });
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.strokeStyle = timescope.options.background ?? 'white';

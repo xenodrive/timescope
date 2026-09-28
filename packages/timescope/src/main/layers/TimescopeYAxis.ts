@@ -58,6 +58,7 @@ export class TimescopeYAxis extends TimescopeLayerDataBase<TimescopeYAxisData, T
         label: configured?.label ?? domain.name,
         unit: domain.unit || undefined,
         color: configured?.color,
+        font: configured?.font,
         ticks,
       },
       meta: {

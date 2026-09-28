@@ -85,7 +85,7 @@ export function buildOptions(state) {
   return {
     target: '#timescope',
     ...(state.series.some((series) =>
-      series.layers.some((layer) => layer.draw === 'icon' && layer.iconFontFamily === mdiFontFamily),
+      series.layers.some((layer) => layer.draw === 'icon' && layer.font?.family === mdiFontFamily),
     )
       ? { fonts: [mdiStylesheet] }
       : {}),
@@ -182,7 +182,7 @@ function layerOptions(layer) {
       ...(layer.draw === 'icon'
         ? {
             icon: layer.textField ? dataAccessor(layer.textField) : layer.text,
-            iconFontFamily: layer.iconFontFamily ?? 'sans-serif',
+            font: layer.font ?? { family: 'sans-serif' },
             iconColor: color,
           }
         : {}),

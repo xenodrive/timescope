@@ -357,33 +357,37 @@ Mark callbacks receive `{ times, values, data, resolution }`; link callbacks rec
 
 ### Text
 
-| Key                        | Type                                                                          |
-| -------------------------- | ----------------------------------------------------------------------------- |
-| `text`                     | `string`                                                                      |
-| `fontFamily`, `fontWeight` | `string`                                                                      |
-| `textAlign`                | `'start' \| 'center' \| 'end' \| 'left' \| 'right'`                           |
-| `textBaseline`             | `'top' \| 'middle' \| 'bottom' \| 'hanging' \| 'alphabetic' \| 'ideographic'` |
-| `textColor`                | `string`                                                                      |
-| `textOpacity`              | `number`                                                                      |
-| `textOutline`              | `boolean`                                                                     |
-| `textOutlineColor`         | `string`                                                                      |
-| `textOutlineWidth`         | `number`                                                                      |
+| Key                | Type                                                                          |
+| ------------------ | ----------------------------------------------------------------------------- |
+| `text`             | `string`                                                                      |
+| `font`             | `TimescopeFontStyle`                                                          |
+| `textAlign`        | `'start' \| 'center' \| 'end' \| 'left' \| 'right'`                           |
+| `textBaseline`     | `'top' \| 'middle' \| 'bottom' \| 'hanging' \| 'alphabetic' \| 'ideographic'` |
+| `textColor`        | `string`                                                                      |
+| `textOpacity`      | `number`                                                                      |
+| `textOutline`      | `boolean`                                                                     |
+| `textOutlineColor` | `string`                                                                      |
+| `textOutlineWidth` | `number`                                                                      |
 
 ### Icon
 
-| Key                                | Type                                                                          |
-| ---------------------------------- | ----------------------------------------------------------------------------- |
-| `icon`                             | `string`                                                                      |
-| `iconFontFamily`, `iconFontWeight` | `string`                                                                      |
-| `iconAlign`                        | `'start' \| 'center' \| 'end' \| 'left' \| 'right'`                           |
-| `iconBaseline`                     | `'top' \| 'middle' \| 'bottom' \| 'hanging' \| 'alphabetic' \| 'ideographic'` |
-| `iconColor`                        | `string`                                                                      |
-| `iconOpacity`                      | `number`                                                                      |
-| `iconOutline`                      | `boolean`                                                                     |
-| `iconOutlineColor`                 | `string`                                                                      |
-| `iconOutlineWidth`                 | `number`                                                                      |
+| Key                | Type                                                                          |
+| ------------------ | ----------------------------------------------------------------------------- |
+| `icon`             | `string`                                                                      |
+| `font`             | `TimescopeFontStyle`                                                          |
+| `iconAlign`        | `'start' \| 'center' \| 'end' \| 'left' \| 'right'`                           |
+| `iconBaseline`     | `'top' \| 'middle' \| 'bottom' \| 'hanging' \| 'alphabetic' \| 'ideographic'` |
+| `iconColor`        | `string`                                                                      |
+| `iconOpacity`      | `number`                                                                      |
+| `iconOutline`      | `boolean`                                                                     |
+| `iconOutlineColor` | `string`                                                                      |
+| `iconOutlineWidth` | `number`                                                                      |
 
 `origin` and `scale` are fixed values. Other style values accept callbacks where supported by the selected primitive.
+
+`TimescopeFontStyle` accepts a CSS canvas font string or an object with `style`, `variant`, `weight`, `stretch`, `size`, `lineHeight`, and `family`. `size` accepts a number in pixels or a CSS size string; `lineHeight` accepts a unitless number or a CSS line-height string. For text and icon marks, `font.size` takes precedence over `style.size`; if omitted, `style.size` supplies the font size. A string `font` is applied as-is, including its size. Default fonts and sizes vary by drawing location.
+
+Object-form `family` accepts comma-separated fallback families (e.g. `'Inter, sans-serif'`). Quote a family name that itself contains a comma (e.g. `'"A, B", sans-serif'`). Unquoted names containing quotes, backslashes, or control characters are escaped when forming the canvas font string; already-quoted names are preserved.
 
 ## Tracks
 
@@ -399,19 +403,21 @@ Omitting `tracks` creates an implicit `default` track. Explicit `tracks: {}` is 
 
 The time axis is drawn at the Track's [shared baseline](/guide/concepts#shared-baseline). Hiding the axis does not remove the baseline used by `#zero`.
 
-| Key          | Type                                                       | Behavior                                                                             |
-| ------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `axis`       | `false \| { color? }`                                      | Hides or styles the axis line.                                                       |
-| `ticks`      | `false \| { color? }`                                      | Hides or styles tick lines.                                                          |
-| `labels`     | `false \| { color?, fontWeight?, fontSize?, fontFamily? }` | Hides or styles labels.                                                              |
-| `relative`   | `boolean`                                                  | Formats time relative to zero.                                                       |
-| `timeFormat` | `TimeFormatFunc \| TimeFormatLabeler`                      | Formats time-axis labels.                                                            |
-| `timeUnit`   | `'s' \| 'ms' \| 'us' \| 'ns'`                              | Sets the numeric time unit used for labels. Default: `'s'`.                          |
-| `timeZone`   | `string`                                                   | Sets the time zone for absolute-time labels and tick boundaries. Default: `'local'`. |
+| Key          | Type                                  | Behavior                                                                             |
+| ------------ | ------------------------------------- | ------------------------------------------------------------------------------------ |
+| `axis`       | `false \| { color? }`                 | Hides or styles the axis line.                                                       |
+| `ticks`      | `false \| { color? }`                 | Hides or styles tick lines.                                                          |
+| `labels`     | `false \| { color?, font? }`          | Hides or styles labels.                                                              |
+| `relative`   | `boolean`                             | Formats time relative to zero.                                                       |
+| `timeFormat` | `TimeFormatFunc \| TimeFormatLabeler` | Formats time-axis labels.                                                            |
+| `timeUnit`   | `'s' \| 'ms' \| 'us' \| 'ns'`         | Sets the numeric time unit used for labels. Default: `'s'`.                          |
+| `timeZone`   | `string`                              | Sets the time zone for absolute-time labels and tick boundaries. Default: `'local'`. |
 
 `TimeFormatFunc` receives `{ time, unit, level, digits, stride? }` and returns `string | undefined`. `TimeFormatLabeler` provides optional formatters for year, month, quarter, date, minutes, and seconds.
 
 `timeZone` accepts `'local'`, `'utc'`, or an IANA name (e.g. `'Asia/Tokyo'`); labelers receive components in that zone.
+
+`labels.font` uses the same font format as [text marks](#text). The default is `normal 12px "BIZ UDPGothic"`.
 
 ## Selection
 
@@ -442,6 +448,8 @@ Selection is resizable by default. Shift-drag creates a range.
 | `digits`      | `number`                                                                | Sets decimal places in tooltips and value axes.                                     |
 
 An unbounded range follows visible values. A single numeric range value means `[0, value]`.
+
+For a value axis, `axis: { side?, label?, color?, font? }` styles the axis title and tick labels. `font` uses the same format as [text marks](#text); its default is `normal 11px sans-serif`.
 
 See [Domains](/guide/concepts#domains) for independent and shared scales, [Auto Scaling](/guide/concepts#auto-scaling) for `expand` and `shrink`, and [Floating Ranges](/guide/concepts#floating-ranges) for the relationship to the Track's shared baseline.
 

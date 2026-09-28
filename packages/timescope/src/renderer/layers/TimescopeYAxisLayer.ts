@@ -1,3 +1,4 @@
+import { resolveFont } from '#src/main/fontStyle';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
 import { forEachTrack } from '#src/renderer/rendering';
 import type { TimescopeTrack } from '#src/renderer/TimescopeTrack';
@@ -30,7 +31,7 @@ export class TimescopeYAxisLayer extends TimescopeLayer {
     ctx.strokeStyle = axis.color || '#64748b';
     ctx.fillStyle = axis.color || '#334155';
     ctx.lineWidth = 1;
-    ctx.font = '11px sans-serif';
+    ctx.font = resolveFont(axis.font, { weight: 'normal', size: 11, family: 'sans-serif' });
     ctx.textBaseline = 'middle';
     ctx.textAlign = left ? 'left' : 'right';
 

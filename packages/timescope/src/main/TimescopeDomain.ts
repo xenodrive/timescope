@@ -1,6 +1,7 @@
 import { Decimal, isDecimal, type NumberLike } from '#src/core/decimal';
 import { TimescopeObservable } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
+import type { TimescopeFontStyle } from '#src/main/fontStyle';
 import type { TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
 import {
   computeYProjectionToAnchor,
@@ -10,7 +11,12 @@ import {
 } from '#src/main/yProjection';
 import type { TimescopeYProjectionWire } from '#src/renderer/types';
 
-export type TimescopeYAxisOptions = { side?: 'left' | 'right'; label?: string; color?: string };
+export type TimescopeYAxisOptions = {
+  side?: 'left' | 'right';
+  label?: string;
+  color?: string;
+  font?: TimescopeFontStyle;
+};
 export type TimescopeDomainOptions = {
   scale?: 'linear' | 'log' | 'linear-symmetric';
   animation?: boolean;

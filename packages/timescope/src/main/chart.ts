@@ -1,9 +1,6 @@
-export type TextStyleOptions = {
-  color?: string;
-  fontWeight?: string;
-  fontSize?: string;
-  fontFamily?: string;
-};
+import type { TimescopeFontStyle } from '#src/main/fontStyle';
+
+export type TextStyleOptions = { color?: string; font?: TimescopeFontStyle };
 
 export type MaybeFn<R, T> = T extends unknown[] ? ((...args: T) => R) | R : R;
 type UsingElement<V extends [string, string]> =
@@ -31,8 +28,7 @@ export type SizeStyle<T = false> = { size?: MaybeFn<number, T> };
 export type AngleStyle<T = false> = { angle?: MaybeFn<number, T> };
 export type PathStyle<T = false> = { path?: MaybeFn<string, T>; origin?: [number, number]; scale?: number };
 export type TextStyle<T = false> = {
-  fontWeight?: MaybeFn<string, T>;
-  fontFamily?: MaybeFn<string, T>;
+  font?: MaybeFn<TimescopeFontStyle, T>;
   textAlign?: MaybeFn<'start' | 'center' | 'end' | 'left' | 'right', T>;
   textBaseline?: MaybeFn<'top' | 'middle' | 'bottom' | 'hanging' | 'alphabetic' | 'ideographic', T>;
   textColor?: MaybeFn<string, T>;
@@ -43,8 +39,7 @@ export type TextStyle<T = false> = {
   text?: MaybeFn<string, T>;
 };
 export type IconStyle<T = false> = {
-  iconFontWeight?: MaybeFn<string, T>;
-  iconFontFamily?: MaybeFn<string, T>;
+  font?: MaybeFn<TimescopeFontStyle, T>;
   iconAlign?: MaybeFn<'start' | 'center' | 'end' | 'left' | 'right', T>;
   iconBaseline?: MaybeFn<'top' | 'middle' | 'bottom' | 'hanging' | 'alphabetic' | 'ideographic', T>;
   iconColor?: MaybeFn<string, T>;

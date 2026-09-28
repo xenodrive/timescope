@@ -176,7 +176,7 @@ const definitions = [
           from: 'labelHeight',
           size: 18,
           textField: 'symbol',
-          iconFontFamily: 'Material Design Icons',
+          font: { family: 'Material Design Icons' },
           colorField: 'color',
         },
         {

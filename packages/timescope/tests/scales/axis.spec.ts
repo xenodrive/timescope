@@ -34,7 +34,7 @@ describe('value axis presentation', () => {
         range: [0, 100],
         unit: '°C',
         digits: 1,
-        axis: { side: 'right', label: 'Temperature', color: '#123456' },
+        axis: { side: 'right', label: 'Temperature', color: '#123456', font: { size: 13, family: 'Inter' } },
       },
       'temperature',
     );
@@ -49,6 +49,7 @@ describe('value axis presentation', () => {
       label: 'Temperature',
       unit: '°C',
       color: '#123456',
+      font: { size: 13, family: 'Inter' },
     });
     expect(result.data.ticks.length).toBeGreaterThan(0);
     for (const tick of result.data.ticks) {

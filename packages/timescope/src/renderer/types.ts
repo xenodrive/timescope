@@ -9,6 +9,7 @@ import type {
   TimescopeChartMark,
   TimescopeOptionsSelection,
 } from '#src/main/chart';
+import type { TimescopeFontStyle } from '#src/main/fontStyle';
 import type { TimescopeDataCache } from '#src/renderer/TimescopeDataCache';
 import type { TimescopeTrack } from '#src/renderer/TimescopeTrack';
 import type { TimescopeViewport } from '#src/renderer/TimescopeViewport';
@@ -135,6 +136,7 @@ export type TimescopeYAxisData = {
     label?: string;
     unit?: string;
     color?: string;
+    font?: TimescopeFontStyle;
     ticks: { value: number; text: string; zero?: boolean }[];
   };
   meta: { time: Decimal; resolution: Decimal; projection: TimescopeYProjectionWire };
