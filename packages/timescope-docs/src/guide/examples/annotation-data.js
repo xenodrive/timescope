@@ -7,11 +7,12 @@ export function annotationData() {
       12 * Math.exp(-(((time - 15) / 4) ** 2))
     );
   }
+  // @mdi/font 7.4.47 glyphs: play, flag, alert-circle, check-circle.
   const events = [
-    { time: 7, label: 'Started', symbol: '▶', color: '#0284c7', labelHeight: 98 },
-    { time: 19, label: 'Checkpoint', symbol: '◆', color: '#7c3aed', labelHeight: 88 },
-    { time: 32, label: 'Latency spike', symbol: '!', color: '#e11d48', labelHeight: 98 },
-    { time: 49, label: 'Recovered', symbol: '✓', color: '#0d9488', labelHeight: 88 },
+    { time: 7, label: 'Started', symbol: '\u{F040A}', color: '#0284c7', labelHeight: 98 },
+    { time: 19, label: 'Checkpoint', symbol: '\u{F023B}', color: '#7c3aed', labelHeight: 88 },
+    { time: 32, label: 'Latency spike', symbol: '\u{F0028}', color: '#e11d48', labelHeight: 98 },
+    { time: 49, label: 'Recovered', symbol: '\u{F05E0}', color: '#0d9488', labelHeight: 88 },
   ];
   return {
     samples: Array.from({ length: 241 }, (_, index) => ({ time: index / 4, value: latency(index / 4) })),

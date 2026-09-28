@@ -169,8 +169,16 @@ const definitions = [
           colorField: 'color',
           stroke: 'dashed',
         },
-        { ...newLayer('mark'), size: 7, opacity: 1, colorField: 'color' },
-        { ...newLayer('mark'), draw: 'icon', from: 'labelHeight', size: 18, textField: 'symbol', colorField: 'color' },
+        { ...newLayer('mark'), draw: 'path', size: 8, opacity: 1, colorField: 'color' },
+        {
+          ...newLayer('mark'),
+          draw: 'icon',
+          from: 'labelHeight',
+          size: 18,
+          textField: 'symbol',
+          iconFontFamily: 'Material Design Icons',
+          colorField: 'color',
+        },
         {
           ...newLayer('mark'),
           draw: 'text',

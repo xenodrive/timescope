@@ -1,5 +1,8 @@
 import { datasets } from './datasets.js';
 
+const mdiFontFamily = 'Material Design Icons';
+export const mdiStylesheet = 'https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css';
+
 export const measurements = datasets.measurements.data;
 
 export function newTrack(id) {
@@ -34,6 +37,7 @@ export function newLayer(kind) {
     stroke: 'solid',
     text: 'Sample',
     textField: '',
+    path: 'M0 -1 C-.55 -1 -1 -.55 -1 0 C-1 .6 0 1.1 0 1.1 S1 .6 1 0 C1 -.55 .55 -1 0 -1 Z',
     colorField: '',
     radius: 0,
     offsetX: 0,
@@ -65,6 +69,7 @@ export function initialState() {
     width: '100%',
     height: '',
     background: '#ffffff',
+    loadMdiFont: true,
     cursorEnabled: true,
     cursorColor: '#ffffff',
     cursorBorderColor: '#ff0000',
@@ -79,6 +84,11 @@ export function initialState() {
 export function buildOptions(state) {
   return {
     target: '#timescope',
+    ...(state.series.some((series) =>
+      series.layers.some((layer) => layer.draw === 'icon' && layer.iconFontFamily === mdiFontFamily),
+    )
+      ? { fonts: [mdiStylesheet] }
+      : {}),
     ...(state.viewMode === 'fit'
       ? { fit: state.fitPadding ? { range: state.range, padding: state.fitPadding } : state.range }
       : { time: state.time, zoom: state.zoom }),
@@ -172,10 +182,11 @@ function layerOptions(layer) {
       ...(layer.draw === 'icon'
         ? {
             icon: layer.textField ? dataAccessor(layer.textField) : layer.text,
-            iconFontFamily: 'sans-serif',
+            iconFontFamily: layer.iconFontFamily ?? 'sans-serif',
             iconColor: color,
           }
         : {}),
+      ...(layer.draw === 'path' ? { path: layer.path } : {}),
     },
   };
 }
@@ -199,6 +210,11 @@ export function javascript(value, depth = 0, references = true, sources = {}) {
   }
   if (typeof value === 'function') return value.toString();
   if (value === undefined) return 'undefined';
+  if (typeof value === 'string')
+    return JSON.stringify(value).replace(
+      /[\u{F0000}-\u{FFFFD}]/gu,
+      (glyph) => `\\u{${glyph.codePointAt(0).toString(16).toUpperCase()}}`,
+    );
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
   const indent = '  '.repeat(depth);
   if (Array.isArray(value)) {

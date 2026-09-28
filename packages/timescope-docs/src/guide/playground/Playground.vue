@@ -7,6 +7,7 @@ import {
   buildOptions,
   initialState,
   javascript,
+  mdiStylesheet,
   newDomain,
   newLayer,
   newSeries,
@@ -31,7 +32,10 @@ const dataFields = computed(() => Object.keys(rowsFor(editor.value?.draft.source
 const fields = computed(() => [...sourceFields.value, '#zero', '#top', '#bottom']);
 const collections = ['general', 'sources', 'tracks', 'series', 'domains'];
 const active = ref('general');
-const options = computed(() => buildOptions(state));
+const options = computed(() => {
+  const { fonts, ...configuration } = buildOptions(state);
+  return state.loadMdiFont ? { ...configuration, fonts: [mdiStylesheet] } : configuration;
+});
 const sourceItems = computed(() =>
   [...Object.keys(datasets), ...state.sources].map((id) => ({ id, builtIn: Object.hasOwn(datasets, id) })),
 );
@@ -49,6 +53,7 @@ const references = computed(() => {
   return state.series.filter((series) => series[key] === editor.value.original);
 });
 let timescope;
+let fontSource;
 let copyTimer;
 
 watch(
@@ -67,13 +72,20 @@ watch(
 onMounted(() => {
   readPresetUrl();
   timescope = new Timescope({ ...options.value, target: target.value });
+  fontSource = options.value.fonts?.[0];
   window.addEventListener('popstate', readPresetUrl);
 });
 watch(() => route.path, readPresetUrl);
 watch(options, (value) => {
   try {
-    const { time, zoom, fit, ...configuration } = value;
-    timescope?.setOptions({ ...configuration, target: target.value });
+    if (timescope && fontSource !== value.fonts?.[0]) {
+      timescope.dispose();
+      timescope = new Timescope({ ...value, target: target.value });
+      fontSource = value.fonts?.[0];
+    } else {
+      const { time, zoom, fit, fonts, ...configuration } = value;
+      timescope?.setOptions({ ...configuration, target: target.value });
+    }
     error.value = '';
   } catch (cause) {
     error.value = cause.message;
@@ -377,6 +389,7 @@ async function copy() {
             <label>Width <input v-model="state.width" placeholder="100%" /></label>
             <label>Height <input v-model="state.height" placeholder="Auto from tracks" /></label>
             <label>Background <input v-model="state.background" type="color" /></label>
+            <label><input v-model="state.loadMdiFont" type="checkbox" /> Load MDI font</label>
             <label><input v-model="state.cursorEnabled" type="checkbox" /> Time cursor</label>
             <label v-if="state.cursorEnabled">Cursor color <input v-model="state.cursorColor" type="color" /></label>
             <label v-if="state.cursorEnabled"
@@ -596,7 +609,7 @@ async function copy() {
                   <select v-model="layer.draw">
                     <option
                       v-for="draw in layer.kind === 'mark'
-                        ? ['circle', 'square', 'triangle', 'diamond', 'star', 'bar', 'section', 'text', 'icon']
+                        ? ['circle', 'square', 'triangle', 'diamond', 'star', 'bar', 'section', 'text', 'icon', 'path']
                         : ['line', 'curve', 'step', 'area', 'curve-area', 'step-area']"
                       :key="draw">
                       {{ draw }}
@@ -669,6 +682,7 @@ async function copy() {
                     </select></label
                   >
                 </template>
+                <label v-if="layer.draw === 'path'">SVG path <textarea v-model="layer.path" required></textarea></label>
               </div>
               <button type="button" @click="editor.draft.layers.splice(index, 1)">Remove layer</button>
             </fieldset>
