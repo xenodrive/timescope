@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Timescope, defineTimescopeOptions, Decimal } from '@timescope/vue';
-import { ref, shallowRef } from 'vue';
+import { ref } from 'vue';
 
-const time = shallowRef<Decimal | null>(Decimal(15));
+const time = ref<Decimal | null>(Decimal(15));
 const zoom = ref(3);
 const options = defineTimescopeOptions({
   style: { height: '240px' },

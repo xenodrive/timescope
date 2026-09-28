@@ -27,8 +27,8 @@
     "#src/*": "./src/*.ts"
   },
   "devDependencies": {
-    "@kikuchan/calendar": "^0.2.0-alpha.0",
-    "@kikuchan/decimal": "^0.2.0-alpha.0",
+    "@kikuchan/calendar": "^0.2.0",
+    "@kikuchan/decimal": "^0.2.0",
     "oxfmt": "^0.67.0",
     "oxlint": "^1.82.0",
     "skia-canvas": "^3.0.8",
@@ -36,8 +36,8 @@
     "typescript": "^7.0.2"
   },
   "peerDependencies": {
-    "@kikuchan/calendar": "^0.2.0-alpha.0",
-    "@kikuchan/decimal": "^0.2.0-alpha.0",
+    "@kikuchan/calendar": "^0.2.0",
+    "@kikuchan/decimal": "^0.2.0",
     "skia-canvas": "^3.0.8"
   },
   "peerDependenciesMeta": {

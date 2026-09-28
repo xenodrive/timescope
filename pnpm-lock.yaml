@@ -34,11 +34,11 @@ importers:
   packages/timescope:
     devDependencies:
       '@kikuchan/calendar':
-        specifier: ^0.2.0-alpha.0
-        version: 0.2.0-alpha.0(@kikuchan/decimal@0.2.0-alpha.0)
+        specifier: ^0.2.0
+        version: 0.2.0(@kikuchan/decimal@0.2.0)
       '@kikuchan/decimal':
-        specifier: ^0.2.0-alpha.0
-        version: 0.2.0-alpha.0
+        specifier: ^0.2.0
+        version: 0.2.0
       oxfmt:
         specifier: ^0.67.0
         version: 0.67.0(svelte@5.57.1(@typescript-eslint/types@8.70.1))
@@ -107,11 +107,11 @@ importers:
         specifier: ^9.39.0
         version: 9.39.5
       '@kikuchan/calendar':
-        specifier: ^0.2.0-alpha.0
-        version: 0.2.0-alpha.0(@kikuchan/decimal@0.2.0-alpha.0)
+        specifier: ^0.2.0
+        version: 0.2.0(@kikuchan/decimal@0.2.0)
       '@kikuchan/decimal':
-        specifier: ^0.2.0-alpha.0
-        version: 0.2.0-alpha.0
+        specifier: ^0.2.0
+        version: 0.2.0
       '@luna_ui/luna':
         specifier: ^0.23.0
         version: 0.23.2(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(yaml@2.9.1))
@@ -147,11 +147,11 @@ importers:
         specifier: ^9.39.0
         version: 9.39.5
       '@kikuchan/calendar':
-        specifier: ^0.2.0-alpha.0
-        version: 0.2.0-alpha.0(@kikuchan/decimal@0.2.0-alpha.0)
+        specifier: ^0.2.0
+        version: 0.2.0(@kikuchan/decimal@0.2.0)
       '@kikuchan/decimal':
-        specifier: ^0.2.0-alpha.0
-        version: 0.2.0-alpha.0
+        specifier: ^0.2.0
+        version: 0.2.0
       '@types/react':
         specifier: ^19.2.18
         version: 19.3.0
@@ -220,11 +220,11 @@ importers:
         specifier: ^9.39.0
         version: 9.39.5
       '@kikuchan/calendar':
-        specifier: ^0.2.0-alpha.0
-        version: 0.2.0-alpha.0(@kikuchan/decimal@0.2.0-alpha.0)
+        specifier: ^0.2.0
+        version: 0.2.0(@kikuchan/decimal@0.2.0)
       '@kikuchan/decimal':
-        specifier: ^0.2.0-alpha.0
-        version: 0.2.0-alpha.0
+        specifier: ^0.2.0
+        version: 0.2.0
       '@solidjs/testing-library':
         specifier: ^0.8.10
         version: 0.8.10(solid-js@1.9.15)
@@ -278,11 +278,11 @@ importers:
         specifier: ^9.39.0
         version: 9.39.5
       '@kikuchan/calendar':
-        specifier: ^0.2.0-alpha.0
-        version: 0.2.0-alpha.0(@kikuchan/decimal@0.2.0-alpha.0)
+        specifier: ^0.2.0
+        version: 0.2.0(@kikuchan/decimal@0.2.0)
       '@kikuchan/decimal':
-        specifier: ^0.2.0-alpha.0
-        version: 0.2.0-alpha.0
+        specifier: ^0.2.0
+        version: 0.2.0
       '@sveltejs/package':
         specifier: ^2.5.8
         version: 2.5.8(svelte@5.57.1(@typescript-eslint/types@8.70.1))(typescript@6.0.3)
@@ -342,11 +342,11 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))
       '@kikuchan/calendar':
-        specifier: ^0.2.0-alpha.0
-        version: 0.2.0-alpha.0(@kikuchan/decimal@0.2.0-alpha.0)
+        specifier: ^0.2.0
+        version: 0.2.0(@kikuchan/decimal@0.2.0)
       '@kikuchan/decimal':
-        specifier: ^0.2.0-alpha.0
-        version: 0.2.0-alpha.0
+        specifier: ^0.2.0
+        version: 0.2.0
       '@vitejs/plugin-vue':
         specifier: ^6.0.8
         version: 6.0.9(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(yaml@2.9.1))(vue@3.5.43(typescript@6.0.3))
@@ -657,13 +657,13 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@kikuchan/calendar@0.2.0-alpha.0':
-    resolution: {integrity: sha512-Wx2RjuIzgL0dIkT1qrBRkO5IhfP9N3z6LPrNYqrDruZzSzzCAivDc0LsjnTLx7dL+EppiuAr2LQvOeuw0Wo/yA==}
+  '@kikuchan/calendar@0.2.0':
+    resolution: {integrity: sha512-10e2FYtPa3OX5y6QPPU2WfzcPZ5tKEgkcpo+PrqW9hb8baXPCL8dVyZkorbKG5pUXTck5rOFpP/eh0sUHjiXJw==}
     peerDependencies:
-      '@kikuchan/decimal': ^0.2.0-alpha.0
+      '@kikuchan/decimal': ^0.2.0
 
-  '@kikuchan/decimal@0.2.0-alpha.0':
-    resolution: {integrity: sha512-pPamWiQI3NOp9ckKPpSyUyHpbttwKkPhziS3owz3xKbaX/sDykRnyZ+5Rpm8cTgjDHGEROqbjLXHcGDXHQ0tvg==}
+  '@kikuchan/decimal@0.2.0':
+    resolution: {integrity: sha512-ZNFs65flsEBCYZ9PNMM1ItobQZGVgBP4iYRUus1MCcdfLUh011kVa+tPWIYNrNk+cvLxQS+udMLEKe4W0UoOjA==}
 
   '@luna_ui/luna@0.23.2':
     resolution: {integrity: sha512-BAxa0EfPqdKgYY+8rjLax+3sj8hpfLoWrEWEWSSY19564y+7vDJ3LvOx1a3WgMccTBZGUxiBOTGAt9KOQ1rzlA==}
@@ -4382,11 +4382,11 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  '@kikuchan/calendar@0.2.0-alpha.0(@kikuchan/decimal@0.2.0-alpha.0)':
+  '@kikuchan/calendar@0.2.0(@kikuchan/decimal@0.2.0)':
     dependencies:
-      '@kikuchan/decimal': 0.2.0-alpha.0
+      '@kikuchan/decimal': 0.2.0
 
-  '@kikuchan/decimal@0.2.0-alpha.0': {}
+  '@kikuchan/decimal@0.2.0': {}
 
   '@luna_ui/luna@0.23.2(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(yaml@2.9.1))':
     optionalDependencies:
