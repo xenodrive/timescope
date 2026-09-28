@@ -2,6 +2,7 @@ import { Timescope } from '#src/index.node';
 import { resolveBackends } from '#src/main/backendRegistry';
 import { skiaCanvasBackend } from '#src/main/backends/skia-canvas';
 import { TimescopeRenderEngine } from '#src/renderer/TimescopeRenderEngine';
+import { TimescopeViewport } from '#src/renderer/TimescopeViewport';
 import { Canvas, Path2D } from 'skia-canvas';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -99,6 +100,38 @@ describe('canvas targets', () => {
       expect(ready).toHaveBeenCalledOnce();
     } finally {
       timescope.dispose();
+    }
+  });
+
+  it('restores playback time set before asynchronous mount and after remount', async () => {
+    const canvas = new Canvas(80, 40);
+    const handleSyncEvent = TimescopeViewport.prototype.handleSyncEvent;
+    let viewport: TimescopeViewport | undefined;
+    const sync = vi
+      .spyOn(TimescopeViewport.prototype, 'handleSyncEvent')
+      .mockImplementation(function (this: TimescopeViewport, message) {
+        handleSyncEvent.call(this, message);
+        viewport = this;
+      });
+    const timescope = new Timescope({ target: canvas, time: 5.99, fonts: [] });
+    try {
+      timescope.setPlaybackTime(5.99);
+      await timescope.nextFrame();
+      expect(viewport?.configuredPlaybackTime?.eq(5.99)).toBe(true);
+
+      timescope.unmount();
+      timescope.mount(canvas);
+      await timescope.nextFrame();
+      expect(viewport?.configuredPlaybackTime?.eq(5.99)).toBe(true);
+
+      timescope.setPlaybackTime(null);
+      timescope.unmount();
+      timescope.mount(canvas);
+      await timescope.nextFrame();
+      expect(viewport?.configuredPlaybackTime).toBeNull();
+    } finally {
+      timescope.dispose();
+      sync.mockRestore();
     }
   });
 

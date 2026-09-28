@@ -44,6 +44,7 @@ type TimescopeCommittableMessageRestore<N extends null> = {
   type: 'restore';
   value: Decimal | N;
   domain: TimescopeRange<Decimal | N | undefined>;
+  nullValue: Decimal | null;
 };
 
 export type TimescopeCommittableMessageSync<N extends null> =
@@ -371,7 +372,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
     };
   }
 
-  #restore({ value, domain }: TimescopeCommittableMessageRestore<N>) {
+  #restore({ value, domain, nullValue }: TimescopeCommittableMessageRestore<N>) {
     this.#timeAnimation.cancel();
 
     this.#state.cursorMode = 'current';
@@ -384,6 +385,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
     this.#state.animating = false;
 
     this.#state.domain = domain;
+    this.#state.nullValue = nullValue;
   }
 
   restore() {
@@ -391,6 +393,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
       type: 'restore',
       value: this.value,
       domain: this.#state.domain,
+      nullValue: this.#state.nullValue,
     };
     this.dispatchEvent(new TimescopeEvent('sync', message));
     this.#restore(message);

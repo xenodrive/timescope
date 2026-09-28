@@ -38,10 +38,14 @@ describe('time coordinates', () => {
       let size = 0;
       for (let cycle = 0; cycle < cycles; cycle++) {
         for (const zoom of [20, 20.25, 21.5, 100, 21.5, 20.25, 20]) {
-          axis.handleSyncEvent({ zoom: { type: 'restore', value: Decimal(zoom), domain: [undefined, undefined] } });
+          axis.handleSyncEvent({
+            zoom: { type: 'restore', value: Decimal(zoom), domain: [undefined, undefined], nullValue: null },
+          });
           for (const pixel of [413.375, 386.625]) {
             const time = axis.t(pixel);
-            axis.handleSyncEvent({ time: { type: 'restore', value: time, domain: [undefined, undefined] } });
+            axis.handleSyncEvent({
+              time: { type: 'restore', value: time, domain: [undefined, undefined], nullValue: null },
+            });
             size = Math.max(size, time.coeff.toString().length + Math.max(0, time.digits));
           }
         }

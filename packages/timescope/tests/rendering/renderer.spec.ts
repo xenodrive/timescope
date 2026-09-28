@@ -146,7 +146,7 @@ describe('renderer integration', () => {
       cursor: false,
     });
     renderer.resize({ size: { width: 200, height: 100 }, context: { dpr: 1 } });
-    renderer.sync({ time: { type: 'restore', value: Decimal(10), domain: [undefined, undefined] } });
+    renderer.sync({ time: { type: 'restore', value: Decimal(10), domain: [undefined, undefined], nullValue: null } });
     for (let i = 0; i < 5; i++) await frame();
     expect(fillText).toHaveBeenCalledWith('annotation', 0, 0);
 
