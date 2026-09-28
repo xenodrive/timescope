@@ -1,4 +1,4 @@
-import { resolveFont } from '#src/main/fontStyle';
+import { DEFAULT_FONT_FAMILY, resolveFont } from '#src/main/fontStyle';
 import { describe, expect, it } from 'vitest';
 
 describe('font styles', () => {
@@ -7,6 +7,12 @@ describe('font styles', () => {
   it('uses per-location defaults and quotes a single multi-word family', () => {
     expect(resolveFont(undefined, defaults)).toBe('normal 12px "BIZ UDPGothic"');
     expect(resolveFont({ family: 'sans-serif' }, { ...defaults, size: 11 })).toBe('normal 11px sans-serif');
+  });
+
+  it('uses Timescope before the platform font for ordinary text', () => {
+    expect(resolveFont(undefined, { weight: 'normal', size: 11, family: DEFAULT_FONT_FAMILY })).toBe(
+      'normal 11px Timescope, sans-serif',
+    );
   });
 
   it('prefers explicit font properties to mark size and preserves CSS font strings', () => {

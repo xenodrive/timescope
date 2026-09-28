@@ -385,7 +385,7 @@ Mark callbacks receive `{ times, values, data, resolution }`; link callbacks rec
 
 `origin` and `scale` are fixed values. Other style values accept callbacks where supported by the selected primitive.
 
-`TimescopeFontStyle` accepts a CSS canvas font string or an object with `style`, `variant`, `weight`, `stretch`, `size`, `lineHeight`, and `family`. `size` accepts a number in pixels or a CSS size string; `lineHeight` accepts a unitless number or a CSS line-height string. For text and icon marks, `font.size` takes precedence over `style.size`; if omitted, `style.size` supplies the font size. A string `font` is applied as-is, including its size. Default fonts and sizes vary by drawing location.
+`TimescopeFontStyle` accepts a CSS canvas font string or an object with `style`, `variant`, `weight`, `stretch`, `size`, `lineHeight`, and `family`. `size` accepts a number in pixels or a CSS size string; `lineHeight` accepts a unitless number or a CSS line-height string. For text and icon marks, `font.size` takes precedence over `style.size`; if omitted, `style.size` supplies the font size. A string `font` is applied as-is, including its size. Text marks default to `normal 14px Timescope, sans-serif`; icon marks default to `normal 16px icons`.
 
 Object-form `family` accepts comma-separated fallback families (e.g. `'Inter, sans-serif'`). Quote a family name that itself contains a comma (e.g. `'"A, B", sans-serif'`). Unquoted names containing quotes, backslashes, or control characters are escaped when forming the canvas font string; already-quoted names are preserved.
 
@@ -417,7 +417,7 @@ The time axis is drawn at the Track's [shared baseline](/guide/concepts#shared-b
 
 `timeZone` accepts `'local'`, `'utc'`, or an IANA name (e.g. `'Asia/Tokyo'`); labelers receive components in that zone.
 
-`labels.font` uses the same font format as [text marks](#text). The default is `normal 12px "BIZ UDPGothic"`.
+`labels.font` uses the same font format as [text marks](#text). The default is `normal 12px Timescope, sans-serif`.
 
 ## Selection
 
@@ -449,7 +449,7 @@ Selection is resizable by default. Shift-drag creates a range.
 
 An unbounded range follows visible values. A single numeric range value means `[0, value]`.
 
-For a value axis, `axis: { side?, label?, color?, font? }` styles the axis title and tick labels. `font` uses the same format as [text marks](#text); its default is `normal 11px sans-serif`.
+For a value axis, `axis: { side?, label?, color?, font? }` styles the axis title and tick labels. `font` uses the same format as [text marks](#text); its default is `normal 11px Timescope, sans-serif`.
 
 See [Domains](/guide/concepts#domains) for independent and shared scales, [Auto Scaling](/guide/concepts#auto-scaling) for `expand` and `shrink`, and [Floating Ranges](/guide/concepts#floating-ranges) for the relationship to the Track's shared baseline.
 

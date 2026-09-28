@@ -1,6 +1,6 @@
 import { TimescopeAnimatedValue } from '#src/core/animation';
 import { normalizeOptions } from '#src/core/options';
-import { resolveFont } from '#src/main/fontStyle';
+import { DEFAULT_FONT_FAMILY, resolveFont } from '#src/main/fontStyle';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
 import { forEachTrack } from '#src/renderer/rendering';
 import type { TimescopeRenderingContext, TimescopeTimeAxisData } from '#src/renderer/types';
@@ -92,7 +92,7 @@ export class TimescopeTimeAxisLayer extends TimescopeLayer {
     ctx.font = resolveFont(typeof opts.labels === 'object' ? opts.labels.font : undefined, {
       weight: 'normal',
       size: 12,
-      family: 'BIZ UDPGothic',
+      family: DEFAULT_FONT_FAMILY,
     });
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';

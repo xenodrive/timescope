@@ -10,6 +10,8 @@ export type TimescopeFontStyle =
       family?: string;
     };
 
+export const DEFAULT_FONT_FAMILY = 'Timescope, sans-serif';
+
 type FontDefaults = { size: number | string; weight: string; family: string };
 
 function formatFontFamily(family: string): string {

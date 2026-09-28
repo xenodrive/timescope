@@ -108,7 +108,7 @@ The optional third argument is device pixel ratio (default `1`). Use `nextFrame(
 
 ## Fonts
 
-`fonts` configures font loading at creation:
+The default font family for time-axis labels, value axes, text marks, and tooltips is `Timescope, sans-serif`. Icon marks keep their own `icons` default. `fonts` configures font loading at creation:
 
 - Omit it in the browser to load fonts declared by accessible document `@font-face` rules.
 - Pass `[]` to disable document font loading, as in the Node.js example.
@@ -121,7 +121,7 @@ const timescope = new Timescope({
 });
 ```
 
-Loading a font makes it available; select its family in the relevant [text styles](/api/timescope-options#text). Explicit font sources are useful when the document's font rules are not accessible. See the [font option reference](/api/timescope#fonts) for accepted source types.
+Loading a font makes it available; select its family in the relevant [text styles](/api/timescope-options#text). Explicit font sources are useful when the document's font rules are not accessible. Custom `font` values are used as provided. See the [font option reference](/api/timescope#fonts) for accepted source types.
 
 ## Backend selection
 

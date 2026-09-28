@@ -1,6 +1,7 @@
 import { bisectRight } from '#src/core/bisect';
 import { Decimal } from '#src/core/decimal';
 import { Vector2f } from '#src/core/vector';
+import { DEFAULT_FONT_FAMILY, resolveFont } from '#src/main/fontStyle';
 import { disperse } from '#src/renderer/layers/disperse';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
 import { forEachTrack } from '#src/renderer/rendering';
@@ -41,6 +42,7 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
       const labels = [];
       let sideX = 1;
 
+      ctx.font = resolveFont(undefined, { weight: 'normal', size: 12, family: DEFAULT_FONT_FAMILY });
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'left';
 
@@ -164,7 +166,6 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
 
         ctx.textBaseline = 'middle';
         ctx.textAlign = sideX < 0 ? 'right' : 'left';
-        //ctx.font = this.#labelStyle.font;
         ctx.fillStyle = 'white'; //this.#labelStyle.color ?? 'black';
         ctx.fillText(text.value, point.x + sideX * text.dx, point.y + text.dy);
       }
