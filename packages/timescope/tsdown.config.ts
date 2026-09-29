@@ -8,28 +8,12 @@ const { root, outDir, ...config } = getCommonConfig(import.meta.dirname, {
   plugins: [RolldownInlineWorkerPlugin()],
 });
 const profileBuild = process.env.BENCHMARK_PROFILE_BUILD === '1';
-const fontImport = '../assets/fonts/Timescope.woff2?inline';
-const fontId = '\0timescope-font';
-const fontPath = path.join(root, 'src/assets/fonts/Timescope.woff2');
-
-const inlineFontPlugin = {
-  name: 'inline-timescope-font',
-  resolveId(source: string) {
-    if (source === fontImport) return fontId;
-  },
-  load(this: { addWatchFile(file: string): void }, id: string) {
-    if (id !== fontId) return;
-    this.addWatchFile(fontPath);
-    const url = `data:font/woff2;base64,${fs.readFileSync(fontPath).toString('base64')}`;
-    return `export default ${JSON.stringify(url)};`;
-  },
-};
 
 const configBase = defineConfig({
   entry: path.join(root, 'src/index.browser.ts'),
   minify: !profileBuild,
   cwd: root,
-  plugins: [RolldownInlineWorkerPlugin(), inlineFontPlugin],
+  plugins: [RolldownInlineWorkerPlugin()],
   sourcemap: profileBuild,
   deps: { neverBundle: ['skia-canvas'] },
 });
@@ -73,8 +57,11 @@ export default defineConfig([
     ...configBase,
     entry: path.join(root, 'src/browser.ts'),
     format: ['iife'],
+    globalName: '__timescope',
     clean: false,
-    noExternal: () => true,
+    deps: {
+      alwaysBundle: () => true,
+    },
     outputOptions: {
       entryFileNames: 'browser.js',
       dir: outDir,

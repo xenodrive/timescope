@@ -18,5 +18,5 @@
     "esModuleInterop": true,
     "isolatedModules": true
   },
-  "include": ["./src/**/*", "../timescope/src/assets.d.ts"]
+  "include": ["./src/**/*"]
 }

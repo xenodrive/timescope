@@ -35,5 +35,5 @@
 
     "jsx": "preserve"
   },
-  "include": ["./src/**/*", "./bench/**/*", "../timescope/src/assets.d.ts"]
+  "include": ["./src/**/*", "./bench/**/*"]
 }
