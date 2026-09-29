@@ -1,6 +1,6 @@
-import { Decimal, Timescope } from '@timescope/react';
+import { Timescope } from '@timescope/react';
 import { useState } from 'react';
-import { type TimescopeRange } from 'timescope';
+import { Decimal, type TimescopeRange } from 'timescope';
 
 const options = { style: { height: '80px' } };
 

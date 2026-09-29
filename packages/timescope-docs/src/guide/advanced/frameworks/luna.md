@@ -4,10 +4,10 @@ title: Luna
 
 # Luna
 
-Install and use `@timescope/luna` instead of `timescope`. It provides the Luna component and re-exports the core helpers and types, so a separate `timescope` installation is not needed.
+Install `timescope` for core helpers and types, and `@timescope/luna` for the Luna component.
 
 ```bash
-npm install @timescope/luna @luna_ui/luna
+npm install timescope @timescope/luna @luna_ui/luna
 ```
 
 ## Component
@@ -16,7 +16,8 @@ Pass signal accessors for reactive props and child text, and use change callback
 
 ```tsx
 import { createSignal } from '@luna_ui/luna';
-import { Decimal, Timescope, defineTimescopeOptions } from '@timescope/luna';
+import { Timescope } from '@timescope/luna';
+import { Decimal, defineTimescopeOptions } from 'timescope';
 
 const options = defineTimescopeOptions({
   style: { height: '240px' },

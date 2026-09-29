@@ -1,7 +1,6 @@
 import { createDefineTimescopeOptions } from 'timescope';
 import { markRaw, reactive } from 'vue';
 
-export * from 'timescope';
 export { default as Timescope } from './Timescope.vue';
 
 function markSourceRaw<T>(source: T): T {

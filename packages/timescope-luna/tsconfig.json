@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "types": ["rolldown-plugin-inline-worker"]
   },
-  "include": ["./src/**/*", "./playground/**/*"]
+  "include": ["./src/**/*", "./playground/**/*", "../timescope/src/assets.d.ts"]
 }

@@ -4,10 +4,10 @@ title: Vue
 
 # Vue
 
-Install and use `@timescope/vue` instead of `timescope`. It provides the Vue component and re-exports the core helpers and types, so a separate `timescope` installation is not needed.
+Install `timescope` for core helpers and types, and `@timescope/vue` for the Vue component and reactive `defineTimescopeOptions`.
 
 ```bash
-npm install @timescope/vue
+npm install timescope @timescope/vue
 ```
 
 ## Component
@@ -16,7 +16,8 @@ Pass chart configuration through `options` and use `v-model` to synchronize time
 
 ```vue
 <script setup lang="ts">
-import { Decimal, Timescope, defineTimescopeOptions } from '@timescope/vue';
+import { Timescope, defineTimescopeOptions } from '@timescope/vue';
+import { Decimal } from 'timescope';
 import { ref } from 'vue';
 
 const time = ref<Decimal | null>(Decimal(15));

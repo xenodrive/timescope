@@ -4,10 +4,10 @@ title: Solid
 
 # Solid
 
-Install and use `@timescope/solid` instead of `timescope`. It provides the Solid component and re-exports the core helpers and types, so a separate `timescope` installation is not needed.
+Install `timescope` for core helpers and types, and `@timescope/solid` for the Solid component.
 
 ```bash
-npm install @timescope/solid
+npm install timescope @timescope/solid
 ```
 
 ## Component
@@ -15,7 +15,8 @@ npm install @timescope/solid
 Read signal values in JSX and pass change callbacks to synchronize chart interactions with Solid signals. The component handles mounting and disposal; callbacks receive values directly.
 
 ```tsx
-import { Decimal, Timescope, defineTimescopeOptions } from '@timescope/solid';
+import { Timescope } from '@timescope/solid';
+import { Decimal, defineTimescopeOptions } from 'timescope';
 import { createSignal } from 'solid-js';
 
 const options = defineTimescopeOptions({

@@ -1,7 +1,6 @@
 <script lang="ts">
   import { Timescope } from '@timescope/svelte';
-  import type { Decimal } from '@timescope/svelte';
-  import type { TimescopeRange } from '@timescope/svelte';
+  import type { Decimal, TimescopeRange } from 'timescope';
 
   let time: Decimal | null = null;
   let timeChanging: Decimal | null = null;

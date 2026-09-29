@@ -4,10 +4,10 @@ title: React
 
 # React
 
-Install and use `@timescope/react` instead of `timescope`. It provides the React component and re-exports the core helpers and types, so a separate `timescope` installation is not needed.
+Install `timescope` for core helpers and types, and `@timescope/react` for the React component.
 
 ```bash
-npm install @timescope/react
+npm install timescope @timescope/react
 ```
 
 ## Component
@@ -15,7 +15,8 @@ npm install @timescope/react
 Pair time and zoom props with change callbacks to keep React state synchronized with chart interactions. The component handles mounting and disposal; callbacks receive values directly.
 
 ```tsx
-import { Decimal, Timescope, defineTimescopeOptions } from '@timescope/react';
+import { Timescope } from '@timescope/react';
+import { Decimal, defineTimescopeOptions } from 'timescope';
 import { useState } from 'react';
 
 const options = defineTimescopeOptions({

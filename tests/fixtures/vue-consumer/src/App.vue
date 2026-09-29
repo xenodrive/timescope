@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Timescope, defineTimescopeOptions, type Decimal } from "@timescope/vue";
+import { Timescope, defineTimescopeOptions } from "@timescope/vue";
+import type { Decimal } from "timescope";
 import { ref } from "vue";
 
 const options = defineTimescopeOptions({ style: { height: "80px" }, showFps: false });

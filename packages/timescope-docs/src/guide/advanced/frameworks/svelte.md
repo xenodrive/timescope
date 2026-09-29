@@ -4,10 +4,10 @@ title: Svelte
 
 # Svelte
 
-Install and use `@timescope/svelte` instead of `timescope`. It provides the Svelte component and re-exports the core helpers and types, so a separate `timescope` installation is not needed.
+Install `timescope` for core helpers and types, and `@timescope/svelte` for the Svelte component.
 
 ```bash
-npm install @timescope/svelte
+npm install timescope @timescope/svelte
 ```
 
 ## Component
@@ -16,7 +16,8 @@ Use Svelte 5's `bind:` to synchronize time and zoom with `$state`. The component
 
 ```svelte
 <script lang="ts">
-  import { Decimal, Timescope, defineTimescopeOptions } from '@timescope/svelte';
+  import { Timescope } from '@timescope/svelte';
+  import { Decimal, defineTimescopeOptions } from 'timescope';
 
   let time = $state<Decimal | null>(Decimal(15));
   let zoom = $state(3);

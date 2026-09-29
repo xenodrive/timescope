@@ -1,6 +1,5 @@
 import type { Timescope as TimescopeCore } from 'timescope';
 
-export * from 'timescope';
 export { default as Timescope } from './Timescope.svelte';
 
 export type TimescopeAPI = {

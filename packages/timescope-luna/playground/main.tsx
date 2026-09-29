@@ -1,6 +1,6 @@
 import { createSignal, render, Show } from '@luna_ui/luna';
-import { type Decimal, Timescope } from '@timescope/luna';
-import { type TimescopeRange } from 'timescope';
+import { Timescope } from '@timescope/luna';
+import { type Decimal, type TimescopeRange } from 'timescope';
 
 const options = { style: { height: '80px' } };
 

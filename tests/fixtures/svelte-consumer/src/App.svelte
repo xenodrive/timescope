@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Timescope, type Decimal } from '@timescope/svelte';
+  import { Timescope } from '@timescope/svelte';
+  import type { Decimal } from 'timescope';
 
   const options = { style: { height: '80px' }, showFps: false };
   let time = $state<Decimal | null | undefined>(undefined);
