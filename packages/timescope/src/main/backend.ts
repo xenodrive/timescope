@@ -75,6 +75,8 @@ export function mountCanvas(
   let observer: ResizeObserver | undefined;
   let interaction: InteractionManager | undefined;
   let onWheel: ((event: WheelEvent) => void) | undefined;
+  let canvasStyle = style;
+  let updateSize: (() => void) | undefined;
   const dispose = () => {
     observer?.disconnect();
     interaction?.detach();
@@ -87,21 +89,36 @@ export function mountCanvas(
       element.style.all = 'unset';
       element.style.display = 'block';
       element.style.touchAction = 'none';
-      element.style.width = style?.width ?? '100%';
-      element.style.height = style?.height ?? '36px';
-      element.style.background = style?.background ?? '#fff';
+      element.style.width = canvasStyle?.width ?? '100%';
+      element.style.height = canvasStyle?.height ?? '36px';
+      element.style.background = canvasStyle?.background ?? '#fff';
       if ('appendChild' in container) container.appendChild(element);
-      observer = new ResizeObserver(() => {
+      updateSize = () => {
+        element.style.width = canvasStyle?.width ?? '100%';
+        element.style.height = canvasStyle?.height ?? '36px';
+        element.style.position = 'relative';
+        element.style.left = '0px';
+        element.style.top = '0px';
         const rect = element.getBoundingClientRect();
+        const dpr = window.devicePixelRatio;
+        const width = Math.round(rect.width * dpr) / dpr;
+        const height = Math.round(rect.height * dpr) / dpr;
+        const left = (Math.round(rect.x * dpr) - rect.x * dpr) / dpr;
+        const top = (Math.round(rect.y * dpr) - rect.y * dpr) / dpr;
+        element.style.width = `${width}px`;
+        element.style.height = `${height}px`;
+        element.style.left = `${left}px`;
+        element.style.top = `${top}px`;
         host.sizeChanged({
-          width: rect.width,
-          height: rect.height,
-          dpr: window.devicePixelRatio,
-          x: rect.x,
-          y: rect.y,
+          width,
+          height,
+          dpr,
+          x: rect.x + left,
+          y: rect.y + top,
         });
-      });
-      observer.observe(element);
+      };
+      observer = new ResizeObserver(updateSize);
+      observer.observe(container as Element);
     }
 
     if (element && typeof window !== 'undefined') {
@@ -141,9 +158,9 @@ export function mountCanvas(
     setStyle:
       !direct && element
         ? (value) => {
-            element.style.width = value?.width ?? '100%';
-            element.style.height = value?.height ?? '36px';
+            canvasStyle = value;
             element.style.background = value?.background ?? '#fff';
+            updateSize?.();
           }
         : undefined,
     setDisabled: (disabled) => {

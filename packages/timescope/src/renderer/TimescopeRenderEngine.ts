@@ -476,8 +476,8 @@ export class TimescopeRenderEngine {
       if (!canvas) return;
 
       const dpr = context?.dpr ?? renderingContext.dpr ?? 1;
-      canvas.width = size.width * dpr;
-      canvas.height = size.height * dpr;
+      canvas.width = Math.round(size.width * dpr);
+      canvas.height = Math.round(size.height * dpr);
       timeAxis.setAxisLength([size.width / 2, size.width / 2]);
       renderingContext.dpr = dpr;
 
