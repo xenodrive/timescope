@@ -26,7 +26,7 @@ const inlineFontPlugin = {
 };
 
 const configBase = defineConfig({
-  entry: path.join(root, 'src/index.ts'),
+  entry: path.join(root, 'src/index.browser.ts'),
   minify: !profileBuild,
   cwd: root,
   plugins: [RolldownInlineWorkerPlugin(), inlineFontPlugin],
@@ -37,6 +37,7 @@ const configBase = defineConfig({
 export default defineConfig([
   {
     ...configBase,
+    entry: { index: path.join(root, 'src/index.browser.ts') },
     format: ['esm'],
     fixedExtension: false,
     dts: true,
@@ -51,10 +52,8 @@ export default defineConfig([
         exports: {
           '.': {
             types: './index.d.ts',
-            browser: './index.browser.js',
             node: './index.node.js',
-            import: './index.js',
-            require: './index.js',
+            default: './index.js',
           },
           './browser.js': './browser.js',
         },
@@ -64,15 +63,6 @@ export default defineConfig([
   {
     ...configBase,
     entry: path.join(root, 'src/index.node.ts'),
-    format: ['esm'],
-    fixedExtension: false,
-    dts: false,
-    clean: false,
-    outputOptions: { dir: outDir },
-  },
-  {
-    ...configBase,
-    entry: path.join(root, 'src/index.browser.ts'),
     format: ['esm'],
     fixedExtension: false,
     dts: false,

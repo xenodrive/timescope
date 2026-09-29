@@ -126,12 +126,13 @@ export function writePackageJson({ config, exports }: WritePackageJsonOptions) {
     dependencies: replaceRecursive(pkg.dependencies as Record<string, unknown>, (s) => {
       if (s !== 'workspace:*') return s;
 
-        if (rootpkg?.version) return rootpkg.version as string;
+      if (rootpkg?.version) return rootpkg.version as string;
       return '*';
     }),
     devDependencies: undefined,
     scripts: undefined,
     private: undefined,
+    imports: undefined,
   };
 
   fs.writeFileSync(path.join(outDir, 'package.json'), JSON.stringify(pkgJson, null, 2));

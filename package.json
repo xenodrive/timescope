@@ -21,7 +21,7 @@
   "scripts": {
     "dev": "pnpm run -C packages/timescope dev",
     "docs": "pnpm run -C packages/timescope-docs start",
-    "build": "pnpm run build:libs && pnpm run check:libs; pnpm run build:docs",
+    "build": "rm -rf dist/ && pnpm run build:libs && pnpm run check:libs; pnpm run build:docs",
     "build:libs": "pnpm run -r --filter \\!timescope-docs --filter \\!. build",
     "check:libs": "vitest run tests/dist-frameworks.test.ts",
     "build:docs": "pnpm run -r --filter timescope-docs build"
