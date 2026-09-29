@@ -71,8 +71,7 @@ export default defineConfig([
   },
   {
     ...configBase,
-    entry: path.join(root, 'src/index.browser.ts'),
-    inlineOnly: ['@kikuchan/decimal', '@kikuchan/calendar'],
+    entry: path.join(root, 'src/browser.ts'),
     format: ['iife'],
     clean: false,
     noExternal: () => true,
