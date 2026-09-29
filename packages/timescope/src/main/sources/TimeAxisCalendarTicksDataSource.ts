@@ -398,6 +398,7 @@ type CalendarContext = {
   digits: number;
   stride: bigint;
   major: TickOps;
+  majorDuration: Decimal;
   minor: TickOps | null;
 };
 
@@ -423,10 +424,43 @@ function forgeCalendarContext(resolution: Decimal, timeZone: string): CalendarCo
     level: majorCandidate.level,
     timeZone,
     major: majorCandidate.create(timeZone),
+    majorDuration: majorCandidate.duration,
     minor: minorCandidate ? minorCandidate.create(timeZone) : null,
     digits: majorCandidate.digits,
     stride: majorCandidate.stride,
   };
+}
+
+function floorDiv(value: bigint, divisor: bigint): bigint {
+  const quotient = value / divisor;
+  return value < 0n && value % divisor !== 0n ? quotient - 1n : quotient;
+}
+
+/** Gregorian day number, including years outside the range of JavaScript Date. */
+function civilDay(year: bigint, month: bigint, day: bigint): bigint {
+  const y = year - (month <= 2n ? 1n : 0n);
+  const era = floorDiv(y, 400n);
+  const yearOfEra = y - era * 400n;
+  const adjustedMonth = month + (month > 2n ? -3n : 9n);
+  const dayOfYear = (153n * adjustedMonth + 2n) / 5n + day - 1n;
+  return era * 146097n + yearOfEra * 365n + yearOfEra / 4n - yearOfEra / 100n + dayOfYear;
+}
+
+function calendarLabelIndex(time: Decimal, context: CalendarContext): bigint {
+  if (
+    context.level === 'subsecond' ||
+    context.level === 'second' ||
+    context.level === 'minute' ||
+    context.level === 'hour'
+  ) {
+    return time.divFloor(context.majorDuration).integer();
+  }
+  const { year, month, day } = Calendar.fromEpoch(time).zone(context.timeZone).components();
+  if (context.level === 'year') return floorDiv(year, context.stride);
+  const monthIndex = year * 12n + month - 1n;
+  if (context.level === 'month') return floorDiv(monthIndex, context.stride);
+  if (context.stride === 10n) return monthIndex * 3n + (day < 10n ? 0n : day < 20n ? 1n : 2n);
+  return civilDay(year, month, day);
 }
 
 function advanceTick(ops: TickOps | null, current: Decimal, end: Decimal): Decimal | null {
@@ -465,6 +499,7 @@ function* createCalendarTicks(
         yield {
           time: { time, _minTime: time, _maxTime: time },
           major: true,
+          labelIndex: calendarLabelIndex(majorTime, context),
           tick: true,
           format: {
             time,

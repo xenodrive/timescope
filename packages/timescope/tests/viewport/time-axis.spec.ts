@@ -28,13 +28,58 @@ async function ticksInRange(range: TimescopeRange<Decimal>, r: Decimal, options:
     });
     await axis.waitForTarget();
     const result = await axis.loadData(range, r);
-    return result.data;
+    return result.data.filter((tick) => tick.time.time.ge(range[0]) && tick.time.time.lt(range[1]));
   } finally {
     axis.dispose();
   }
 }
 
 describe('time-axis timezone', () => {
+  it('retains nearby labels with centers outside the viewport', async () => {
+    const range: TimescopeRange<Decimal> = [Decimal(10), Decimal(410)];
+    const resolution = Decimal(1);
+    const context = new TimescopeViewRegistry();
+    const axis = new TimescopeTimeAxis({ timeAxis: { relative: true }, viewContext: context });
+    try {
+      context.update({
+        current: { center: Decimal(210), resolution },
+        candidate: { center: Decimal(210), resolution },
+        cursor: { center: Decimal(210) },
+        axisSize: [200, 200],
+        editing: false,
+        animating: false,
+        phase: 'changed',
+      });
+      await axis.waitForTarget();
+      const result = await axis.loadData(range, resolution);
+      expect(result.data.some((tick) => tick.major && tick.time.time.lt(range[0]))).toBe(true);
+    } finally {
+      axis.dispose();
+    }
+  });
+
+  it('keeps relative label ordinals fixed across viewport shifts', async () => {
+    const options = { relative: true };
+    const first = await ticksInRange([Decimal(0), Decimal(400)], Decimal(1), options);
+    const shifted = await ticksInRange([Decimal(40), Decimal(440)], Decimal(1), options);
+    const original = new Map(
+      first.filter((tick) => tick.major).map((tick) => [tick.time.time.toString(), tick.labelIndex]),
+    );
+    const shared = shifted.filter((tick) => tick.major && original.has(tick.time.time.toString()));
+    expect(shared.length).toBeGreaterThan(1);
+    for (const tick of shared) expect(tick.labelIndex).toBe(original.get(tick.time.time.toString()));
+  });
+
+  it('assigns consecutive day ordinals across DST and month boundaries', async () => {
+    const result = await ticks('2026-03-07T00:00:00Z', '2026-04-03T00:00:00Z', 1000, {
+      timeZone: 'America/New_York',
+    });
+    expect(result.length).toBeGreaterThan(20);
+    for (let i = 1; i < result.length; i++) {
+      expect(result[i].labelIndex! - result[i - 1].labelIndex!).toBe(1n);
+    }
+  });
+
   it.each(['1e-20', '1', '1e20'])('creates exact relative tick steps at resolution %s', async (resolution) => {
     const r = Decimal(resolution);
     const result = await ticksInRange([Decimal(0), r.mul(400)], r, { relative: true });

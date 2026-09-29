@@ -44,6 +44,8 @@ export type TimescopeTimeAxisOptions = {
 export type TickLabel = {
   time: { time: Decimal; _minTime?: Decimal; _maxTime?: Decimal };
   text?: string;
+  /** Stable ordinal of a major label, independent of the visible range. */
+  labelIndex?: bigint;
   tick?: boolean;
   major?: boolean;
 };

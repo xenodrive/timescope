@@ -43,6 +43,7 @@ export class TimeAxisLinearTicksDataSource extends TimescopeObservable<
       ticks.push({
         time: { time, _minTime: time, _maxTime: time },
         major,
+        labelIndex: major ? index.divFloor(Decimal(divisor)).integer() : undefined,
         tick: true,
         format: major
           ? { time, unit: this.options.timeUnit ?? 's', level: 'relative', digits, stride: undefined }

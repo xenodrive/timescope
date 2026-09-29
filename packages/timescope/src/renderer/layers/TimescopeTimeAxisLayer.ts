@@ -99,12 +99,22 @@ export class TimescopeTimeAxisLayer extends TimescopeLayer {
     ctx.strokeStyle = timescope.options.background ?? 'white';
     ctx.lineWidth = 3;
 
-    data.forEach((tick) => {
-      const x = timescope.timeAxis.p(tick.time.time);
-      if (tick.text !== undefined) {
-        ctx.strokeText(tick.text, x, labelY);
-        ctx.fillText(tick.text, x, labelY);
-      }
-    });
+    const labels = data.filter((tick) => tick.text);
+    const positions = labels.map((tick) => timescope.timeAxis.p(tick.time.time));
+    const widths = labels.map((tick) => ctx.measureText(tick.text!).width);
+    let spacing = Infinity;
+    for (let i = 1; i < positions.length; i++) {
+      const gap = positions[i] - positions[i - 1];
+      if (gap > 0) spacing = Math.min(spacing, gap);
+    }
+    const stride = Math.max(1, Math.ceil((Math.max(0, ...widths) + 6) / spacing));
+    for (let i = 0; i < labels.length; i++) {
+      const tick = labels[i];
+      const x = positions[i];
+      if (x + widths[i] / 2 < -4 || x - widths[i] / 2 > timescope.size.width + 4) continue;
+      if (tick.labelIndex !== undefined && tick.labelIndex % BigInt(stride) !== 0n) continue;
+      ctx.strokeText(tick.text!, x, labelY);
+      ctx.fillText(tick.text!, x, labelY);
+    }
   }
 }

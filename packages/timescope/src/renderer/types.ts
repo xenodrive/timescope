@@ -71,6 +71,8 @@ export type TimescopeTimeAxisData = {
     time: { time: Decimal };
     /** Human-readable label text. Omit to render no label. */
     text?: string;
+    /** Stable ordinal used to thin overlapping labels without shifting on scroll. */
+    labelIndex?: bigint;
     /** Whether to render a tick mark. */
     tick?: boolean;
     /** Whether this tick is a major tick. */

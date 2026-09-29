@@ -48,7 +48,7 @@ export class TimescopeTimeAxis extends TimescopeLayerDataBase<
   }
   async loadData(range: TimescopeRange<Decimal>, resolution: Decimal): Promise<TimescopeTimeAxisData> {
     return {
-      data: this.#view.query(range).map((tick) => formatTick(tick, this.options.timeAxis)),
+      data: this.#view.query(range, { includeOutbound: 8 }).map((tick) => formatTick(tick, this.options.timeAxis)),
       meta: { time: range[0], resolution },
     };
   }
