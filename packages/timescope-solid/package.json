@@ -1,5 +1,6 @@
 {
   "name": "@timescope/solid",
+  "version": "0.1.0-alpha.0",
   "private": true,
   "type": "module",
   "description": "Timescope component for SolidJS",
@@ -33,7 +34,8 @@
   "peerDependencies": {
     "@kikuchan/calendar": "^0.2.0",
     "@kikuchan/decimal": "^0.2.0",
-    "solid-js": "^1.9.9"
+    "solid-js": "^1.9.9",
+    "timescope": "~0.1.0-alpha.0"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.1",
@@ -52,9 +54,7 @@
     "tsdown": "^0.23.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.70.0",
-    "vite-plugin-solid": "^2.11.14"
-  },
-  "dependencies": {
+    "vite-plugin-solid": "^2.11.14",
     "timescope": "workspace:*"
   }
 }

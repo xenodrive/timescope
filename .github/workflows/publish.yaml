@@ -3,8 +3,7 @@ name: Publish
 on:
   push:
     tags:
-      - "v*"
-  workflow_dispatch:
+      - "release-*"
 
 concurrency:
   group: publish-${{ github.ref }}
@@ -38,6 +37,6 @@ jobs:
 
       - name: Publish to npm
         run: |
-          for pkg in dist/*; do
-            (cd "$pkg"; npm publish --access public --tag latest || true)
+          for pkg in dist/timescope dist/@timescope--*; do
+            (cd "$pkg" && npm publish --access public --tag latest) || true
           done

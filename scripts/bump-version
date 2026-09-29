@@ -1,0 +1,100 @@
+#!/bin/sh
+set -eu
+
+cd "$(dirname "$0")/.."
+
+if [ "$#" -ne 1 ]; then
+  echo "Usage: $0 <patch | minor | major>" >&2
+  exit 1
+fi
+
+case "$1" in
+  patch|minor|major) level=$1 ;;
+  *) echo "Usage: $0 <patch | minor | major>" >&2; exit 1 ;;
+esac
+
+if [ -n "$(git status --porcelain)" ]; then
+  echo "Working tree must be clean" >&2
+  exit 1
+fi
+
+base=$(git describe --tags --match 'release-*' --abbrev=0 2>/dev/null || true)
+if [ -z "$base" ]; then
+  base=$(git describe --tags --match 'v*' --abbrev=0 2>/dev/null || true)
+fi
+
+targets=
+for dir in packages/timescope packages/timescope-react packages/timescope-vue \
+  packages/timescope-solid packages/timescope-svelte packages/timescope-luna; do
+  if [ "$level" = patch ] && [ -n "$base" ] && \
+    git diff --quiet "$base" HEAD -- "$dir" tsdown.config.common.ts; then
+    continue
+  fi
+  targets="$targets $dir"
+done
+
+if [ -z "$targets" ]; then
+  echo "No packages changed since ${base:-the last release}"
+  exit 0
+fi
+
+tag="release-$(date -u +%Y%m%d)"
+if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+  echo "Tag $tag already exists" >&2
+  exit 1
+fi
+
+if [ "$level" != patch ]; then
+  highest=$(node -e '
+    const fs = require("node:fs");
+    const packages = process.argv.slice(1).map((dir) => {
+      const { version } = JSON.parse(fs.readFileSync(`${dir}/package.json`, "utf8"));
+      const match = /^(\d+)\.(\d+)\.(\d+)(.*)$/.exec(version);
+      if (!match) throw new Error(`Invalid version: ${version}`);
+      return { dir, order: [...match.slice(1, 4).map(Number), match[4] ? 0 : 1] };
+    });
+    packages.sort((a, b) => {
+      for (let i = 0; i < a.order.length; i++) {
+        if (a.order[i] !== b.order[i]) return b.order[i] - a.order[i];
+      }
+      return 0;
+    });
+    console.log(packages[0].dir);
+  ' $targets)
+  next_version=$(npm --prefix "$highest" version "$level" --no-git-tag-version --ignore-scripts)
+  next_version=${next_version#v}
+fi
+
+summary=
+for dir in $targets; do
+  if [ "$level" = patch ]; then
+    version=$(npm --prefix "$dir" version patch --no-git-tag-version --ignore-scripts)
+  elif [ "$dir" = "$highest" ]; then
+    version="v$next_version"
+  else
+    version=$(npm --prefix "$dir" version "$next_version" --no-git-tag-version --ignore-scripts)
+  fi
+  name=$(node -p "require('./$dir/package.json').name")
+  summary="${summary}${name}: ${version}
+"
+  git add -- "$dir/package.json"
+done
+
+if [ "$level" != patch ]; then
+  core_version=$(node -p "require('./packages/timescope/package.json').version")
+  for dir in packages/timescope-react packages/timescope-vue \
+    packages/timescope-solid packages/timescope-svelte packages/timescope-luna; do
+    node -e '
+      const fs = require("node:fs");
+      const file = process.argv[1];
+      const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
+      pkg.peerDependencies.timescope = `~${process.argv[2]}`;
+      fs.writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n");
+    ' "$dir/package.json" "$core_version"
+    git add -- "$dir/package.json"
+  done
+fi
+
+git commit -m "release: bump versions" -m "$summary"
+git tag -a -m "$tag" "$tag"
+echo "$tag"

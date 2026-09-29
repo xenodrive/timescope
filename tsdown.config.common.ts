@@ -35,20 +35,6 @@ export function emitDeclarations(entry: string, rootDir: string, outDir: string,
   });
 }
 
-export function replaceRecursive(obj: Record<string, unknown>, replacer: (s: string, k: string) => string) {
-  const results: Record<string, unknown> = {};
-  for (const key in obj) {
-    if (typeof obj[key] === 'string') {
-      results[key] = replacer(obj[key], key);
-    } else if (typeof obj[key] === 'object') {
-      results[key] = replaceRecursive(obj[key] as Record<string, unknown>, replacer);
-    } else {
-      results[key] = obj[key];
-    }
-  }
-  return results;
-}
-
 export interface CommonConfig {
   root: string;
   pkg: Record<string, unknown>;
@@ -70,7 +56,7 @@ export function getCommonConfig(root: string, options?: GetCommonConfigOptions):
   const outDir = path.join(root, '..', '..', 'dist', pkgPath(pkg.name as string));
   const rootpkgAll = JSON.parse(fs.readFileSync(path.join(root, '..', '..', 'package.json'), 'utf-8'));
   const rootpkg = Object.fromEntries(
-    ['type', 'version', 'author', 'license', 'homepage', 'repository'].map((k) => [k, rootpkgAll[k]]),
+    ['type', 'author', 'license', 'homepage', 'repository'].map((k) => [k, rootpkgAll[k]]),
   );
 
   const config = { root, pkg, outDir, rootpkgAll, rootpkg };
@@ -123,12 +109,7 @@ export function writePackageJson({ config, exports }: WritePackageJsonOptions) {
     types: './index.d.ts',
     main: './index.js',
     exports: exports ?? defaultExports,
-    dependencies: replaceRecursive(pkg.dependencies as Record<string, unknown>, (s) => {
-      if (s !== 'workspace:*') return s;
-
-      if (rootpkg?.version) return rootpkg.version as string;
-      return '*';
-    }),
+    dependencies: pkg.dependencies,
     devDependencies: undefined,
     scripts: undefined,
     private: undefined,

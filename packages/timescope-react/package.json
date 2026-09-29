@@ -1,5 +1,6 @@
 {
   "name": "@timescope/react",
+  "version": "0.1.0-alpha.0",
   "private": true,
   "type": "module",
   "description": "Timescope component for React",
@@ -39,14 +40,13 @@
     "react-dom": "^19.2.8",
     "tsdown": "^0.23.0",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.70.0"
-  },
-  "dependencies": {
+    "typescript-eslint": "^8.70.0",
     "timescope": "workspace:*"
   },
   "peerDependencies": {
     "@kikuchan/calendar": "^0.2.0",
     "@kikuchan/decimal": "^0.2.0",
-    "react": "^19.2.3"
+    "react": "^19.2.3",
+    "timescope": "~0.1.0-alpha.0"
   }
 }
