@@ -89,11 +89,11 @@ export class TimescopeTimeAxisLayer extends TimescopeLayer {
     if (opts.labels === false) return;
 
     ctx.fillStyle = (typeof opts.labels === 'object' ? opts.labels.color : undefined) ?? 'black'; // for labels
-    ctx.font = resolveFont(typeof opts.labels === 'object' ? opts.labels.font : undefined, {
-      weight: 'normal',
-      size: 12,
-      family: DEFAULT_FONT_FAMILY,
-    });
+    ctx.font = resolveFont(
+      typeof opts.labels === 'object' ? opts.labels.font : undefined,
+      { weight: 'normal', size: 12, family: DEFAULT_FONT_FAMILY },
+      timescope.options.font,
+    );
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.strokeStyle = timescope.options.background ?? 'white';

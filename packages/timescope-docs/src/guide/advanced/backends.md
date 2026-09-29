@@ -98,17 +98,24 @@ After resizing an export canvas, [wait for data and drawing](/guide/advanced/vie
 
 ## Fonts
 
-Load a custom font and select its family in the labels or marks that should use it. The example below applies a font to time-axis labels.
+`fonts` loads custom font data; `font` selects the global text style. Loading a font does not automatically select it. To use an installed system font, set `font: { family: 'MS Gothic' }` without adding a font definition.
+
+Use an object to change the family while retaining the default size and weight at each location. The example below selects a custom font for all ordinary text, with a local size override for time-axis labels.
 
 ```ts
 const timescope = new Timescope({
   target: '#chart',
   fonts: [{ family: 'Chart Labels', source: 'url(/fonts/chart-labels.woff2)' }],
+  font: { family: 'Chart Labels, sans-serif' },
   tracks: {
-    default: { timeAxis: { labels: { font: { family: 'Chart Labels, sans-serif', size: 12 } } } },
+    default: { timeAxis: { labels: { font: { size: 16 } } } },
   },
 });
 ```
+
+The global style applies to text marks, time-axis and value-axis labels, and tooltips, but not icons. Local object properties override the global object property by property; unspecified values inherit, then fall back to each location's defaults. String styles are complete CSS canvas declarations (for example, `'normal 12px "Chart Labels"'`), not family names or mergeable objects.
+
+Change `font` later with `setOptions()` or `updateOptions()`. `fonts` is constructor-only. In framework components, pass the style through `options.font` and font data through the separate `fonts` prop.
 
 | `fonts`                | Additional fonts loaded in the browser    |
 | ---------------------- | ----------------------------------------- |

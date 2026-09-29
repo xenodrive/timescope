@@ -40,6 +40,8 @@ Configurable fields: [Timescope Options](/api/timescope-options).
 
 #### Fonts
 
+`fonts` controls font-data loading at creation, not the selected drawing font. Use the configurable [`font` option](/api/timescope-options#font-style) to select the global text style, or a local `font` to override it for specific labels or marks. For example, `font: { family: 'MS Gothic' }` selects that family while preserving each location's default size and weight.
+
 | Input        | Additional loading                                                            |
 | ------------ | ----------------------------------------------------------------------------- |
 | Omitted      | Accessible document `@font-face` rules                                        |

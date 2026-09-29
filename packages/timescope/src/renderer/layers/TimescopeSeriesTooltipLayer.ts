@@ -42,7 +42,11 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
       const labels = [];
       let sideX = 1;
 
-      ctx.font = resolveFont(undefined, { weight: 'normal', size: 12, family: DEFAULT_FONT_FAMILY });
+      ctx.font = resolveFont(
+        undefined,
+        { weight: 'normal', size: 12, family: DEFAULT_FONT_FAMILY },
+        timescope.options.font,
+      );
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'left';
 

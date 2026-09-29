@@ -5,7 +5,7 @@ description: >-
   Timescope. Use when asked to build something with Timescope, or when extending
   or debugging an application using timescope or @timescope framework bindings.
   Covers timepicker integration, initial views, playback synchronization, data
-  loading, charts, tracks, domains, and custom marks and links.
+   loading, charts, tracks, domains, fonts, and custom marks and links.
 ---
 
 # Timescope
@@ -59,6 +59,7 @@ Use these API references for the requested feature.
 | Change or constrain the visible interval | `fitTo([start, end], { padding?, animation? })` changes the current view; `setTimeRange` limits navigation. Use `setZoom` and `setZoomRange` for zoom control and limits. | [Methods](https://xenodrive.github.io/timescope/api/timescope#methods) |
 | Select a time range | Set `selection.range` only in the constructor for the initial range. Later, use `setSelectionRange(range)` or `clearSelectionRange()`; read the current `selectionRange`. | [Selection](https://xenodrive.github.io/timescope/api/timescope-options#selection) |
 | Show or style the time cursor | Set `cursor: false` to hide it, or use `cursor: { color, borderColor }` to configure its fill and outline. | [Options](https://xenodrive.github.io/timescope/api/timescope-options#options) |
+| Select or load a font | Set `options.font` for the global text style; prefer `{ family }` to retain per-location sizes. Use constructor-only `fonts` to load font data, and local `font` objects for overrides. | [Font styles](https://xenodrive.github.io/timescope/api/timescope-options#font-style), [font inputs](https://xenodrive.github.io/timescope/api/timescope#fonts) |
 | Display existing data | Define rows in `sources`, reference the source through `series.*.data.source`, and choose a chart. Use `decoder` or `mappings` to adapt payloads. | [Sources](https://xenodrive.github.io/timescope/api/timescope-options#sources) |
 | Fetch data for the visible region | Implement a range loader receiving `{ range, resolution }`; honor the range and neighboring-row contract. | [Range loader](https://xenodrive.github.io/timescope/api/timescope-options#range-loader) |
 | Overlay or vertically separate data | Put Series on the same Track for overlays; select different Tracks to stack regions sharing the time axis. | [Tracks](https://xenodrive.github.io/timescope/api/timescope-options#tracks) |
@@ -158,6 +159,43 @@ function cleanup() {
 This example uses relative times in seconds. Adapt the rows, source references,
 and presentation to the requested data; keep time units consistent throughout.
 
+### Fonts: global style and local overrides
+
+`font` selects the text style; `fonts` loads font data at creation. They are
+independent: a system font needs no entry in `fonts`, and loading a font does
+not select it for drawing.
+
+```ts
+const timescope = new Timescope({
+  target: '#timescope',
+  fonts: [{ family: 'Chart Labels', source: 'url(/fonts/chart-labels.woff2)' }],
+  font: { family: 'Chart Labels, sans-serif', weight: 'bold' },
+  tracks: {
+    default: { timeAxis: { labels: { font: { size: 16, weight: 'normal' } } } },
+  },
+});
+```
+
+Global `font` applies to text marks, time-axis and value-axis labels, and tooltips,
+not icon marks. Object properties resolve independently: local `font` → global
+`font` → per-location defaults. Missing or `undefined` properties inherit; a
+family-only object preserves each location's default size and weight. In this
+example, time-axis labels inherit the family but use normal weight and 16px.
+Text-mark size precedence is local `font.size` → mark `style.size` → global
+`font.size` → 14px. Other default sizes are 12px for time-axis labels and
+tooltips, and 11px for value-axis labels.
+
+Strings are complete CSS canvas font declarations, such as
+`'bold 14px "MS Gothic"'`; `'MS Gothic'` alone is not valid. A local string
+overrides the global font entirely. A global string is used unchanged only
+when no local font or explicit mark size is supplied. Local object properties
+cannot inherit from a CSS string; use object notation for property-wise merging.
+
+Change the global style with `updateOptions({ font: { weight: 'normal' } })`;
+other global properties are retained. Use `updateOptions({ font: undefined })`
+to clear it. `setOptions` replaces the configuration, so an omitted `font`
+returns to the defaults.
+
 ## Important rules
 
 - Numeric times use seconds by default. Do not pass `Date.now()` as seconds:
@@ -208,6 +246,8 @@ In framework components, pass configurable `TimescopeOptions` as a single
 with framework bindings or callbacks. Use `initialTime` / `initialZoom` for
 one-time values or `initialFit` for a range (without other initial values).
 `renderThread` and `fonts` are constructor-only component props.
+Pass the configurable text style through `options.font`, not a standalone
+`font` prop; keep `fonts` as the separate creation-only font-loading prop.
 
 ## Additional documentation
 

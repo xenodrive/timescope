@@ -1007,14 +1007,18 @@ function renderPath(
 }
 
 function renderTextAt(
-  { ctx }: TimescopeRenderingContext,
+  { ctx, options }: TimescopeRenderingContext,
   x: number,
   y: number,
   style: TextStyle & SizeStyle & { color: string } & OffsetStyle & AngleStyle,
 ) {
   if (!style.text) return;
 
-  ctx.font = resolveFont(style.font, { weight: 'normal', size: style.size ?? 14, family: DEFAULT_FONT_FAMILY });
+  const font =
+    typeof style.font === 'string' || style.size === undefined
+      ? style.font
+      : { ...style.font, size: style.font?.size ?? style.size };
+  ctx.font = resolveFont(font, { weight: 'normal', size: 14, family: DEFAULT_FONT_FAMILY }, options.font);
   ctx.textAlign = style.textAlign ?? 'center';
   ctx.textBaseline = style.textBaseline ?? 'middle';
 

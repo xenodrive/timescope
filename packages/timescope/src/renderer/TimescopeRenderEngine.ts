@@ -454,6 +454,7 @@ export class TimescopeRenderEngine {
     }
 
     function applyOptions(options: TimescopeRenderEngineOptions) {
+      if ('font' in options) renderingContext.options.font = options.font;
       if ('series' in options) renderingContext.options.series = options.series;
       if ('tracks' in options) renderingContext.options.tracks = options.tracks;
       if ('dataCacheOptions' in options) renderingContext.options.dataCacheOptions = options.dataCacheOptions;
@@ -488,6 +489,7 @@ export class TimescopeRenderEngine {
     function deferOptions(options: TimescopeRenderEngineOptions) {
       deferredOptions ??= {};
       mergeOptions(deferredOptions, options);
+      if ('font' in options) deferredOptions.font = options.font;
       if ('series' in options) deferredOptions.series = options.series;
       if ('tracks' in options) deferredOptions.tracks = options.tracks;
       if ('dataCacheOptions' in options) deferredOptions.dataCacheOptions = options.dataCacheOptions;

@@ -33,7 +33,11 @@ export class TimescopeYAxisLayer extends TimescopeLayer {
     ctx.strokeStyle = axis.color || '#64748b';
     ctx.fillStyle = axis.color || '#334155';
     ctx.lineWidth = 1;
-    ctx.font = resolveFont(axis.font, { weight: 'normal', size: 11, family: DEFAULT_FONT_FAMILY });
+    ctx.font = resolveFont(
+      axis.font,
+      { weight: 'normal', size: 11, family: DEFAULT_FONT_FAMILY },
+      timescope.options.font,
+    );
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'right';
     const maxTickWidth = Math.max(0, ...axis.ticks.map((tick) => ctx.measureText(tick.text).width));

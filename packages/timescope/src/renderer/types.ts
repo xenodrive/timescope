@@ -41,6 +41,7 @@ export type TimescopeDataCacheOptionsWire = {
 };
 
 export type TimescopeRenderEngineOptions = {
+  font?: TimescopeFontStyle;
   showFps?: boolean;
   cursor?: boolean | { color?: string; borderColor?: string };
   background?: string;

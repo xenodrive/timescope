@@ -52,6 +52,7 @@ const colorPresets = ['#080', '#800', '#008', '#880', '#088', '#808'];
 
 const defaultRendererOptions: TimescopeOptions = {
   style: undefined,
+  font: undefined,
   cursor: true,
   showFps: false,
 
@@ -296,6 +297,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
     }
 
     const optionsForWorker: TimescopeRenderEngineOptions = {};
+    if ('font' in options) optionsForWorker.font = this.#options.font;
     if ('showFps' in options) optionsForWorker.showFps = options.showFps;
     if ('cursor' in options) optionsForWorker.cursor = this.#options.cursor;
     if ('style' in options) optionsForWorker.background = this.#options.style?.background ?? '#fff';

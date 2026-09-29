@@ -18,6 +18,7 @@ titleTemplate: Timescope API
 | `style`     | `{ width?: string, height?: string, background?: string }` | CSS dimensions and background; browser defaults `100%`, `36px`, `#fff` |
 | `cursor`    | `boolean \| { color?: string, borderColor?: string }`      | `true`; colors `white` / `red`                                         |
 | `showFps`   | `boolean`                                                  | `false`                                                                |
+| `font`      | `TimescopeFontStyle`                                        | Global text font; [font style](#font-style)                              |
 | `sources`   | `Record<string, TimescopeSourceInput>`                     | [Data sources](#sources)                                               |
 | `domains`   | `Record<string, TimescopeDomainOptions>`                   | [Shared value domains](#domains)                                       |
 | `series`    | `Record<string, TimescopeSeriesInput>`                     | [Series](#series)                                                      |
@@ -450,8 +451,29 @@ Directional snapping falls back to the nearest endpoint.
 | Icon marks        | `normal 16px icons`                 |
 | Time-axis labels  | `normal 12px Timescope, sans-serif` |
 | Value-axis labels | `normal 11px Timescope, sans-serif` |
+| Tooltips          | `normal 12px Timescope, sans-serif` |
 
-Mark font-size precedence: string `font` as supplied → object `font.size` → mark `style.size` → default.
+`options.font` sets the font for text marks, time-axis and value-axis labels, and tooltips, but not icon marks. It selects the font style; the constructor's `fonts` option loads font data.
+
+Object font properties inherit in this order: local `font` → `options.font` → per-location defaults. Unspecified or `undefined` properties do not override inherited values. For example, `font: { family: 'MS Gothic' }` preserves each location's default size and weight.
+
+Strings are complete CSS canvas font declarations, such as `'bold 14px "MS Gothic"'`, not family names alone. A local string overrides the global font entirely. A global string is used unchanged when there is no local font or explicit mark size; local object properties cannot inherit from a CSS string and instead use per-location defaults.
+
+Text-mark font-size precedence: local string `font` as supplied → local object `font.size` → mark `style.size` → global object `font.size` → default. Icon marks keep their existing local font and size defaults.
+
+```ts
+const timescope = new Timescope({
+  target: '#chart',
+  font: { family: 'MS Gothic', weight: 'bold' },
+  tracks: {
+    default: { timeAxis: { labels: { font: { size: 16, weight: 'normal' } } } },
+  },
+});
+```
+
+Here, time-axis labels use `normal 16px "MS Gothic"`; tooltips use `bold 12px "MS Gothic"`. Other text keeps its per-location size while inheriting the global family and weight.
+
+`updateOptions({ font: { weight: 'normal' } })` changes the weight while retaining the other global properties. `updateOptions({ font: undefined })` clears the global style. `setOptions()` replaces the configuration: omitted `font` properties do not retain the previous global style. Framework components accept the global style through their `options.font`, while `fonts` remains a separate creation-only prop.
 
 ## Tracks
 

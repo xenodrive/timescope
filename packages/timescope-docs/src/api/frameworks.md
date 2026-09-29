@@ -33,6 +33,7 @@ titleTemplate: Timescope API
 | `initialFit`          | Applies with both `time` and `zoom` undefined at creation; incompatible with `initialTime` / `initialZoom` |
 | Chart dimensions      | `options.style.width` / `options.style.height`                                                             |
 | Selection appearance  | `options.selection`; `false` disables and clears selection                                                 |
+| Text font             | `options.font`; [global style and local overrides](/api/timescope-options#font-style); no standalone `font` prop |
 | Mounting and disposal | Automatic with component lifecycle                                                                         |
 
 ## Reactive inputs

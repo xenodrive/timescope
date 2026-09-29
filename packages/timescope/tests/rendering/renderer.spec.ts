@@ -1,6 +1,7 @@
 import type { RendererCommands } from '#src/bridge/protocol';
 import type { RenderCall } from '#src/bridge/rpc';
 import { Decimal } from '#src/core/decimal';
+import type { TimescopeOptions } from '#src/main/options';
 import { SimpleDataSource } from '#src/main/sources/SimpleDataSource';
 import { TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
 import { createDataSource } from '#src/main/TimescopeDataSource';
@@ -63,6 +64,54 @@ afterEach(() => {
 });
 
 describe('renderer integration', () => {
+  it('inherits global fonts in text marks, preserves local sizes, and resets replaced fonts', async () => {
+    const surface = canvas();
+    const ctx = surface.getContext('2d')!;
+    const drawnFonts = new Map<string, string>();
+    ctx.fillText = (text) => {
+      drawnFonts.set(text, ctx.font);
+    };
+    const renderer = new TimescopeMainThreadRenderer({ canvas: surface, fonts: [] });
+    cleanups.push(() => renderer.dispose());
+    const options: TimescopeOptions = {
+      sources: { events: [{ time: 0, value: 1 }] },
+      series: {
+        events: {
+          data: { source: 'events', instantaneous: false, domain: { axis: false, animation: false } },
+          chart: {
+            marks: [
+              { draw: 'text' as const, style: { text: 'inherited' } },
+              { draw: 'text' as const, style: { text: 'local size', size: 18, font: { weight: 'normal' } } },
+              { draw: 'icon' as const, style: { icon: 'icon glyph' } },
+            ],
+          },
+          tooltip: false as const,
+        },
+      },
+      tracks: { default: { timeAxis: false } },
+      cursor: false,
+    };
+    renderer.setOptions({ ...options, font: { family: 'MS Gothic', size: 20, weight: 'bold' } });
+    renderer.resize({ size: { width: 200, height: 100 }, context: { dpr: 1 } });
+    renderer.sync({ time: { type: 'restore', value: Decimal(0), domain: [undefined, undefined], nullValue: null } });
+    for (let i = 0; i < 5; i++) await frame();
+    expect(drawnFonts.get('inherited')).toBe('bold 20px "MS Gothic"');
+    expect(drawnFonts.get('local size')).toBe('normal 18px "MS Gothic"');
+    expect(drawnFonts.get('icon glyph')).toBe('normal 16px icons');
+
+    renderer.updateOptions({ font: { weight: 'normal' } });
+    for (let i = 0; i < 3; i++) await frame();
+    expect(drawnFonts.get('inherited')).toBe('normal 20px "MS Gothic"');
+
+    renderer.setOptions({ ...options, font: { family: 'serif' } });
+    for (let i = 0; i < 5; i++) await frame();
+    expect(drawnFonts.get('inherited')).toBe('normal 14px serif');
+
+    renderer.setOptions(options);
+    for (let i = 0; i < 5; i++) await frame();
+    expect(drawnFonts.get('inherited')).toBe('normal 14px Timescope, sans-serif');
+  });
+
   it('registers the bundled font alongside explicitly selected fonts, including an empty list', async () => {
     const added = new Set<FontFace>();
     const loaded: { family: string; source: string | BufferSource }[] = [];

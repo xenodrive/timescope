@@ -49,14 +49,24 @@ function formatFontFamily(family: string): string {
     .join(', ');
 }
 
-export function resolveFont(font: TimescopeFontStyle | undefined, defaults: FontDefaults): string {
+export function resolveFont(
+  font: TimescopeFontStyle | undefined,
+  defaults: FontDefaults,
+  inherited?: TimescopeFontStyle,
+): string {
   if (typeof font === 'string') return font;
-  const size = font?.size ?? defaults.size;
-  const family = font?.family ?? defaults.family;
+  if (font === undefined && typeof inherited === 'string') return inherited;
+  const base = typeof inherited === 'object' ? inherited : undefined;
+  const size = font?.size ?? base?.size ?? defaults.size;
+  const family = font?.family ?? base?.family ?? defaults.family;
   const formattedFamily = formatFontFamily(family);
-  const modifiers = [font?.style, font?.variant, font?.weight ?? defaults.weight, font?.stretch].filter(
-    (value) => value !== undefined,
-  );
+  const modifiers = [
+    font?.style ?? base?.style,
+    font?.variant ?? base?.variant,
+    font?.weight ?? base?.weight ?? defaults.weight,
+    font?.stretch ?? base?.stretch,
+  ].filter((value) => value !== undefined);
+  const lineHeight = font?.lineHeight ?? base?.lineHeight;
   const formattedSize = typeof size === 'number' ? `${size}px` : size;
-  return `${modifiers.join(' ')} ${formattedSize}${font?.lineHeight === undefined ? '' : `/${font.lineHeight}`} ${formattedFamily}`;
+  return `${modifiers.join(' ')} ${formattedSize}${lineHeight === undefined ? '' : `/${lineHeight}`} ${formattedFamily}`;
 }

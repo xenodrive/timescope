@@ -4,6 +4,7 @@ import type { TimescopeStateOptions } from '#src/core/TimescopeState';
 import type { TimescopeBackendChoice, TimescopeBackendTarget, TimescopeRenderThread } from '#src/main/backend';
 import type { TimescopeOptionsSelection } from '#src/main/chart';
 import type { TimescopeFont } from '#src/main/font';
+import type { TimescopeFontStyle } from '#src/main/fontStyle';
 import type { TimescopeTimeAxisOptions } from '#src/main/layers/TimescopeTimeAxis';
 import type { TimescopeOptionsSeries, TimescopeSeriesInput } from '#src/main/TimescopeDataSeries';
 import type { TimescopeOptionsSources, TimescopeSourceInput } from '#src/main/TimescopeDataSource';
@@ -29,6 +30,7 @@ export type TimescopeOptions<
   Track extends string = string,
 > = {
   style?: TimescopeStyle;
+  font?: TimescopeFontStyle;
   showFps?: boolean;
   cursor?: boolean | { color?: string; borderColor?: string };
   sources?: TimescopeOptionsSources<Sources>;

@@ -15,6 +15,30 @@ describe('font styles', () => {
     );
   });
 
+  it('inherits only specified global properties while retaining each location’s defaults', () => {
+    const inherited = { family: 'MS Gothic' };
+    expect(resolveFont(undefined, defaults, inherited)).toBe('normal 12px "MS Gothic"');
+    expect(resolveFont({}, { ...defaults, size: 11 }, inherited)).toBe('normal 11px "MS Gothic"');
+    expect(
+      resolveFont({ size: 16, weight: undefined }, defaults, {
+        ...inherited,
+        size: 20,
+        weight: 'bold',
+        style: 'italic',
+        lineHeight: 1.5,
+      }),
+    ).toBe('italic bold 16px/1.5 "MS Gothic"');
+    expect(resolveFont({ weight: 'normal' }, defaults, { ...inherited, weight: 'bold' })).toBe(
+      'normal 12px "MS Gothic"',
+    );
+  });
+
+  it('treats CSS strings as complete fonts rather than merging their properties', () => {
+    expect(resolveFont(undefined, defaults, 'bold 20px Inter')).toBe('bold 20px Inter');
+    expect(resolveFont('italic 14px serif', defaults, { family: 'MS Gothic' })).toBe('italic 14px serif');
+    expect(resolveFont({ size: 16 }, defaults, 'bold 20px Inter')).toBe('normal 16px "BIZ UDPGothic"');
+  });
+
   it('prefers explicit font properties to mark size and preserves CSS font strings', () => {
     expect(resolveFont({ size: 18, weight: 'bold' }, { ...defaults, size: 14 })).toBe('bold 18px "BIZ UDPGothic"');
     expect(resolveFont({ size: '1.5rem', family: 'Inter, sans-serif' }, defaults)).toBe(
