@@ -499,8 +499,10 @@ export class TimeAxisCalendarTicksDataSource extends TimescopeObservable<
 > {
   readonly chunkSize = DEFAULT_CHUNK_SIZE;
   readonly chunkOrigin = Decimal(0);
-  constructor(readonly options: TimescopeTimeAxisOptions) {
+  readonly options: TimescopeTimeAxisOptions;
+  constructor(options: TimescopeTimeAxisOptions) {
     super();
+    this.options = options;
   }
   async query({ range, resolution }: TimescopeDataSourceQuery) {
     return [...createCalendarTicks(range, resolution, this.options)];

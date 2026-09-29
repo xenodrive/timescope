@@ -13,12 +13,15 @@ class Kinetic {
   private points: KineticPoint[] = [];
   private angle_ = 0;
   private distance_ = 0;
+  private decay: number;
+  private minVelocity: number;
+  private delay: number;
 
-  constructor(
-    private decay = 0.005,
-    private minVelocity = 0,
-    private delay = 100,
-  ) {}
+  constructor(decay = 0.005, minVelocity = 0, delay = 100) {
+    this.decay = decay;
+    this.minVelocity = minVelocity;
+    this.delay = delay;
+  }
 
   begin(): void {
     this.points = [];

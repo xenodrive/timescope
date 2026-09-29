@@ -1,12 +1,7 @@
-import {
-  createDefineTimescopeOptions,
-  createDefineTimescopeSeries,
-  createDefineTimescopeSources,
-  createDefineTimescopeTracks,
-} from 'timescope';
+import { createDefineTimescopeOptions } from 'timescope';
 import { markRaw, reactive } from 'vue';
 
-export { Decimal } from '@kikuchan/decimal';
+export * from 'timescope';
 export { default as Timescope } from './Timescope.vue';
 
 function markSourceRaw<T>(source: T): T {
@@ -36,11 +31,4 @@ function reactiveSources(sources: object) {
   });
 }
 
-function reactiveObject(options: object) {
-  return reactive(options);
-}
-
 export const defineTimescopeOptions = createDefineTimescopeOptions(reactiveOptions);
-export const defineTimescopeSources = createDefineTimescopeSources(reactiveSources);
-export const defineTimescopeTracks = createDefineTimescopeTracks(reactiveObject);
-export const defineTimescopeSeries = createDefineTimescopeSeries(reactiveObject);

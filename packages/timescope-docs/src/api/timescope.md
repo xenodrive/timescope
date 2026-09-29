@@ -25,7 +25,9 @@ All other option fields are defined in [Timescope Options](/api/timescope-option
 | `timeRange`        | `[TimescopeTimeLike?, TimescopeTimeLike?]`                                   | Initial timeline bounds (use `setTimeRange()` later).             |
 | `zoom`             | `TimescopeNumberLike`                                                        | Initial zoom (use `setZoom()` later).                             |
 | `zoomRange`        | `[TimescopeNumberLike?, TimescopeNumberLike?]`                               | Initial zoom limits (use `setZoomRange()` later).                 |
-| `target`           | `HTMLElement \| string`                                                      | Mount target.                                                     |
+| `target`           | `HTMLElement \| string \| TimescopeCanvas`                                   | Mount target or an external canvas.                               |
+| `backend`          | `TimescopeBackendChoice \| TimescopeBackendChoice[]`                         | Ordered backend candidates (Node: Skia then Canvas; browser: Canvas). |
+| `renderThread`     | `'worker' \| 'main'`                                                         | Rendering thread (auto-selected when omitted).                    |
 | `fonts`            | `(string \| { family, source, desc? })[]`                                    | CSS stylesheets or font definitions to load.                      |
 | `wheelSensitivity` | `number`                                                                     | Wheel delta per zoom level (default: `200`).                      |
 | `selection.range`  | `[TimescopeTimeLike, TimescopeTimeLike] \| null`                             | Initial selection only; use `setSelectionRange()` later.          |
@@ -55,6 +57,8 @@ When omitted, Timescope loads fonts declared by accessible `@font-face` rules in
 | `animating`              | `boolean`                                                      | Cursor-time animation in progress                                                         |
 | `editing`                | `boolean`                                                      | Cursor time is being edited                                                               |
 | `options`                | `TimescopeOptions`                                             | Current reconfigurable configuration (excludes constructor-only fields and current state) |
+| `target`                 | `Element \| TimescopeCanvas \| null`                           | Backend's actual drawing target; null when unmounted                                      |
+| `canvas`                 | `TimescopeCanvas \| null`                                      | Canvas surface, if the backend uses one                                                   |
 
 ## Methods
 
@@ -64,17 +68,19 @@ When omitted, Timescope loads fonts declared by accessible `@font-face` rules in
 | `setTimeRange(range?)`       | Constrain the time domain. Pass `undefined` to restore defaults.                                          |
 | `setZoom(value, animation?)` | Set zoom programmatically. See [Animation](#animation).                                                   |
 | `setZoomRange(range?)`       | Clamp zoom to `[min, max]`.                                                                               |
-| `fitTo(range, options?)`     | Center and zoom to show `[start, end]` fully.                                                             |
+| `fitTo(range, options?)`     | Center and zoom to show `[start, end]` fully; defer until sized if necessary. Returns a boolean.          |
 | `setPlaybackTime(value)`     | Set the live-clock value used while `time` is `null`.                                                     |
-| `latchFrame()`               | Apply time, zoom, and playback changes together. See [Frame synchronization](#frame-synchronization).     |
+| `prepareView()`              | Create a pending view whose data can be fetched before activation. See [Prepared views](#prepared-views). |
 | `setSelectionRange(range)`   | Highlight `[start, end]` on the canvas. Pass `null` to clear it.                                          |
 | `clearSelectionRange()`      | Remove the selection overlay.                                                                             |
 | `setOptions(next)`           | Replace style, sources, or series at runtime.                                                             |
 | `updateOptions(next)`        | Merge partial option changes (e.g., swap a single chart) without recreating the whole Timescope instance. |
-| `reload(sources?)`           | Invalidate all cached chunks for selected sources. Mutable sources normally invalidate themselves.        |
+| `reload(sources?)`           | Wait for the backend, then invalidate selected sources. Returns `Promise<boolean>`.                        |
+| `resize(width, height, dpr?)` | Wait for the backend, then resize an external canvas. Returns `Promise<boolean>`.                         |
 | `redraw()`                   | Request a renderer redraw.                                                                                |
-| `mount(target)`              | Append the canvas to a selector or element. Returns `this`.                                               |
-| `unmount()`                  | Remove the canvas from its mount target.                                                                  |
+| `nextFrame()`                | Request a frame and wait for drawing to finish; does not fetch new data.                                  |
+| `mount(target)`              | Mount the selected backend on a target. Returns `this`.                                                   |
+| `unmount()`                  | Unmount the backend and release its owned resources.                                                      |
 | `dispose()`                  | Release resources when Timescope is no longer needed.                                                     |
 | `on(event, handler)`         | Subscribe to events. Returns an unsubscribe function.                                                     |
 
@@ -92,11 +98,11 @@ When omitted, Timescope loads fonts declared by accessible `@font-face` rules in
 
 When omitted, `setTime()` uses `'out'` for 500 ms and `setZoom()` uses `'linear'` for 200 ms. Explicit easing strings use 500 ms.
 
-### Frame synchronization
+### Prepared views
 
-`time`, `zoom`, and the playback clock are independent state, and setting them one by one can present intermediate frames. `latchFrame()` groups the changes so they appear together: create the latch, call the setters, then call `commit()`. Setters called while the latch is open are queued instead of applied, and `commit()` applies them as one frame.
+`prepareView()` creates a draft of the next view. Call `view.setTime()`, `view.setZoom()`, or `view.setPlaybackTime()` to set its target without changing Timescope's current state. Creating or editing a draft does not pause rendering or begin loading; ordinary Timescope setters keep working normally.
 
-Latches are available after mounting, and only one can be active at a time. `commit()` returns a Promise that resolves when the grouped change has been presented; `abort()` discards a pending change. Starting an incompatible operation — such as `setOptions()`, `setTimeRange()`, or user interaction — also aborts the latch; use its `signal` or handle an `AbortError` when cancellation matters.
+`await view.fetch()` begins the transaction: it captures the current viewport with the draft's changes, holds presentation of the target view, and waits for every required data source and cache to prepare that target. On success it activates the target data and state together and schedules drawing. It **does not** wait for the scheduled drawing to finish; use `await timescope.nextFrame()` if you need the pixels. Only one view can be fetching at a time. `view.abort()` discards a draft or cancels a fetch. Ordinary setters, option changes, resizing, user interaction, or unmounting also cancel an active fetch. Use `view.signal` or handle an `AbortError` when cancellation matters.
 
 ## Events
 
@@ -112,9 +118,10 @@ Latches are available after mounting, and only one can be active at a time. `com
 | `zoomanimated`           | `number`                     | Fired when zoom animation finishes.                |
 | `selectionrangechanging` | `[Decimal, Decimal] \| null` | Fired while the selection range is changing.       |
 | `selectionrangechanged`  | `[Decimal, Decimal] \| null` | Fired when the selection range changes or clears.  |
-| `load`                   | `'load'`                     | The mounted canvas first acquired a non-zero size. |
-| `mount`                  | `'mount'`                    | A canvas was mounted.                              |
+| `mount`                  | `'mount'`                    | The renderer is initialized and its target has a non-zero size; fires once per mount. |
+| `ready`                  | `'ready'`                    | The first mount becomes drawable; fires once per Timescope instance. |
 | `unmount`                | `'unmount'`                  | A mounted canvas was removed.                      |
+| `error`                  | `Error`                      | Backend selection or initialization failed.         |
 | `resize`                 | `'resize'`                   | Canvas size or device pixel ratio changed.         |
 | `change`                 | `'change'`                   | Observable state changed.                          |
 

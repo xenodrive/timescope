@@ -1,5 +1,5 @@
 import { Decimal, type NumberLike } from '#src/core/decimal';
-import { LRUCache } from './cache';
+import { LRUCache } from './cache.ts';
 
 const ZOOM_BASE = 2;
 

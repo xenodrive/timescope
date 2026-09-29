@@ -1,2 +1,2 @@
-export { Decimal } from '@kikuchan/decimal';
+export * from 'timescope';
 export { Timescope, type TimescopeAPI } from './Timescope.tsx';

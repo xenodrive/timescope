@@ -52,6 +52,9 @@ Use these API references for the requested feature.
 | Select a time and notify the application | Set initial `time`; subscribe to `timechanged` and read `event.value`. Use `timechanging` for feedback during an active change. | [Events](https://xenodrive.github.io/timescope/api/timescope#events) |
 | Change the selected time from another control | Call `setTime(value, animation?)`; use `false` for an immediate change. Keep external state synchronization from echoing updates indefinitely. | [Methods](https://xenodrive.github.io/timescope/api/timescope#methods) |
 | Follow playback | Use `setPlaybackTime` to supply the live-clock value and `setTime(null)` to follow it. A fixed selected time and the playback clock are separate state. | [Timescope API](https://xenodrive.github.io/timescope/api/timescope) |
+| Run setup when the view is available | Subscribe to `ready` before the first mount, or `mount` for each mount. For framework components, use the binding's lifecycle callbacks or events. | [Events](https://xenodrive.github.io/timescope/api/timescope#events), [Framework bindings](https://xenodrive.github.io/timescope/guide/advanced/frameworks) |
+| Load the next view before showing it | Create `const view = timescope.prepareView()`, set its time, zoom, or playback time, then `await view.fetch()`. Call `view.abort()` when that view is obsolete. | [Prepared views](https://xenodrive.github.io/timescope/api/timescope#prepared-views) |
+| Wait for the drawn frame | Call `await timescope.nextFrame()` after `view.fetch()`. | [Methods](https://xenodrive.github.io/timescope/api/timescope#methods) |
 | Set the initial visible interval | Pass `fit: [start, end]` to the constructor, or `fit: { range: [start, end], padding: [left, right] }` for pixel padding. Specify `fit` instead of initial `time` and `zoom`. | [Constructor](https://xenodrive.github.io/timescope/api/timescope#options-constructor-only) |
 | Change or constrain the visible interval | `fitTo([start, end], { padding?, animation? })` changes the current view; `setTimeRange` limits navigation. Use `setZoom` and `setZoomRange` for zoom control and limits. | [Methods](https://xenodrive.github.io/timescope/api/timescope#methods) |
 | Select a time range | Set `selection.range` only in the constructor for the initial range. Later, use `setSelectionRange(range)` or `clearSelectionRange()`; read the current `selectionRange`. | [Selection](https://xenodrive.github.io/timescope/api/timescope-options#selection) |
@@ -194,11 +197,18 @@ and presentation to the requested data; keep time units consistent throughout.
 Bindings are available as `@timescope/vue`, `@timescope/react`,
 `@timescope/svelte`, `@timescope/solid`, and `@timescope/luna`.
 
-Use the binding matching the project's framework when appropriate. Inspect its
-installed exports and types before using component names, props, events, or refs;
-do not assume the bindings all have identical APIs. Bindings handle disposal;
-for direct class integration, create the instance after the DOM target exists.
-In server-rendered applications, initialize the visualization on the client.
+Use the binding matching the project's framework. Consult the
+ [framework guide](https://xenodrive.github.io/timescope/guide/advanced/frameworks) for
+lifecycle callbacks, events, and exposed methods. For direct class integration,
+create the instance after the DOM target exists. In server-rendered applications,
+initialize the visualization on the client.
+
+In framework components, pass configurable `TimescopeOptions` as a single
+`options` prop; it replaces the previous options when changed. Keep current
+`time`, `zoom`, and `selectionRange` outside `options` and synchronize them
+with framework bindings or callbacks. Use `initialTime` / `initialZoom` for
+one-time values or `initialFit` for a range (without other initial values).
+`renderThread` and `fonts` are constructor-only component props.
 
 ## Additional documentation
 

@@ -216,7 +216,7 @@ describe('worker render notifications', () => {
         'data:changed': (key) => {
           received.push(key);
         },
-        redraw: () => {
+        redraw: async () => {
           received.push('redraw');
         },
       },

@@ -5,8 +5,8 @@ import type {
   TimescopeSourceOptions,
   TimescopeDataSourceQuery,
 } from '#src/main/TimescopeDataSource';
-import { LoadedDataSource } from './LoadedDataSource';
-import { aggregateQuery } from './query';
+import { LoadedDataSource } from './LoadedDataSource.ts';
+import { aggregateQuery } from './query.ts';
 
 /** Min/max/avg over nondecreasing point times, with append-only updates. */
 export class PointAggregateDataSource<Row = TimescopeDataRowInput, Input = Row>

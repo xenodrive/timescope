@@ -4,7 +4,7 @@ import type { TimescopeRange } from '#src/core/range';
 import { parseTimeDomainLike, parseTimeLike, type TimeLike } from '#src/core/time';
 import { TimescopeCommittable } from '#src/core/TimescopeCommittable';
 import type { ZoomLike } from '#src/core/zoom';
-import { TimescopeEvent, TimescopeObservable } from './event';
+import { TimescopeEvent, TimescopeObservable } from './event.ts';
 
 export interface TimescopeStateOptions {
   time?: TimeLike;

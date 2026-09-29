@@ -6,8 +6,14 @@ import type { TimescopeRange } from '#src/core/range';
 import { parseTimeLike, type TimeLike } from '#src/core/time';
 import { TimescopeState } from '#src/core/TimescopeState';
 import { zoomFor, type ZoomLike } from '#src/core/zoom';
+import type {
+  TimescopeBackendChoice,
+  TimescopeBackendMount,
+  TimescopeBackendTarget,
+  TimescopeRenderThread,
+} from '#src/main/backend';
+import { resolveBackends } from '#src/main/backendRegistry';
 import type { TimescopeFont } from '#src/main/font';
-import { InteractionManager } from '#src/main/InteractionManager';
 import { mergeTimescopeOptions, validateTimescopeOptions } from '#src/main/optionRuntime';
 import type {
   TimescopeOptions,
@@ -17,24 +23,11 @@ import type {
 } from '#src/main/options';
 import type { TimescopeUpdateOptions } from '#src/main/options';
 import { TimescopeMainThreadRenderer } from '#src/main/TimescopeMainThreadRenderer';
-import type { TimescopeRenderer } from '#src/main/TimescopeRenderer';
+import type { TimescopeCanvas, TimescopeEnvironment, TimescopeRenderer } from '#src/main/TimescopeRenderer';
 import { TimescopeWorkerRenderer } from '#src/main/TimescopeWorkerRenderer';
 
 function copyOptions(options: TimescopeOptions): TimescopeOptions {
   return mergeOptions({}, options) as TimescopeOptions;
-}
-
-function normalizeWheel(e: WheelEvent) {
-  const delta = e.deltaY;
-
-  switch (e.deltaMode) {
-    case WheelEvent.DOM_DELTA_LINE:
-      return delta * 16;
-    case WheelEvent.DOM_DELTA_PAGE:
-      return delta * window.innerHeight;
-  }
-
-  return delta;
 }
 
 export type TimescopeSize = {
@@ -55,25 +48,25 @@ export type TimescopeFitOptions = {
   padding?: number | [l: number, r: number];
 };
 
-export type TimescopeFrameLatch = {
+export type TimescopePreparedView = {
   readonly signal: AbortSignal;
-  commit(): Promise<void>;
+  setTime(value: TimeLike | null, animation?: TimescopeAnimationInput): boolean;
+  setZoom(value: ZoomLike, animation?: TimescopeAnimationInput): boolean;
+  setPlaybackTime(value: TimeLike<null>): void;
+  fetch(): Promise<void>;
   abort(reason?: unknown): void;
 };
 
-type ActiveFrameLatch = {
+type ActivePreparedView = {
   controller: AbortController;
-  state: 'open' | 'committing' | 'finished';
-  superseded?: boolean;
+  state: 'draft' | 'fetching' | 'finished';
+  locked?: boolean;
   reject?: (reason: unknown) => void;
-  time?: { value: Decimal | null; animation: TimescopeAnimationInput };
-  zoom?: { value: Decimal; animation: TimescopeAnimationInput };
-  playbackTime?: Decimal | null;
   promise?: Promise<void>;
 };
 
 function abortError() {
-  return new DOMException('The frame latch was aborted', 'AbortError');
+  return new DOMException('The prepared view was aborted', 'AbortError');
 }
 
 export class Timescope<
@@ -81,10 +74,11 @@ export class Timescope<
   Series extends Record<string, TimescopeSeriesInput> = Record<string, TimescopeSeriesInput>,
   Track extends string = string,
 > extends TimescopeObservable<
-  | 'load'
+  | 'ready'
   | 'mount'
   | 'unmount'
   | 'resize'
+  | TimescopeEvent<'error', Error>
   | TimescopeEvent<'timechanging', Decimal | null>
   | TimescopeEvent<'timechanged', Decimal | null>
   | TimescopeEvent<'timeanimating', Decimal | null>
@@ -96,10 +90,21 @@ export class Timescope<
   | TimescopeEvent<'selectionrangechanging', TimescopeRange<Decimal> | null>
   | TimescopeEvent<'selectionrangechanged', TimescopeRange<Decimal> | null>
 > {
-  #element: HTMLCanvasElement | null = null;
+  #canvas: TimescopeCanvas | null = null;
   #renderer: TimescopeRenderer | null = null;
-  #interactionManager: InteractionManager | null = null;
-  #resizeObserver: ResizeObserver | null = null;
+  #backendMount: TimescopeBackendMount | null = null;
+  #backendInitialized = false;
+  #mountController: AbortController | null = null;
+  #mountGeneration = 0;
+  #backendReady: Promise<void> = Promise.resolve();
+  #mountReady: Promise<void> = Promise.resolve();
+  #resolveMount: (() => void) | null = null;
+  #rejectMount: ((reason: unknown) => void) | null = null;
+  #pendingAutoMount = false;
+  #resizeAcknowledged: Promise<void> | null = null;
+  #mounted = false;
+  #readyEmitted = false;
+  #pendingSize: { width: number; height: number; dpr: number; x?: number; y?: number } | null = null;
 
   #state: TimescopeState;
   #selectionRange: TimescopeRange<Decimal> | null = null;
@@ -107,13 +112,20 @@ export class Timescope<
 
   #options: TimescopeOptions;
   #fonts: (string | TimescopeFont)[] | undefined;
+  #environment: TimescopeEnvironment | undefined;
+  #backends: ReturnType<typeof resolveBackends>;
+  #backendChoice: TimescopeBackendChoice | readonly TimescopeBackendChoice[] | undefined;
+  #renderThread: TimescopeRenderThread | undefined;
 
   #wheelSensitivity;
 
-  #loaded = false;
-  #frameLatch: ActiveFrameLatch | null = null;
+  #fetchingView: ActivePreparedView | null = null;
   #disposing = false;
-  #initialFit: { range: TimescopeRange<TimeLike<never>>; padding?: TimescopeFitOptions['padding'] } | null = null;
+  #initialFit: {
+    range: TimescopeRange<TimeLike<never>>;
+    padding?: TimescopeFitOptions['padding'];
+    animation?: boolean;
+  } | null = null;
 
   get time(): Decimal | null {
     return this.#state.time.committing?.clone() ?? null;
@@ -125,14 +137,7 @@ export class Timescope<
 
   setTime(v: TimeLike | null, animation?: TimescopeAnimationInput) {
     this.#initialFit = null;
-    if (this.#frameLatch?.state === 'committing') this.#supersedeFrameLatch();
-    else if (this.#frameLatch?.state === 'finished') this.#frameLatch.superseded = true;
-    if (this.#frameLatch?.state === 'open') {
-      const target = this.#state.resolveTimeTarget(v, animation);
-      if (!target) return false;
-      this.#frameLatch.time = target;
-      return true;
-    }
+    this.#abortFetchingView();
     return this.#state.setTime(v, animation);
   }
 
@@ -151,17 +156,12 @@ export class Timescope<
   }
 
   setTimeRange(domain?: TimescopeRange<TimeLike | null | undefined>) {
-    if (this.#frameLatch) this.#supersedeFrameLatch();
+    this.#abortFetchingView();
     this.#state.setTimeRange(domain);
   }
 
   setPlaybackTime(t: TimeLike<null>) {
-    if (this.#frameLatch?.state === 'committing') this.#supersedeFrameLatch();
-    else if (this.#frameLatch?.state === 'finished') this.#frameLatch.superseded = true;
-    if (this.#frameLatch?.state === 'open') {
-      this.#frameLatch.playbackTime = parseTimeLike(t);
-      return;
-    }
+    this.#abortFetchingView();
     this.#state.setPlaybackTime(t);
   }
 
@@ -175,99 +175,118 @@ export class Timescope<
 
   setZoom(v: ZoomLike, animation?: TimescopeAnimationInput) {
     this.#initialFit = null;
-    if (this.#frameLatch?.state === 'committing') this.#supersedeFrameLatch();
-    else if (this.#frameLatch?.state === 'finished') this.#frameLatch.superseded = true;
-    if (this.#frameLatch?.state === 'open') {
-      const target = this.#state.resolveZoomTarget(v, animation);
-      if (!target) return false;
-      this.#frameLatch.zoom = target;
-      return true;
-    }
+    this.#abortFetchingView();
     return this.#state.setZoom(v, animation);
   }
 
-  latchFrame(): TimescopeFrameLatch {
-    if (this.#frameLatch) throw new DOMException('A frame latch is already active', 'InvalidStateError');
-    if (!this.#renderer) throw new DOMException('Timescope is not mounted', 'InvalidStateError');
-
-    const latch: ActiveFrameLatch = {
+  prepareView(): TimescopePreparedView {
+    const view: ActivePreparedView = {
       controller: new AbortController(),
-      state: 'open',
+      state: 'draft',
     };
-    this.#frameLatch = latch;
+    let time: { value: Decimal | null; animation: TimescopeAnimationInput } | undefined;
+    let zoomInput: { value: Decimal; animation?: TimescopeAnimationInput } | undefined;
+    let playbackTime: Decimal | null | undefined;
+    const assertDraft = () => {
+      if (view.state !== 'draft') throw new DOMException('The view is no longer editable', 'InvalidStateError');
+    };
 
-    const commit = () => {
-      if (latch.promise) return latch.promise;
-      if (latch.state === 'finished') {
-        latch.promise = Promise.reject(latch.controller.signal.reason ?? abortError());
-        return latch.promise;
+    const fetch = () => {
+      if (view.promise) return view.promise;
+      if (view.state === 'finished') return Promise.reject(view.controller.signal.reason ?? abortError());
+      if (!this.#renderer && !this.#mountController && !this.#pendingAutoMount)
+        return Promise.reject(new DOMException('Timescope is not mounted', 'InvalidStateError'));
+      if (this.#fetchingView) {
+        return Promise.reject(new DOMException('Another view is being fetched', 'InvalidStateError'));
       }
-
-      latch.state = 'committing';
+      view.state = 'fetching';
+      this.#fetchingView = view;
       const transaction = Promise.resolve().then(async () => {
-        latch.controller.signal.throwIfAborted();
+        await this.#backendReady;
+        view.controller.signal.throwIfAborted();
+        const generation = this.#mountGeneration;
+        await this.#mountReady;
+        view.controller.signal.throwIfAborted();
+        if (!this.#renderer || generation !== this.#mountGeneration)
+          throw new DOMException('Timescope is not mounted', 'InvalidStateError');
+        const zoom = zoomInput && this.#state.resolveZoomTarget(zoomInput.value, zoomInput.animation);
+        view.locked = true;
         this.#renderer!.latchFrame();
         const prepared = await this.#renderer!.prepareFrame(
           {
-            ...(latch.time ? { time: latch.time.value } : {}),
-            ...(latch.zoom ? { zoom: latch.zoom.value } : {}),
-            ...(latch.playbackTime !== undefined ? { playbackTime: latch.playbackTime } : {}),
+            ...(time ? { time: time.value } : {}),
+            ...(zoom ? { zoom: zoom.value } : {}),
+            ...(playbackTime !== undefined ? { playbackTime } : {}),
           },
-          latch.controller.signal,
+          view.controller.signal,
         );
-        if (!prepared.ok) throw latch.controller.signal.reason ?? new Error(prepared.message);
-        if (latch.superseded) throw latch.controller.signal.reason ?? abortError();
+        if (!prepared.ok) throw view.controller.signal.reason ?? new Error(prepared.message);
+        view.controller.signal.throwIfAborted();
 
-        if (latch.playbackTime !== undefined) this.#state.setPlaybackTime(latch.playbackTime);
-        if (latch.time) this.#state.setTime(latch.time.value, latch.time.animation);
-        if (latch.zoom) this.#state.setZoom(latch.zoom.value, latch.zoom.animation);
+        if (playbackTime !== undefined) this.#state.setPlaybackTime(playbackTime);
+        if (time) this.#state.setTime(time.value, time.animation);
+        if (zoom) this.#state.setZoom(zoom.value, zoom.animation);
 
         // State sync events use microtasks. Flush them before committing so the
         // worker applies the transaction state before presenting the frame.
         await Promise.resolve();
         const presented = await this.#renderer!.commitFrame();
-        if (!presented.ok) throw latch.controller.signal.reason ?? new Error(presented.message);
-        if (latch.superseded) throw latch.controller.signal.reason ?? abortError();
+        if (!presented.ok) throw view.controller.signal.reason ?? new Error(presented.message);
+        view.controller.signal.throwIfAborted();
       });
       const forceAborted = new Promise<never>((_, reject) => {
-        latch.reject = reject;
+        view.reject = reject;
       });
-      latch.promise = Promise.race([transaction, forceAborted])
+      view.promise = Promise.race([transaction, forceAborted])
         .catch((error) => {
-          this.#abortFrameLatch(latch, error);
+          this.#abortPreparedView(view, error);
           throw error;
         })
         .finally(() => {
-          latch.reject = undefined;
-          latch.state = 'finished';
-          if (this.#frameLatch === latch) this.#frameLatch = null;
+          view.reject = undefined;
+          view.state = 'finished';
+          if (this.#fetchingView === view) this.#fetchingView = null;
         });
-      return latch.promise;
+      return view.promise;
     };
 
     return {
-      signal: latch.controller.signal,
-      commit,
-      abort: (reason?: unknown) => this.#abortFrameLatch(latch, reason),
+      signal: view.controller.signal,
+      setTime: (value, animation) => {
+        assertDraft();
+        const target = this.#state.resolveTimeTarget(value, animation);
+        if (!target) return false;
+        time = target;
+        return true;
+      },
+      setZoom: (value, animation) => {
+        assertDraft();
+        const target = this.#state.resolveZoomTarget(value, animation);
+        if (!target) return false;
+        zoomInput = { value: target.value, animation };
+        return true;
+      },
+      setPlaybackTime: (value) => {
+        assertDraft();
+        playbackTime = parseTimeLike(value);
+      },
+      fetch,
+      abort: (reason?: unknown) => this.#abortPreparedView(view, reason),
     };
   }
 
-  #abortFrameLatch(latch = this.#frameLatch, reason: unknown = abortError(), force = false) {
-    if (!latch) return;
-    if (latch.state === 'finished') {
-      if (force) latch.reject?.(reason);
-      return;
-    }
-    latch.state = 'finished';
-    latch.controller.abort(reason);
-    this.#renderer?.abortFrame();
-    latch.reject?.(reason);
-    if (!latch.promise && this.#frameLatch === latch) this.#frameLatch = null;
+  #abortPreparedView(view: ActivePreparedView, reason: unknown = abortError()) {
+    if (view.state === 'finished') return;
+    const fetching = view.state === 'fetching';
+    view.state = 'finished';
+    view.controller.abort(reason);
+    if (fetching && view.locked) this.#renderer?.abortFrame();
+    view.reject?.(reason);
+    if (this.#fetchingView === view) this.#fetchingView = null;
   }
 
-  #supersedeFrameLatch() {
-    if (this.#frameLatch) this.#frameLatch.superseded = true;
-    this.#abortFrameLatch();
+  #abortFetchingView() {
+    if (this.#fetchingView) this.#abortPreparedView(this.#fetchingView);
   }
 
   get zoomChanging() {
@@ -279,13 +298,19 @@ export class Timescope<
   }
 
   fitTo(range: TimescopeRange<TimeLike<never>>, opts?: TimescopeFitOptions) {
-    if (!this.#size.width) return false;
-
     const [left, right] = typeof opts?.padding === 'number' ? [opts.padding, opts.padding] : (opts?.padding ?? [0, 0]);
     const padding = left + right;
-    if (!Number.isFinite(padding) || padding < 0 || this.#size.width <= padding) return false;
+    if (!Number.isFinite(left) || !Number.isFinite(right) || left < 0 || right < 0 || !Number.isFinite(padding))
+      return false;
+    const rangeDecimal = range.map((t) => parseTimeLike(t)) as TimescopeRange<Decimal>;
+    if (!rangeDecimal[1].gt(rangeDecimal[0])) return false;
 
-    const rangeDecimal = range.map((t) => parseTimeLike(t));
+    if (!this.#size.width || !this.#size.height) {
+      this.#initialFit = { range: rangeDecimal, padding: opts?.padding, animation: opts?.animation };
+      return true;
+    }
+    if (this.#size.width <= padding) return false;
+
     const resolution = rangeDecimal[1]
       .sub(rangeDecimal[0])
       .div(this.#size.width - padding, 18)
@@ -309,7 +334,7 @@ export class Timescope<
   }
 
   setZoomRange(domain?: TimescopeRange<ZoomLike | undefined>) {
-    if (this.#frameLatch) this.#supersedeFrameLatch();
+    this.#abortFetchingView();
     this.#state.setZoomRange(domain);
   }
 
@@ -366,10 +391,29 @@ export class Timescope<
     return { ...this.#size };
   }
 
+  get canvas(): TimescopeCanvas | null {
+    return this.#canvas;
+  }
+
+  get target(): Element | TimescopeCanvas | null {
+    return this.#backendMount?.canvas ?? null;
+  }
+
+  async resize(width: number, height: number, dpr = 1): Promise<boolean> {
+    try {
+      await this.#backendReady;
+      if (!this.#backendMount || this.#backendMount.autoSize) return false;
+      await this.#setSize(width, height, dpr);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   #disabled = false;
   set disabled(v: boolean) {
     this.#disabled = v;
-    if (this.#interactionManager) this.#interactionManager.disabled = v;
+    this.#backendMount?.setDisabled?.(v);
   }
 
   get disabled() {
@@ -381,16 +425,20 @@ export class Timescope<
   }
 
   setOptions(opts: TimescopeOptions<Sources, Series, Track>) {
+    if ('backend' in opts || 'renderThread' in opts)
+      throw new Error('backend and renderThread are constructor-only options');
     validateTimescopeOptions(opts);
-    if (this.#frameLatch) this.#supersedeFrameLatch();
+    this.#abortFetchingView();
     this.#options = { style: undefined, ...opts } as TimescopeOptions;
     this.#applyOptions(this.#options, true);
   }
 
   updateOptions(opts: TimescopeUpdateOptions<Sources, Series, Track>) {
+    if ('backend' in opts || 'renderThread' in opts)
+      throw new Error('backend and renderThread are constructor-only options');
     const next = mergeTimescopeOptions(copyOptions(this.#options), opts as TimescopeUpdateOptions);
     validateTimescopeOptions(next);
-    if (this.#frameLatch) this.#supersedeFrameLatch();
+    this.#abortFetchingView();
     this.#options = next;
     this.#applyOptions(opts as TimescopeOptions, false);
   }
@@ -400,59 +448,70 @@ export class Timescope<
       this.#selectionRange = null;
       this.#selectionRangeChanging = null;
     }
-    if (!this.#element || !this.#renderer) return;
+    if (!this.#backendMount || !this.#renderer) return;
 
-    if ('style' in opts) {
-      this.#element.style.width = opts.style?.width ?? '100%';
-      this.#element.style.height = opts.style?.height ?? '36px';
-      this.#element.style.background = opts.style?.background ?? '#fff';
-    }
+    if ('style' in opts) this.#backendMount.setStyle?.(opts.style);
 
     if (set) {
       this.#renderer.setOptions(opts as TimescopeOptions);
     } else {
       this.#renderer.updateOptions(opts as TimescopeOptions);
     }
-
-    this.#resize();
   }
 
-  #resize() {
-    if (!this.#element || !this.#renderer) return;
+  #setSize(width: number, height: number, dpr: number, x = 0, y = 0) {
+    if (!this.#renderer) return;
+    if (
+      this.#size.width === width &&
+      this.#size.height === height &&
+      this.#size.dpr === dpr &&
+      this.#size.x === x &&
+      this.#size.y === y
+    )
+      return;
+    if (this.#fetchingView?.locked) this.#abortFetchingView();
 
-    const dpr = window.devicePixelRatio;
-    const rect = this.#element.getBoundingClientRect();
+    this.#size = { x, y, width, height, dpr };
 
-    if (this.#size.width === rect.width && this.#size.height === rect.height && this.#size.dpr === dpr) return;
-    if (this.#frameLatch) this.#supersedeFrameLatch();
-
-    this.#size = {
-      x: rect.x,
-      y: rect.y,
-      width: rect.width,
-      height: rect.height,
-      dpr,
-    };
-
-    const width = this.#size.width;
-    const height = this.#size.height;
-
-    this.#renderer.resize({ size: { width, height }, context: { dpr } });
+    const resized = this.#renderer.resize({ size: { width, height }, context: { dpr } });
+    this.#resizeAcknowledged = resized;
+    const generation = this.#mountGeneration;
+    void resized.then(
+      () => {
+        if (generation === this.#mountGeneration && this.#resizeAcknowledged === resized) this.#notifyMounted();
+      },
+      () => {},
+    );
+    void resized.catch(() => {});
 
     if (
       this.#initialFit &&
       width > 0 &&
       height > 0 &&
-      this.fitTo(this.#initialFit.range, { padding: this.#initialFit.padding, animation: false })
+      this.fitTo(this.#initialFit.range, {
+        padding: this.#initialFit.padding,
+        animation: this.#initialFit.animation,
+      })
     ) {
       this.#initialFit = null;
     }
 
     this.dispatchEvent('resize');
 
-    if (!this.#loaded && width > 0 && height > 0) {
-      this.dispatchEvent('load');
-      this.#loaded = true;
+    return resized;
+  }
+
+  #notifyMounted() {
+    if (!this.#mounted && this.#backendInitialized && this.#size.width > 0 && this.#size.height > 0) {
+      this.#mounted = true;
+      this.#resolveMount?.();
+      this.#resolveMount = null;
+      this.#rejectMount = null;
+      this.dispatchEvent('mount');
+      if (!this.#readyEmitted) {
+        this.#readyEmitted = true;
+        this.dispatchEvent('ready');
+      }
     }
   }
 
@@ -473,12 +532,9 @@ export class Timescope<
     zoom.on('sync', (e) => this.#renderer?.sync({ zoom: e.value }, e.origin));
   }
 
-  #onWheel(e: WheelEvent) {
+  #onWheel(deltaY: number) {
     if (this.#disabled) return;
-    e.preventDefault();
-    this.#supersedeFrameLatch();
-
-    const deltaY = normalizeWheel(e);
+    this.#abortFetchingView();
     this.#state.setZoom(this.#state.zoom.committing.add(-deltaY / this.#wheelSensitivity));
   }
 
@@ -500,7 +556,7 @@ export class Timescope<
       ) {
         throw new RangeError('fit padding must be non-negative and finite');
       }
-      this.#initialFit = { range: fit.range, padding };
+      this.#initialFit = { range: fit.range, padding, animation: false };
       this.#state = new TimescopeState({ ..._opts, time: start.add(end).divExact(2) });
     } else {
       this.#state = new TimescopeState(_opts);
@@ -510,6 +566,9 @@ export class Timescope<
     const {
       target: _target,
       fonts: _fonts,
+      environment: _environment,
+      backend: _backend,
+      renderThread: _renderThread,
       wheelSensitivity: _wheelSensitivity,
       time: _time,
       timeRange: _timeRange,
@@ -535,63 +594,179 @@ export class Timescope<
       this.#selectionRangeChanging = this.#selectionRange;
     }
     this.#fonts = _opts.fonts;
+    this.#environment = _opts.environment;
+    this.#backendChoice = _backend;
+    this.#backends = resolveBackends(_backend);
+    this.#renderThread = _renderThread;
 
     this.#wheelSensitivity = _opts.wheelSensitivity ?? 200;
 
-    queueMicrotask(() => {
-      if (_opts.target && !this.#disposing) this.mount(_opts.target);
-    });
-  }
-
-  reload(sources?: (keyof Sources & string)[]) {
-    this.#renderer?.invalidateSources(sources);
-  }
-
-  redraw() {
-    this.#renderer?.redraw();
-  }
-
-  mount(target: HTMLElement | string) {
-    if (this.#disposing) throw new Error('Timescope is disposed');
-    const el = typeof target === 'string' ? document.querySelector(target) : target;
-    if (!el) throw new Error('mount failed');
-
-    if (this.#element || this.#renderer || this.#interactionManager) {
-      console.warn('Timescope: mounted twice');
+    if (_opts.target) {
+      this.#pendingAutoMount = true;
+      const generation = this.#mountGeneration;
+      this.#backendReady = Promise.resolve().then(() => {
+        this.#pendingAutoMount = false;
+        if (this.#disposing || generation !== this.#mountGeneration) return;
+        this.mount(_opts.target);
+        return this.#backendReady;
+      });
+      void this.#backendReady.catch(() => {});
     }
+  }
 
-    this.#element?.remove();
+  async reload(sources?: (keyof Sources & string)[]): Promise<boolean> {
+    try {
+      await this.#backendReady;
+      if (!this.#renderer) return false;
+      await this.#renderer.invalidateSources(sources);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
-    this.#element = document.createElement('canvas');
-    this.#element.style.all = 'unset';
-    this.#element.style.display = 'block';
-    this.#element.style.touchAction = 'none';
-    this.#element.style.width = this.#options.style?.width ?? '100%';
-    this.#element.style.height = this.#options.style?.height ?? '36px';
-    this.#element.style.background = this.#options.style?.background ?? '#fff';
+  redraw(): Promise<void> {
+    return this.#backendReady.then(() => this.#renderer?.redraw());
+  }
 
-    const Renderer = this.#options.renderThread === 'main' ? TimescopeMainThreadRenderer : TimescopeWorkerRenderer;
-    this.#renderer = new Renderer({
-      canvas: this.#element,
+  async nextFrame(): Promise<void> {
+    await this.#backendReady;
+    const generation = this.#mountGeneration;
+    await this.#mountReady;
+    if (!this.#renderer || !this.#mounted || generation !== this.#mountGeneration)
+      throw new DOMException('Timescope is not mounted', 'InvalidStateError');
+    await this.#renderer.redraw();
+  }
+
+  mount(target?: TimescopeBackendTarget) {
+    if (this.#disposing) throw new Error('Timescope is disposed');
+    if (this.#mountController) this.unmount();
+    this.#mountGeneration++;
+    const options = {
+      backend: typeof this.#backendChoice === 'string' ? this.#backendChoice : undefined,
+      target,
+      renderThread: this.#renderThread,
       fonts: this.#fonts,
+      environment: this.#environment,
+      style: this.#options.style,
+    };
+    const controller = new AbortController();
+    this.#mountController = controller;
+    this.#mountReady = new Promise<void>((resolve, reject) => {
+      this.#resolveMount = resolve;
+      this.#rejectMount = reject;
     });
+    void this.#mountReady.catch(() => {});
+    const prepare = async () => {
+      const reasons: string[] = [];
+      for (const candidate of this.#backends) {
+        const reason = await candidate.probe(options);
+        controller.signal.throwIfAborted();
+        if (reason !== undefined) {
+          reasons.push(reason);
+          continue;
+        }
+        const generation = this.#mountGeneration;
+        const mounted = candidate.mount(options, {
+          sizeChanged: (size) => {
+            if (generation !== this.#mountGeneration || controller.signal.aborted) return;
+            if (!this.#renderer) this.#pendingSize = size;
+            else this.#setSize(size.width, size.height, size.dpr, size.x, size.y);
+          },
+          pointer: (info) => {
+            if (generation !== this.#mountGeneration || controller.signal.aborted || this.#disabled) return;
+            if (info.type === 'down') this.#abortFetchingView();
+            this.#renderer?.onPointerEvent(info);
+          },
+          wheel: (deltaY) => {
+            if (generation === this.#mountGeneration && !controller.signal.aborted) this.#onWheel(deltaY);
+          },
+          pointerStyle: async (info) => {
+            if (generation !== this.#mountGeneration || controller.signal.aborted || this.#disabled) return;
+            return (await this.#renderer?.pointerStyle(info)) ?? undefined;
+          },
+          isDisabled: () => controller.signal.aborted || this.#disabled,
+        });
+        if (controller.signal.aborted) {
+          mounted.dispose();
+          controller.signal.throwIfAborted();
+        }
+        try {
+          const renderer = this.#finishMount(mounted, options);
+          await renderer.ready;
+        } catch (error) {
+          if (this.#backendMount === mounted) {
+            this.#renderer?.dispose();
+            mounted.dispose();
+            this.#renderer = null;
+            this.#backendMount = null;
+            this.#canvas = null;
+            this.#resizeAcknowledged = null;
+            this.#pendingSize = null;
+          } else if (!controller.signal.aborted) {
+            mounted.dispose();
+          }
+          throw error;
+        }
+        controller.signal.throwIfAborted();
+        this.#backendInitialized = true;
+        if (this.#resizeAcknowledged)
+          void this.#resizeAcknowledged.then(
+            () => this.#notifyMounted(),
+            () => {},
+          );
+        return;
+      }
+      throw new Error(`No rendering backend supports this target: ${reasons.join('; ')}`);
+    };
+    let rejectAborted: (reason: unknown) => void = () => {};
+    const aborted = new Promise<never>((_, reject) => {
+      rejectAborted = reject;
+    });
+    const onAbort = () => rejectAborted(controller.signal.reason);
+    controller.signal.addEventListener('abort', onAbort, { once: true });
+    this.#backendReady = Promise.race([prepare(), aborted]).finally(() => {
+      controller.signal.removeEventListener('abort', onAbort);
+    });
+    void this.#backendReady.catch((reason) => {
+      if (this.#mountController === controller) {
+        this.#rejectMount?.(reason);
+        this.dispatchEvent(new TimescopeEvent('error', reason instanceof Error ? reason : new Error(String(reason))));
+      }
+    });
+    return this;
+  }
 
-    this.#renderer.setOptions(this.#options as TimescopeOptions);
-    if (this.#selectionRange) this.#renderer.setSelectionRange(this.#selectionRange);
+  #finishMount(
+    mounted: TimescopeBackendMount,
+    options: { fonts?: (string | TimescopeFont)[]; environment?: TimescopeEnvironment },
+  ) {
+    const renderer =
+      mounted.renderThread === 'worker'
+        ? new TimescopeWorkerRenderer({ canvas: mounted.canvas, fonts: options.fonts })
+        : new TimescopeMainThreadRenderer({
+            canvas: mounted.canvas,
+            fonts: options.fonts,
+            environment: mounted.environment ?? options.environment,
+          });
+    this.#canvas = mounted.canvas;
+    this.#renderer = renderer;
+    this.#backendMount = mounted;
 
-    // sync the renderer
+    renderer.setOptions(this.#options as TimescopeOptions);
+    if (this.#selectionRange) renderer.setSelectionRange(this.#selectionRange);
+
     this.#state.time.restore();
     this.#state.zoom.restore();
 
-    this.#resizeObserver = new ResizeObserver(() => this.#resize());
-    this.#resizeObserver.observe(this.#element);
+    const size = this.#pendingSize;
+    this.#pendingSize = null;
+    if (size) this.#setSize(size.width, size.height, size.dpr, size.x, size.y);
+    else if (!mounted.autoSize) this.#setSize(mounted.canvas.width, mounted.canvas.height, 1);
 
-    // change event chain
-    this.#renderer.on('change', () => this.changed());
+    renderer.on('change', () => this.changed());
 
-    // time state sync
-    this.#renderer.on('sync', (e) => {
-      if (this.#frameLatch?.state === 'finished') this.#frameLatch.superseded = true;
+    renderer.on('sync', (e) => {
       if (e.value.time) {
         this.#state.time.handleSyncEvent(e.value.time);
         this.#state.time.dispatchEvent(new TimescopeEvent('sync', e.value.time, e.origin));
@@ -602,7 +777,7 @@ export class Timescope<
       }
     });
 
-    this.#renderer.on('renderer:event', (e) => {
+    renderer.on('renderer:event', (e) => {
       if (typeof e.value === 'object' && e.value && 'range' in e.value && 'resizing' in e.value) {
         this.#selectionRangeChanging = e.value.range as TimescopeRange<Decimal> | null;
         this.dispatchEvent(
@@ -617,46 +792,31 @@ export class Timescope<
       }
     });
 
-    // pointer-events
-    this.#interactionManager = new InteractionManager({
-      element: this.#element,
-
-      transform: (p) => p.sub([this.#size.x, this.#size.y]),
-
-      handler: (info) => {
-        if (info.type === 'down') this.#supersedeFrameLatch();
-        this.#renderer?.onPointerEvent(info);
-      },
-
-      cursor: async (info) => {
-        return (await this.#renderer?.pointerStyle(info)) ?? undefined;
-      },
-    });
-
-    // wheel zoom
-    this.#element.addEventListener('wheel', this.#onWheel.bind(this));
-
-    el.appendChild(this.#element);
-
-    this.dispatchEvent('mount');
-
-    return this;
+    return renderer;
   }
 
   unmount() {
-    if (this.#frameLatch) this.#frameLatch.superseded = true;
-    this.#abortFrameLatch(this.#frameLatch, abortError(), true);
-    const mounted = Boolean(this.#element);
-
-    this.#element?.remove();
-    this.#resizeObserver?.disconnect();
-    this.#resizeObserver = null;
-    this.#interactionManager?.detach();
+    const mounted = this.#mounted;
+    this.#rejectMount?.(new DOMException('Mount was aborted', 'AbortError'));
+    this.#resolveMount = null;
+    this.#rejectMount = null;
+    this.#mountReady = Promise.resolve();
+    this.#mountGeneration++;
+    this.#pendingAutoMount = false;
+    this.#backendInitialized = false;
+    this.#mounted = false;
+    this.#resizeAcknowledged = null;
+    this.#mountController?.abort(new DOMException('Mount was aborted', 'AbortError'));
+    this.#mountController = null;
+    this.#backendReady = Promise.resolve();
+    this.#abortFetchingView();
     this.#renderer?.dispose();
+    this.#backendMount?.dispose();
 
     this.#renderer = null;
-    this.#element = null;
-    this.#interactionManager = null;
+    this.#backendMount = null;
+    this.#canvas = null;
+    this.#pendingSize = null;
     this.#size = { x: 0, y: 0, width: 0, height: 0, dpr: 0 };
 
     if (mounted) this.dispatchEvent('unmount');

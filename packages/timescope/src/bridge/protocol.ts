@@ -63,7 +63,7 @@ export type RenderEngineCommands = {
   readonly 'frame:commit': () => Promise<TimescopeFrameLatchResult>;
   readonly 'frame:abort': () => void;
   readonly reload: () => void;
-  readonly redraw: () => void;
+  readonly redraw: () => Promise<void>;
   readonly 'data:changed': (key: string) => void;
 };
 export type RendererInitOptions = { canvas: OffscreenCanvas | HTMLCanvasElement };

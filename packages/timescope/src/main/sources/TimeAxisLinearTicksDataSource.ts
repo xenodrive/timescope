@@ -9,8 +9,10 @@ export class TimeAxisLinearTicksDataSource extends TimescopeObservable<
 > {
   readonly chunkSize = DEFAULT_CHUNK_SIZE;
   readonly chunkOrigin = Decimal(0);
-  constructor(readonly options: TimescopeTimeAxisOptions) {
+  readonly options: TimescopeTimeAxisOptions;
+  constructor(options: TimescopeTimeAxisOptions) {
     super();
+    this.options = options;
   }
   async query({ range, resolution }: TimescopeDataSourceQuery): Promise<TimeAxisTick[]> {
     if (!range[0] || !range[1] || resolution.le(0)) return [];

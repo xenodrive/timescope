@@ -13,8 +13,11 @@ import type { TimescopeDataCache } from '#src/renderer/TimescopeDataCache';
 import type { TimescopeTrack } from '#src/renderer/TimescopeTrack';
 import type { TimescopeViewport } from '#src/renderer/TimescopeViewport';
 
+export type TimescopePath2DConstructor = new (path?: string) => Path2D;
+
 export type TimescopeRenderingContext = {
   ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
+  Path2D: TimescopePath2DConstructor;
   renderingTrack: TimescopeTrack | null;
   options: TimescopeRenderEngineOptions;
   tracks: TimescopeTrack[];

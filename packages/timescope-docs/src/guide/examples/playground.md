@@ -4,7 +4,7 @@ aside: false
 ---
 
 <script setup>
-import Playground from './playground/Playground.vue';
+import Playground from '../playground/Playground.vue';
 </script>
 
 # Playground

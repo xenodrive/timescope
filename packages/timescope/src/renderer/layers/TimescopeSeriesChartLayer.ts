@@ -14,12 +14,13 @@ import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
 import { clipToTrack } from '#src/renderer/rendering';
 import type {
   TimescopeProjectedChartMark,
+  TimescopePath2DConstructor,
   TimescopeRenderEngineOptions,
   TimescopeRenderingContext,
   TimescopeSeriesChartData,
 } from '#src/renderer/types';
-import type { TimescopeDataCache } from '../TimescopeDataCache';
-import { createYProjectionRebase } from '../yProjection';
+import type { TimescopeDataCache } from '../TimescopeDataCache.ts';
+import { createYProjectionRebase } from '../yProjection.ts';
 
 type ParsedPoint = { x1: number; y1: number; x2: number; y2: number };
 type RenderedChartMark = Omit<TimescopeProjectedChartMark, 'point'> & { point: ParsedPoint };
@@ -72,6 +73,7 @@ export function createCompiledLinkPath(
   top: number,
   bottom: number,
   previous?: CompiledLinkPath,
+  Path: TimescopePath2DConstructor = Path2D,
 ): CompiledLinkPath {
   if (
     !Number.isFinite(scaleX) ||
@@ -101,7 +103,7 @@ export function createCompiledLinkPath(
   if (!Number.isSafeInteger(end) || end < 0 || end > values.length) {
     throw new RangeError('Invalid link path command length');
   }
-  const path = new Path2D();
+  const path = new Path();
   let index = 0;
   while (index < end) {
     const command = values[index++];
@@ -287,9 +289,20 @@ function compositeColors(
 
 function createPathMarks<
   S extends FillStyle & StrokeStyle & DefaultColorStyle & SizeStyle & OffsetStyle & AngleStyle & PathStyle,
->(callback: (path: Path2D, arg: { dx: number; dy: number; l: number; style: S }) => void, directed = true) {
-  return function (points: ParsedPoint[], style: S) {
-    const path = new Path2D();
+>(
+  callback: (
+    path: Path2D,
+    arg: { dx: number; dy: number; l: number; style: S },
+    context: TimescopeRenderingContext,
+  ) => void,
+  directed = true,
+) {
+  return function (
+    points: ParsedPoint[],
+    style: S,
+    context: TimescopeRenderingContext = { Path2D: globalThis.Path2D } as TimescopeRenderingContext,
+  ) {
+    const path = new context.Path2D();
     const transform: DOMMatrix2DInit = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
 
     for (const point of points) {
@@ -301,8 +314,8 @@ function createPathMarks<
       const offsetX = style.offset?.[0] ?? 0;
       const offsetY = style.offset?.[1] ?? 0;
 
-      const markPath = new Path2D();
-      callback(markPath, { style, dx, dy, l });
+      const markPath = new context.Path2D();
+      callback(markPath, { style, dx, dy, l }, context);
 
       const directionCos = Math.cos(direction);
       const directionSin = Math.sin(direction);
@@ -328,15 +341,21 @@ type UnitMarkScale<S> = (style: S, dx: number, dy: number, l: number, scale: { x
 export function createUnitPathMarks<
   S extends FillStyle & StrokeStyle & DefaultColorStyle & SizeStyle & OffsetStyle & AngleStyle & PathStyle,
 >(createTemplate: (path: Path2D) => void, scaleFor: UnitMarkScale<S>, directed = true) {
-  let template: Path2D | undefined;
-  return function (points: ParsedPoint[], style: S) {
-    template ??= (() => {
-      const path = new Path2D();
+  const templates = new WeakMap<TimescopePath2DConstructor, Path2D>();
+  return function (
+    points: ParsedPoint[],
+    style: S,
+    context: TimescopeRenderingContext = { Path2D: globalThis.Path2D } as TimescopeRenderingContext,
+  ) {
+    let template = templates.get(context.Path2D);
+    if (!template) {
+      const path = new context.Path2D();
       createTemplate(path);
-      return path;
-    })();
+      templates.set(context.Path2D, path);
+      template = path;
+    }
 
-    const path = new Path2D();
+    const path = new context.Path2D();
     const transform: DOMMatrix2DInit = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
     const scale = { x: 1, y: 1 };
     for (const point of points) {
@@ -359,6 +378,7 @@ export function createUnitPathMarks<
       transform.d = angleCos * scale.y;
       transform.e = point.x1 + directionCos * offsetX - directionSin * offsetY;
       transform.f = point.y1 + directionSin * offsetX + directionCos * offsetY;
+
       path.addPath(template, transform);
     }
 
@@ -376,6 +396,9 @@ function createTextPoint(points: ParsedPoint[]) {
 }
 
 function opacity(c: string, i: number, base: string = 'transparent') {
+  if (base === 'transparent' && i === 1) return c;
+  const rgba = parseColorToRgba(c);
+  if (rgba && base === 'transparent') return `rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${rgba.a * i})`;
   return `color-mix(in srgb, ${c} ${i * 100}%, ${base})`;
 }
 
@@ -465,6 +488,7 @@ const pathCreators: Record<
         BoxStyle &
         OffsetStyle &
         DefaultColorStyle,
+      context: TimescopeRenderingContext,
     ) => {
       strokePath?: Path2D;
       fillPath?: Path2D;
@@ -605,13 +629,17 @@ const pathCreators: Record<
   ],
 
   'mark:path': [
-    createPathMarks((path, { style: { path: stylePath, size, scale, origin } }) => {
-      const mat = new DOMMatrix();
-      mat.scaleSelf(scale ?? 1);
-      mat.scaleSelf(size ?? 5);
-      mat.translateSelf(-(origin?.[0] ?? 0), -(origin?.[1] ?? 0));
-
-      path.addPath(new Path2D(stylePath), mat);
+    createPathMarks((path, { style: { path: stylePath, size, scale, origin } }, context) => {
+      const factor = (scale ?? 1) * (size ?? 5);
+      const mat = {
+        a: factor,
+        b: 0,
+        c: 0,
+        d: factor,
+        e: -factor * (origin?.[0] ?? 0),
+        f: -factor * (origin?.[1] ?? 0),
+      };
+      path.addPath(new context.Path2D(stylePath), mat);
     }),
     { stroke: true, fill: true },
   ],
@@ -798,7 +826,8 @@ export class TimescopeSeriesChartLayer extends TimescopeLayer {
           for (const { mark, points: markPoints } of layer.values()) {
             const style = { color, ...(mark.style ?? {}) };
             const [creator, flags] = pathCreators[`mark:${mark.draw}`] ?? [];
-            const { strokePath, fillPath, path, strokeStyle, postFillStyle } = creator?.(markPoints, style) ?? {};
+            const { strokePath, fillPath, path, strokeStyle, postFillStyle } =
+              creator?.(markPoints, style, timescope) ?? {};
             plot.markOps.push({
               draw: mark.draw,
               strokePath,
@@ -839,6 +868,7 @@ export class TimescopeSeriesChartLayer extends TimescopeLayer {
             track.top,
             track.bottom,
             previousLink?.pathCache,
+            timescope.Path2D,
           );
           const fill = link.draw.includes('area');
           plot.linkOps.push({
@@ -935,7 +965,7 @@ function createFadeoutStyle(
 
   style.addColorStop(0, color);
   style.addColorStop(0.2, color);
-  style.addColorStop(0.8, `color-mix(in srgb, ${color} 1%, transparent)`);
+  style.addColorStop(0.8, opacity(color, 0.01));
   style.addColorStop(1, `transparent`);
 
   return style;
@@ -999,7 +1029,8 @@ function renderTextAt(
     ctx.strokeText(style.text ?? '', 0, 0);
   }
 
-  ctx.fillStyle = opacity(style.textColor ?? style.color ?? 'black', style.textOpacity ?? 1);
+  ctx.fillStyle = style.textColor ?? style.color ?? 'black';
+  ctx.globalAlpha *= style.textOpacity ?? 1;
   ctx.fillText(style.text ?? '', 0, 0);
   ctx.restore();
 }
@@ -1028,7 +1059,8 @@ function renderIconAt(
     ctx.strokeText(style.icon ?? '', 0, 0);
   }
 
-  ctx.fillStyle = opacity(style.iconColor ?? style.color ?? 'black', style.iconOpacity ?? 1);
+  ctx.fillStyle = style.iconColor ?? style.color ?? 'black';
+  ctx.globalAlpha *= style.iconOpacity ?? 1;
   ctx.fillText(style.icon ?? '', 0, 0);
   ctx.restore();
 }

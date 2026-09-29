@@ -126,7 +126,7 @@ export function writePackageJson({ config, exports }: WritePackageJsonOptions) {
     dependencies: replaceRecursive(pkg.dependencies as Record<string, unknown>, (s) => {
       if (s !== 'workspace:*') return s;
 
-      if (rootpkg?.version) return `^${rootpkg.version}`;
+        if (rootpkg?.version) return rootpkg.version as string;
       return '*';
     }),
     devDependencies: undefined,

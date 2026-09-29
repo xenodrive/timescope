@@ -119,3 +119,7 @@ A range away from zero can **float** above or below the shared baseline, magnify
 A Domain can follow visible data. Unspecified bounds adjust automatically; [**`expand`** and **`shrink`**](/api/timescope-options#domains) control whether the range can grow beyond specified bounds and contract again.
 
 ![With a default range of zero to ten, expand allows wider data to enlarge the range, while shrink controls whether it contracts again](./assets/domain-auto-scaling.svg)
+
+## Next steps
+
+See these concepts in action in the [Examples](/guide/examples/).

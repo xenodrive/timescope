@@ -70,6 +70,10 @@ new Timescope({
 });
 ```
 
+## Advanced rendering
+
+For Node.js PNG output, backend selection, and canvas ownership, see the [Backends guide](https://xenodrive.github.io/timescope/guide/advanced/backends).
+
 ## Documentation
 
 See the [documentation](https://xenodrive.github.io/timescope/) for more details.

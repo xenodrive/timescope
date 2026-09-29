@@ -4,7 +4,6 @@
     Decimal,
     TimescopeOptions,
     TimescopeOptionsInitial,
-    TimescopeOptionsSelection,
     TimescopeRange,
     TimescopeSeriesInput,
     TimescopeSourceInput,
@@ -12,10 +11,7 @@
   import { Timescope } from 'timescope';
 
   export type TimescopeProps = {
-    width?: string;
-    height?: string;
-    background?: string;
-
+    options?: TimescopeOptions;
     time?: Decimal | number | null | string | Date;
     timeRange?: [
       Decimal | number | null | string | Date | undefined,
@@ -23,20 +19,20 @@
     ];
     zoom?: number;
     zoomRange?: [number | undefined, number | undefined];
-    fit?: Extract<TimescopeOptionsInitial<Record<string, TimescopeSourceInput>, Record<string, TimescopeSeriesInput>, string>, { fit: unknown }>['fit'];
-
-    sources?: TimescopeOptions['sources'];
-    series?: TimescopeOptions['series'];
-    tracks?: TimescopeOptions['tracks'];
-    domains?: TimescopeOptions['domains'];
-
-    cursor?: TimescopeOptions['cursor'];
-    selection?: TimescopeOptionsSelection;
+    initialTime?: Decimal | number | null | string | Date;
+    initialZoom?: number;
+    initialFit?: Extract<
+      TimescopeOptionsInitial<Record<string, TimescopeSourceInput>, Record<string, TimescopeSeriesInput>, string>,
+      { fit: unknown }
+    >['fit'];
 
     selectionRange?: TimescopeRange<Decimal> | null;
 
-    showFps?: boolean;
-    renderThread?: TimescopeOptions['renderThread'];
+    renderThread?: TimescopeOptionsInitial<
+      Record<string, TimescopeSourceInput>,
+      Record<string, TimescopeSeriesInput>,
+      string
+    >['renderThread'];
 
     fonts?: TimescopeOptionsInitial<
       Record<string, TimescopeSourceInput>,
@@ -46,6 +42,8 @@
   };
 
   type TimescopeEvents = {
+    ready: void;
+    mount: void;
     timechanged: Decimal | null;
     timechanging: Decimal | null;
     timeanimating: Decimal | null;
@@ -59,22 +57,15 @@
   };
 
   let {
-    width = '100%',
-    height = '36px',
-    background,
+    options,
     time = $bindable<Decimal | number | null | string | Date | undefined>(undefined),
     timeRange,
     zoom = $bindable<number | undefined>(undefined),
     zoomRange,
-    sources,
-    series,
-    tracks,
-    domains,
-    fit,
-    cursor = true,
-    selection,
+    initialTime,
+    initialZoom,
+    initialFit,
     selectionRange = $bindable<TimescopeRange<Decimal> | null | undefined>(undefined),
-    showFps,
     renderThread,
     fonts,
   }: TimescopeProps = $props();
@@ -85,21 +76,27 @@
   let timescope: Timescope | null = null;
 
   onMount(() => {
+    if (initialFit !== undefined && (initialTime !== undefined || initialZoom !== undefined)) {
+      throw new TypeError('initialFit cannot be combined with initialTime or initialZoom');
+    }
+    const useFit = initialFit !== undefined && time === undefined && zoom === undefined;
     timescope = new Timescope({
+      ...options,
       renderThread,
-      ...(fit !== undefined ? { fit } : { time: time ?? null, zoom: zoom ?? 0 }),
+      ...(useFit
+        ? { fit: initialFit }
+        : { time: time !== undefined ? time : (initialTime ?? null), zoom: zoom ?? initialZoom ?? 0 }),
       timeRange,
       zoomRange,
       fonts,
-      sources,
-      series,
-      tracks,
-      domains,
-      selection: selectionRange === undefined || selection === false
-        ? selection
-        : { ...(typeof selection === 'object' ? selection : {}), range: selectionRange },
+      selection:
+        selectionRange === undefined || options?.selection === false
+          ? options?.selection
+          : { ...(typeof options?.selection === 'object' ? options.selection : {}), range: selectionRange },
     });
 
+    timescope.on('ready', () => dispatch('ready'));
+    timescope.on('mount', () => dispatch('mount'));
     timescope.on('timechanging', (e) => dispatch('timechanging', e.value));
     timescope.on('timechanged', (e) => {
       time = e.value;
@@ -117,6 +114,11 @@
       selectionRange = e.value;
       dispatch('selectionrangechanged', e.value);
     });
+
+    if (!useFit) {
+      if (time === undefined) time = timescope.time;
+      if (zoom === undefined) zoom = timescope.zoom;
+    }
 
     let animating = timescope.animating;
     let editing = timescope.editing;
@@ -168,39 +170,15 @@
     if (selectionRange !== undefined) timescope.setSelectionRange(selectionRange ?? null);
   });
 
+  let optionsInitialized = false;
   $effect(() => {
     if (!timescope) return;
-    timescope.updateOptions({ style: { width, height, background } });
-  });
-
-  let dataPropsInitialized = false;
-  $effect(() => {
-    if (!timescope) return;
-    const nextSources = sources;
-    const nextSeries = series;
-    const nextTracks = tracks;
-    const nextDomains = domains;
-    if (!dataPropsInitialized) {
-      dataPropsInitialized = true;
+    const nextOptions = options;
+    if (!optionsInitialized) {
+      optionsInitialized = true;
       return;
     }
-    timescope.setOptions({ ...timescope.options, sources: nextSources, series: nextSeries,
-      tracks: nextTracks, domains: nextDomains });
-  });
-
-  $effect(() => {
-    if (!timescope) return;
-    timescope.updateOptions({ cursor });
-  });
-
-  $effect(() => {
-    if (!timescope) return;
-    timescope.updateOptions({ selection });
-  });
-
-  $effect(() => {
-    if (!timescope) return;
-    timescope.updateOptions({ showFps, renderThread });
+    timescope.setOptions(nextOptions ?? {});
   });
 
   export function setTime(...args: Parameters<Timescope['setTime']>) {
@@ -213,6 +191,16 @@
 
   export function fitTo(...args: Parameters<Timescope['fitTo']>) {
     return timescope?.fitTo(...args) ?? false;
+  }
+
+  export function prepareView() {
+    if (!timescope) throw new DOMException('Timescope is not mounted', 'InvalidStateError');
+    return timescope.prepareView();
+  }
+
+  export function nextFrame() {
+    if (!timescope) return Promise.reject(new DOMException('Timescope is not mounted', 'InvalidStateError'));
+    return timescope.nextFrame();
   }
 </script>
 

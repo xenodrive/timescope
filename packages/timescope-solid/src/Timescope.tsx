@@ -3,12 +3,7 @@ import { createEffect, onCleanup, untrack } from 'solid-js';
 import {
   Timescope,
   TimescopeOptions,
-  TimescopeOptionsDomains,
   TimescopeOptionsInitial,
-  TimescopeOptionsSelection,
-  TimescopeOptionsSeries,
-  TimescopeOptionsSources,
-  TimescopeOptionsTracks,
   TimescopeRange,
   TimescopeSeriesInput,
   TimescopeSourceInput,
@@ -19,10 +14,7 @@ type TimescopeProps<
   Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
 > = {
-  width?: string;
-  height?: string;
-  background?: string;
-
+  options?: TimescopeOptions<Sources, Series, Track>;
   time?: Decimal | number | null | string | Date;
   timeRange?: [
     Decimal | number | null | string | Date | undefined,
@@ -30,23 +22,18 @@ type TimescopeProps<
   ];
   zoom?: number;
   zoomRange?: [number | undefined, number | undefined];
-  fit?: Extract<TimescopeOptionsInitial<Sources, Series, Track>, { fit: unknown }>['fit'];
-
-  sources?: TimescopeOptionsSources<Sources>;
-  series?: TimescopeOptionsSeries<Sources, Series, Track>;
-  tracks?: TimescopeOptionsTracks<Track>;
-  domains?: TimescopeOptionsDomains;
-
-  cursor?: TimescopeOptions['cursor'];
-  selection?: TimescopeOptionsSelection;
+  initialTime?: Decimal | number | null | string | Date;
+  initialZoom?: number;
+  initialFit?: Extract<TimescopeOptionsInitial<Sources, Series, Track>, { fit: unknown }>['fit'];
 
   selectionRange?: TimescopeRange<Decimal> | null;
 
-  showFps?: boolean;
-  renderThread?: TimescopeOptions['renderThread'];
+  renderThread?: TimescopeOptionsInitial<Sources, Series, Track>['renderThread'];
 
   fonts?: TimescopeOptionsInitial<Sources, Series, Track>['fonts'];
 
+  onReady?: () => void;
+  onMount?: () => void;
   onTimeAnimating?: (v: Decimal | null) => void;
   onTimeChanging?: (v: Decimal | null) => void;
   onTimeChanged?: (v: Decimal | null) => void;
@@ -66,29 +53,59 @@ function TimescopeComponent<
   Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
 >(props: TimescopeProps<Sources, Series, Track>) {
+  const initial = untrack(() => ({
+    options: props.options,
+    time: props.time,
+    zoom: props.zoom,
+    initialTime: props.initialTime,
+    initialZoom: props.initialZoom,
+    initialFit: props.initialFit,
+    timeRange: props.timeRange,
+    zoomRange: props.zoomRange,
+    selectionRange: props.selectionRange,
+    renderThread: props.renderThread,
+    fonts: props.fonts,
+  }));
+  const useFit = initial.initialFit !== undefined && initial.time === undefined && initial.zoom === undefined;
+  if (initial.initialFit !== undefined && (initial.initialTime !== undefined || initial.initialZoom !== undefined)) {
+    throw new TypeError('initialFit cannot be combined with initialTime or initialZoom');
+  }
   const timescope = new Timescope<Sources, Series, Track>({
-    renderThread: untrack(() => props.renderThread),
-    ...(untrack(() => props.fit) !== undefined
-      ? { fit: untrack(() => props.fit)! }
-      : { time: untrack(() => props.time ?? null), zoom: untrack(() => props.zoom ?? 0) }),
-    timeRange: untrack(() => props.timeRange),
-    zoomRange: untrack(() => props.zoomRange),
-    fonts: untrack(() => props.fonts),
-    sources: untrack(() => props.sources),
-    series: untrack(() => props.series),
-    tracks: untrack(() => props.tracks),
-    domains: untrack(() => props.domains),
-    selection: untrack(() =>
-      props.selectionRange === undefined || props.selection === false
-        ? props.selection
+    ...initial.options,
+    renderThread: initial.renderThread,
+    ...(useFit
+      ? { fit: initial.initialFit }
+      : {
+          time: initial.time !== undefined ? initial.time : (initial.initialTime ?? null),
+          zoom: initial.zoom ?? initial.initialZoom ?? 0,
+        }),
+    timeRange: initial.timeRange,
+    zoomRange: initial.zoomRange,
+    fonts: initial.fonts,
+    selection:
+      initial.selectionRange === undefined || initial.options?.selection === false
+        ? initial.options?.selection
         : {
-            ...(typeof props.selection === 'object' ? props.selection : {}),
-            range: props.selectionRange,
+            ...(typeof initial.options?.selection === 'object' ? initial.options.selection : {}),
+            range: initial.selectionRange,
           },
-    ),
+  });
+
+  let initialNotified = false;
+  createEffect(() => {
+    const onTimeChanged = props.onTimeChanged;
+    const onZoomChanged = props.onZoomChanged;
+    if (initialNotified) return;
+    initialNotified = true;
+    if (!useFit) {
+      if (initial.time === undefined) onTimeChanged?.(timescope.time);
+      if (initial.zoom === undefined) onZoomChanged?.(timescope.zoom);
+    }
   });
 
   createEffect(() => {
+    const onReady = props.onReady;
+    const onMount = props.onMount;
     const onTimeAnimating = props.onTimeAnimating;
     const onTimeChanging = props.onTimeChanging;
     const onTimeChanged = props.onTimeChanged;
@@ -101,6 +118,8 @@ function TimescopeComponent<
     const onEditing = props.onEditing;
 
     const uns = [
+      timescope.on('ready', () => onReady?.()),
+      timescope.on('mount', () => onMount?.()),
       timescope.on('timeanimating', (e) => onTimeAnimating?.(e.value)),
       timescope.on('timechanging', (e) => onTimeChanging?.(e.value)),
       timescope.on('timechanged', (e) => onTimeChanged?.(e.value)),
@@ -146,41 +165,14 @@ function TimescopeComponent<
   createEffect(() => {
     if (props.selectionRange !== undefined) timescope.setSelectionRange(props.selectionRange);
   });
+  let optionsInitialized = false;
   createEffect(() => {
-    timescope.updateOptions({
-      style: {
-        width: props.width ?? '100%',
-        height: props.height ?? '36px',
-        background: props.background,
-      },
-    });
-  });
-  let dataPropsInitialized = false;
-  createEffect(() => {
-    const sources = props.sources;
-    const series = props.series;
-    const tracks = props.tracks;
-    const domains = props.domains;
-    if (!dataPropsInitialized) {
-      dataPropsInitialized = true;
+    const options = props.options;
+    if (!optionsInitialized) {
+      optionsInitialized = true;
       return;
     }
-    timescope.setOptions({
-      ...timescope.options,
-      sources,
-      series,
-      tracks,
-      domains,
-    } as TimescopeOptions<Sources, Series, Track>);
-  });
-  createEffect(() => {
-    timescope.updateOptions({ cursor: props.cursor ?? true });
-  });
-  createEffect(() => {
-    timescope.updateOptions({ selection: props.selection });
-  });
-  createEffect(() => {
-    timescope.updateOptions({ showFps: props.showFps, renderThread: props.renderThread });
+    timescope.setOptions(options ?? {});
   });
 
   onCleanup(() => {

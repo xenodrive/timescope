@@ -6,6 +6,7 @@ update:
 
 allowBuilds:
   esbuild: true
+  skia-canvas: true
   svelte-preprocess: true
 
 minimumReleaseAgeExclude:

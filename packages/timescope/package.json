@@ -18,6 +18,8 @@
   "exports": {
     ".": {
       "types": "./src/index.ts",
+      "browser": "./src/index.browser.ts",
+      "node": "./src/index.node.ts",
       "default": "./src/index.ts"
     }
   },
@@ -27,14 +29,20 @@
   "devDependencies": {
     "@kikuchan/calendar": "^0.2.0-alpha.0",
     "@kikuchan/decimal": "^0.2.0-alpha.0",
-    "@napi-rs/canvas": "^1.0.9",
     "oxfmt": "^0.67.0",
     "oxlint": "^1.82.0",
+    "skia-canvas": "^3.0.8",
     "tsdown": "^0.23.0",
     "typescript": "^7.0.2"
   },
   "peerDependencies": {
     "@kikuchan/calendar": "^0.2.0-alpha.0",
-    "@kikuchan/decimal": "^0.2.0-alpha.0"
+    "@kikuchan/decimal": "^0.2.0-alpha.0",
+    "skia-canvas": "^3.0.8"
+  },
+  "peerDependenciesMeta": {
+    "skia-canvas": {
+      "optional": true
+    }
   }
 }

@@ -4,12 +4,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useSta
 import {
   Timescope,
   type TimescopeOptions,
-  type TimescopeOptionsDomains,
   type TimescopeOptionsInitial,
-  type TimescopeOptionsSelection,
-  type TimescopeOptionsSeries,
-  type TimescopeOptionsSources,
-  type TimescopeOptionsTracks,
   type TimescopeRange,
   type TimescopeSeriesInput,
   type TimescopeSourceInput,
@@ -20,10 +15,7 @@ type TimescopeProps<
   Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
 > = {
-  width?: string;
-  height?: string;
-  background?: string;
-
+  options?: TimescopeOptions<Sources, Series, Track>;
   time?: Decimal | number | null | string | Date;
   timeRange?: [
     Decimal | number | null | string | Date | undefined,
@@ -31,22 +23,17 @@ type TimescopeProps<
   ];
   zoom?: number;
   zoomRange?: [number | undefined, number | undefined];
-  fit?: Extract<TimescopeOptionsInitial<Sources, Series, Track>, { fit: unknown }>['fit'];
-
-  sources?: TimescopeOptionsSources<Sources>;
-  series?: TimescopeOptionsSeries<Sources, Series, Track>;
-  tracks?: TimescopeOptionsTracks<Track>;
-  domains?: TimescopeOptionsDomains;
-
-  cursor?: TimescopeOptions['cursor'];
-  selection?: TimescopeOptionsSelection;
+  initialTime?: Decimal | number | null | string | Date;
+  initialZoom?: number;
+  initialFit?: Extract<TimescopeOptionsInitial<Sources, Series, Track>, { fit: unknown }>['fit'];
   selectionRange?: TimescopeRange<Decimal> | null;
 
-  showFps?: boolean;
-  renderThread?: TimescopeOptions['renderThread'];
+  renderThread?: TimescopeOptionsInitial<Sources, Series, Track>['renderThread'];
 
   fonts?: TimescopeOptionsInitial<Sources, Series, Track>['fonts'];
 
+  onReady?: () => void;
+  onMount?: () => void;
   onTimeChanged?: (value: Decimal | null) => void;
   onTimeChanging?: (value: Decimal | null) => void;
   onTimeAnimating?: (value: Decimal | null) => void;
@@ -63,6 +50,8 @@ export type TimescopeAPI = {
   setTime: Timescope['setTime'];
   setZoom: Timescope['setZoom'];
   fitTo: Timescope['fitTo'];
+  prepareView: Timescope['prepareView'];
+  nextFrame: Timescope['nextFrame'];
 };
 
 const TimescopeComponent = forwardRef(function TimescopeComponent<
@@ -75,14 +64,20 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
   const initialPropsRef = useRef({
     renderThread: props.renderThread,
     time: props.time,
+    initialTime: props.initialTime,
     timeRange: props.timeRange,
     zoom: props.zoom,
+    initialZoom: props.initialZoom,
     zoomRange: props.zoomRange,
     fonts: props.fonts,
-    fit: props.fit,
+    initialFit: props.initialFit,
+    options: props.options,
+    selectionRange: props.selectionRange,
   });
 
   const callbacksRef = useRef({
+    onReady: props.onReady,
+    onMount: props.onMount,
     onTimeChanged: props.onTimeChanged,
     onTimeChanging: props.onTimeChanging,
     onTimeAnimating: props.onTimeAnimating,
@@ -97,6 +92,8 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
 
   useEffect(() => {
     callbacksRef.current = {
+      onReady: props.onReady,
+      onMount: props.onMount,
       onTimeChanged: props.onTimeChanged,
       onTimeChanging: props.onTimeChanging,
       onTimeAnimating: props.onTimeAnimating,
@@ -109,6 +106,8 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
       onEditing: props.onEditing,
     };
   }, [
+    props.onReady,
+    props.onMount,
     props.onTimeChanged,
     props.onTimeChanging,
     props.onTimeAnimating,
@@ -127,35 +126,52 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
       setTime: (...args) => timescopeRef.current?.setTime(...args) ?? false,
       setZoom: (...args) => timescopeRef.current?.setZoom(...args) ?? false,
       fitTo: (...args) => timescopeRef.current?.fitTo(...args) ?? false,
+      prepareView: () => {
+        if (!timescopeRef.current) throw new DOMException('Timescope is not mounted', 'InvalidStateError');
+        return timescopeRef.current.prepareView();
+      },
+      nextFrame: () =>
+        timescopeRef.current?.nextFrame() ??
+        Promise.reject(new DOMException('Timescope is not mounted', 'InvalidStateError')),
     }),
     [],
   );
 
   useEffect(() => {
     const initialProps = initialPropsRef.current;
+    if (
+      initialProps.initialFit !== undefined &&
+      (initialProps.initialTime !== undefined || initialProps.initialZoom !== undefined)
+    ) {
+      throw new TypeError('initialFit cannot be combined with initialTime or initialZoom');
+    }
+    const useFit =
+      initialProps.initialFit !== undefined && initialProps.time === undefined && initialProps.zoom === undefined;
     const instance = new Timescope<Sources, Series, Track>({
+      ...initialProps.options,
       renderThread: initialProps.renderThread,
-      ...(initialProps.fit !== undefined
-        ? { fit: initialProps.fit }
-        : { time: initialProps.time ?? null, zoom: initialProps.zoom ?? 0 }),
+      ...(useFit
+        ? { fit: initialProps.initialFit }
+        : {
+            time: initialProps.time !== undefined ? initialProps.time : (initialProps.initialTime ?? null),
+            zoom: initialProps.zoom ?? initialProps.initialZoom ?? 0,
+          }),
       timeRange: initialProps.timeRange,
       zoomRange: initialProps.zoomRange,
       fonts: initialProps.fonts,
-      sources: props.sources,
-      series: props.series,
-      tracks: props.tracks,
-      domains: props.domains,
       selection:
-        props.selectionRange === undefined || props.selection === false
-          ? props.selection
+        initialProps.selectionRange === undefined || initialProps.options?.selection === false
+          ? initialProps.options?.selection
           : {
-              ...(typeof props.selection === 'object' ? props.selection : {}),
-              range: props.selectionRange,
+              ...(typeof initialProps.options?.selection === 'object' ? initialProps.options.selection : {}),
+              range: initialProps.selectionRange,
             },
     });
 
     timescopeRef.current = instance;
 
+    instance.on('ready', () => callbacksRef.current.onReady?.());
+    instance.on('mount', () => callbacksRef.current.onMount?.());
     instance.on('timechanging', (e) => {
       callbacksRef.current.onTimeChanging?.(e.value);
     });
@@ -191,6 +207,11 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
       }
     });
 
+    if (!useFit) {
+      if (initialProps.time === undefined) callbacksRef.current.onTimeChanged?.(instance.time);
+      if (initialProps.zoom === undefined) callbacksRef.current.onZoomChanged?.(instance.zoom);
+    }
+
     return () => {
       instance.dispose();
       timescopeRef.current = null;
@@ -205,8 +226,7 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
   }, [containerEl]);
 
   useEffect(() => {
-    if (initialPropsRef.current.fit !== undefined && props.time === undefined) return;
-    timescopeRef.current?.setTime(props.time ?? null);
+    if (props.time !== undefined) timescopeRef.current?.setTime(props.time);
   }, [props.time]);
 
   useEffect(() => {
@@ -214,59 +234,25 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
   }, [props.timeRange]);
 
   useEffect(() => {
-    if (initialPropsRef.current.fit !== undefined && props.zoom === undefined) return;
-    timescopeRef.current?.setZoom(props.zoom ?? 0);
+    if (props.zoom !== undefined) timescopeRef.current?.setZoom(props.zoom);
   }, [props.zoom]);
 
   useEffect(() => {
     timescopeRef.current?.setZoomRange(props.zoomRange);
   }, [props.zoomRange]);
 
+  const optionsInitialized = useRef(false);
   useEffect(() => {
-    timescopeRef.current?.updateOptions({
-      style: {
-        width: props.width ?? '100%',
-        height: props.height ?? '36px',
-        background: props.background,
-      },
-    });
-  }, [props.width, props.height, props.background]);
-
-  const dataPropsInitialized = useRef(false);
-  useEffect(() => {
-    if (!dataPropsInitialized.current) {
-      dataPropsInitialized.current = true;
+    if (!optionsInitialized.current) {
+      optionsInitialized.current = true;
       return;
     }
-    const instance = timescopeRef.current;
-    if (instance)
-      instance.setOptions({
-        ...instance.options,
-        sources: props.sources,
-        series: props.series,
-        tracks: props.tracks,
-        domains: props.domains,
-      } as TimescopeOptions<Sources, Series, Track>);
-  }, [props.sources, props.series, props.tracks, props.domains]);
-
-  useEffect(() => {
-    timescopeRef.current?.updateOptions({ cursor: props.cursor ?? true });
-  }, [props.cursor]);
-
-  useEffect(() => {
-    timescopeRef.current?.updateOptions({ selection: props.selection });
-  }, [props.selection]);
+    timescopeRef.current?.setOptions(props.options ?? {});
+  }, [props.options]);
 
   useEffect(() => {
     if (props.selectionRange !== undefined) timescopeRef.current?.setSelectionRange(props.selectionRange);
   }, [props.selectionRange]);
-
-  useEffect(() => {
-    timescopeRef.current?.updateOptions({
-      showFps: props.showFps,
-      renderThread: props.renderThread,
-    });
-  }, [props.showFps, props.renderThread]);
 
   const containerRef = useCallback((element: HTMLDivElement | null) => {
     setContainerEl(element);

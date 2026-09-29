@@ -8,23 +8,20 @@ titleTemplate: Timescope API
 
 ## Options
 
-| Key            | Type                                                 | Behavior                                                       |
-| -------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
-| `style`        | `{ width?, height?, background? }`                   | Sets canvas size and background.                               |
-| `cursor`       | `boolean \| { color?, borderColor? }`                | Shows and styles the time cursor. Default: `true`.             |
-| `showFps`      | `boolean`                                            | Shows the FPS overlay.                                         |
-| `renderThread` | `'worker' \| 'main'`                                 | Selects the drawing thread when mounting. Default: `'worker'`. |
-| `sources`      | `Record<string, TimescopeSourceInput>`               | Defines data sources.                                          |
-| `domains`      | `Record<string, TimescopeDomainOptions>`             | Defines shared value domains.                                  |
-| `series`       | `Record<string, TimescopeSeriesInput>`               | Defines series.                                                |
-| `tracks`       | `Record<string, { height?, symmetric?, timeAxis? }>` | Defines track layout.                                          |
-| `selection`    | `boolean \| { resizable?, color?, invert? }`         | Configures range selection.                                    |
+| Key         | Type                                                 | Behavior                                           |
+| ----------- | ---------------------------------------------------- | -------------------------------------------------- |
+| `style`     | `{ width?, height?, background? }`                   | Sets canvas size and background.                   |
+| `cursor`    | `boolean \| { color?, borderColor? }`                | Shows and styles the time cursor. Default: `true`. |
+| `showFps`   | `boolean`                                            | Shows the FPS overlay.                             |
+| `sources`   | `Record<string, TimescopeSourceInput>`               | Defines data sources.                              |
+| `domains`   | `Record<string, TimescopeDomainOptions>`             | Defines shared value domains.                      |
+| `series`    | `Record<string, TimescopeSeriesInput>`               | Defines series.                                    |
+| `tracks`    | `Record<string, { height?, symmetric?, timeAxis? }>` | Defines track layout.                              |
+| `selection` | `boolean \| { resizable?, color?, invert? }`         | Configures range selection.                        |
 
 The cursor colors default to `color: 'white'` and `borderColor: 'red'`.
 
-## Rendering Thread
-
-`renderThread`: `'worker'` (default) or `'main'`. Applied on mount; changes require remounting. Sources and loaders always run on the main thread.
+`backend` and `renderThread` are constructor-only options; see [Backends](/guide/advanced/backends).
 
 ## Sources
 

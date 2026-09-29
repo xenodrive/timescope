@@ -77,29 +77,29 @@ export function createAudioWaveformDemo(target) {
 
   let playing = false;
   let playbackGeneration = 0;
-  let frameLatch = null;
+  let pendingView = null;
   let animationFrame = null;
 
   function stopPlayback() {
     playing = false;
     playbackGeneration++;
-    frameLatch?.abort();
-    frameLatch = null;
+    pendingView?.abort();
+    pendingView = null;
     if (animationFrame != null) cancelAnimationFrame(animationFrame);
     animationFrame = null;
   }
 
   async function update(generation) {
     if (!playing || generation !== playbackGeneration) return;
-    const latch = timescope.latchFrame();
-    frameLatch = latch;
-    timescope.setPlaybackTime(player.currentTime);
+    const view = timescope.prepareView();
+    pendingView = view;
+    view.setPlaybackTime(player.currentTime);
     try {
-      await latch.commit();
+      await view.fetch();
     } catch {
       // A direct interaction can supersede the pending playback frame.
     } finally {
-      if (frameLatch === latch) frameLatch = null;
+      if (pendingView === view) pendingView = null;
     }
     if (playing && generation === playbackGeneration) {
       animationFrame = requestAnimationFrame(() => {

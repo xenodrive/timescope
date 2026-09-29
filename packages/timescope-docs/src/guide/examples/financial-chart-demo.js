@@ -187,7 +187,7 @@ export function createFinancialChartDemo(target) {
     },
   });
 
-  timescope.on('load', () => timescope.fitTo([now - 365 * DAY, now], { animation: false }));
+  timescope.on('mount', () => timescope.fitTo([now - 365 * DAY, now], { animation: false }));
 
   // #endregion example
   return () => {

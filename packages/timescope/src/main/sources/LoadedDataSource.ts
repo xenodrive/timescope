@@ -4,7 +4,7 @@ import type { TimescopeDataRow, TimescopeDataRowInput } from '#src/main/Timescop
 import { createDataLoader, type TimescopeDataLoader } from '#src/main/TimescopeDataLoader';
 import type { TimescopeSourceOptions, TimescopeDataSourceQuery } from '#src/main/TimescopeDataSource';
 import { TimescopeDataSourceBase } from '#src/main/TimescopeDataSourceBase';
-import { validateQuery } from './query';
+import { validateQuery } from './query.ts';
 
 /** Loader-backed snapshot/index lifecycle, independent of query-result caching. */
 export abstract class LoadedDataSource<Index, Row = TimescopeDataRowInput> extends TimescopeDataSourceBase<Row> {

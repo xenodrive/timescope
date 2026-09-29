@@ -1,8 +1,8 @@
 import { TimescopeStaticSeriesIndex } from '#src/main/reducers/TimescopeStaticSeriesIndex';
 import type { TimescopeDataRow, TimescopeDataRowInput } from '#src/main/TimescopeData';
 import type { TimescopeSourceOptions, TimescopeDataSourceQuery } from '#src/main/TimescopeDataSource';
-import { LoadedDataSource } from './LoadedDataSource';
-import { aggregateQuery } from './query';
+import { LoadedDataSource } from './LoadedDataSource.ts';
+import { aggregateQuery } from './query.ts';
 
 /** Snapshot point percentiles. The static value index is built once per acquisition. */
 export class PointPercentileDataSource<Row = TimescopeDataRowInput> extends LoadedDataSource<

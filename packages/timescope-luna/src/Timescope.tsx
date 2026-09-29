@@ -3,12 +3,7 @@ import { effect, onCleanup } from '@luna_ui/luna';
 import {
   Timescope,
   TimescopeOptions,
-  TimescopeOptionsDomains,
   TimescopeOptionsInitial,
-  TimescopeOptionsSelection,
-  TimescopeOptionsSeries,
-  TimescopeOptionsSources,
-  TimescopeOptionsTracks,
   TimescopeRange,
   TimescopeSeriesInput,
   TimescopeSourceInput,
@@ -21,10 +16,7 @@ type TimescopeProps<
   Series extends Record<string, TimescopeSeriesInput>,
   Track extends string,
 > = {
-  width?: MaybeAccessor<string | undefined>;
-  height?: MaybeAccessor<string | undefined>;
-  background?: MaybeAccessor<string>;
-
+  options?: MaybeAccessor<TimescopeOptions<Sources, Series, Track> | undefined>;
   time?: MaybeAccessor<Decimal | number | null | string | Date | undefined>;
   timeRange?: MaybeAccessor<
     | [Decimal | number | null | string | Date | undefined, Decimal | number | null | string | Date | undefined]
@@ -32,23 +24,20 @@ type TimescopeProps<
   >;
   zoom?: MaybeAccessor<number | undefined>;
   zoomRange?: MaybeAccessor<[number | undefined, number | undefined] | undefined>;
-  fit?: MaybeAccessor<Extract<TimescopeOptionsInitial<Sources, Series, Track>, { fit: unknown }>['fit'] | undefined>;
-
-  sources?: MaybeAccessor<TimescopeOptionsSources<Sources> | undefined>;
-  series?: MaybeAccessor<TimescopeOptionsSeries<Sources, Series, Track> | undefined>;
-  tracks?: MaybeAccessor<TimescopeOptionsTracks<Track> | undefined>;
-  domains?: MaybeAccessor<TimescopeOptionsDomains | undefined>;
-
-  cursor?: MaybeAccessor<TimescopeOptions['cursor']>;
-  selection?: MaybeAccessor<TimescopeOptionsSelection | undefined>;
+  initialTime?: MaybeAccessor<Decimal | number | null | string | Date | undefined>;
+  initialZoom?: MaybeAccessor<number | undefined>;
+  initialFit?: MaybeAccessor<
+    Extract<TimescopeOptionsInitial<Sources, Series, Track>, { fit: unknown }>['fit'] | undefined
+  >;
 
   selectionRange?: MaybeAccessor<TimescopeRange<Decimal> | null | undefined>;
 
-  showFps?: MaybeAccessor<boolean | undefined>;
-  renderThread?: MaybeAccessor<TimescopeOptions['renderThread']>;
+  renderThread?: MaybeAccessor<TimescopeOptionsInitial<Sources, Series, Track>['renderThread']>;
 
   fonts?: MaybeAccessor<TimescopeOptionsInitial<Sources, Series, Track>['fonts'] | undefined>;
 
+  onReady?: () => void;
+  onMount?: () => void;
   onTimeAnimating?: (v: Decimal | null) => void;
   onTimeChanging?: (v: Decimal | null) => void;
   onTimeChanged?: (v: Decimal | null) => void;
@@ -71,27 +60,41 @@ function TimescopeComponent<
   Track extends string,
 >(props_: TimescopeProps<Sources, Series, Track>) {
   const props = props_;
+  const initialOptions = readProp(props.options);
+  const initialTime = readProp(props.time);
+  const initialZoom = readProp(props.zoom);
+  const initialFit = readProp(props.initialFit);
+  const initialSelectionRange = readProp(props.selectionRange);
+  const useFit = initialFit !== undefined && initialTime === undefined && initialZoom === undefined;
+  if (
+    initialFit !== undefined &&
+    (readProp(props.initialTime) !== undefined || readProp(props.initialZoom) !== undefined)
+  ) {
+    throw new TypeError('initialFit cannot be combined with initialTime or initialZoom');
+  }
   const timescope = new Timescope<Sources, Series, Track>({
+    ...initialOptions,
     renderThread: readProp(props.renderThread),
-    ...(readProp(props.fit) !== undefined
-      ? { fit: readProp(props.fit)! }
-      : { time: readProp(props.time) ?? null, zoom: readProp(props.zoom) ?? 0 }),
+    ...(useFit
+      ? { fit: initialFit }
+      : {
+          time: initialTime !== undefined ? initialTime : (readProp(props.initialTime) ?? null),
+          zoom: initialZoom ?? readProp(props.initialZoom) ?? 0,
+        }),
     timeRange: readProp(props.timeRange),
     zoomRange: readProp(props.zoomRange),
     fonts: readProp(props.fonts),
-    sources: readProp(props.sources),
-    series: readProp(props.series),
-    tracks: readProp(props.tracks),
-    domains: readProp(props.domains),
     selection:
-      readProp(props.selectionRange) === undefined || readProp(props.selection) === false
-        ? readProp(props.selection)
+      initialSelectionRange === undefined || initialOptions?.selection === false
+        ? initialOptions?.selection
         : {
-            ...(typeof readProp(props.selection) === 'object' ? (readProp(props.selection) as object) : {}),
-            range: readProp(props.selectionRange),
+            ...(typeof initialOptions?.selection === 'object' ? initialOptions.selection : {}),
+            range: initialSelectionRange,
           },
   });
 
+  timescope.on('ready', () => props.onReady?.());
+  timescope.on('mount', () => props.onMount?.());
   timescope.on('timeanimating', (e) => props.onTimeAnimating?.(e.value));
   timescope.on('timechanging', (e) => props.onTimeChanging?.(e.value));
   timescope.on('timechanged', (e) => props.onTimeChanged?.(e.value));
@@ -100,6 +103,11 @@ function TimescopeComponent<
   timescope.on('zoomchanged', (e) => props.onZoomChanged?.(e.value));
   timescope.on('selectionrangechanging', (e) => props.onSelectionRangeChanging?.(e.value));
   timescope.on('selectionrangechanged', (e) => props.onSelectionRangeChanged?.(e.value));
+
+  if (!useFit) {
+    if (initialTime === undefined) props.onTimeChanged?.(timescope.time);
+    if (initialZoom === undefined) props.onZoomChanged?.(timescope.zoom);
+  }
 
   let animating = false;
   let editing = false;
@@ -113,13 +121,15 @@ function TimescopeComponent<
   });
 
   effect(() => {
-    if (props.time !== undefined) timescope.setTime(readProp(props.time) ?? null);
+    const time = readProp(props.time);
+    if (time !== undefined) timescope.setTime(time);
   });
   effect(() => {
     timescope.setTimeRange(readProp(props.timeRange));
   });
   effect(() => {
-    if (props.zoom !== undefined) timescope.setZoom(readProp(props.zoom) ?? 0);
+    const zoom = readProp(props.zoom);
+    if (zoom !== undefined) timescope.setZoom(zoom);
   });
   effect(() => {
     timescope.setZoomRange(readProp(props.zoomRange));
@@ -127,44 +137,14 @@ function TimescopeComponent<
   effect(() => {
     if (props.selectionRange !== undefined) timescope.setSelectionRange(readProp(props.selectionRange) ?? null);
   });
+  let optionsInitialized = false;
   effect(() => {
-    timescope.updateOptions({
-      style: {
-        width: readProp(props.width) ?? '100%',
-        height: readProp(props.height) ?? '36px',
-        background: readProp(props.background),
-      },
-    });
-  });
-  let dataPropsInitialized = false;
-  effect(() => {
-    const sources = readProp(props.sources);
-    const series = readProp(props.series);
-    const tracks = readProp(props.tracks);
-    const domains = readProp(props.domains);
-    if (!dataPropsInitialized) {
-      dataPropsInitialized = true;
+    const options = readProp(props.options);
+    if (!optionsInitialized) {
+      optionsInitialized = true;
       return;
     }
-    timescope.setOptions({
-      ...timescope.options,
-      sources,
-      series,
-      tracks,
-      domains,
-    } as TimescopeOptions<Sources, Series, Track>);
-  });
-  effect(() => {
-    timescope.updateOptions({ cursor: readProp(props.cursor) ?? true });
-  });
-  effect(() => {
-    if (props.selection !== undefined) timescope.updateOptions({ selection: readProp(props.selection) });
-  });
-  effect(() => {
-    timescope.updateOptions({
-      showFps: readProp(props.showFps),
-      renderThread: readProp(props.renderThread),
-    });
+    timescope.setOptions(options ?? {});
   });
 
   onCleanup(() => {

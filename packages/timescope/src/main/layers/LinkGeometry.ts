@@ -182,8 +182,11 @@ function roleCoordinate(role: LinkGeometryRole) {
 class PathCommandWriter {
   #values = new Float64Array(0);
   #length = 0;
+  private readonly initialCapacity: number;
 
-  constructor(private readonly initialCapacity: number) {}
+  constructor(initialCapacity: number) {
+    this.initialCapacity = initialCapacity;
+  }
 
   #ensure(size: number) {
     const required = this.#length + size;

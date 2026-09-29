@@ -1,12 +1,14 @@
 import type { TimescopeRange } from '#src/core/range';
 import type { TimeLike } from '#src/core/time';
 import type { TimescopeStateOptions } from '#src/core/TimescopeState';
+import type { TimescopeBackendChoice, TimescopeBackendTarget, TimescopeRenderThread } from '#src/main/backend';
 import type { TimescopeOptionsSelection } from '#src/main/chart';
 import type { TimescopeFont } from '#src/main/font';
 import type { TimescopeTimeAxisOptions } from '#src/main/layers/TimescopeTimeAxis';
 import type { TimescopeOptionsSeries, TimescopeSeriesInput } from '#src/main/TimescopeDataSeries';
 import type { TimescopeOptionsSources, TimescopeSourceInput } from '#src/main/TimescopeDataSource';
 import type { TimescopeDomainOptions } from '#src/main/TimescopeDomain';
+import type { TimescopeEnvironment } from '#src/main/TimescopeRenderer';
 
 type TimescopeStyle = { width?: string; height?: string; background?: string };
 
@@ -27,8 +29,6 @@ export type TimescopeOptions<
   Track extends string = string,
 > = {
   style?: TimescopeStyle;
-  /** Thread used by the render engine. Selected on mount; defaults to 'worker'. */
-  renderThread?: 'worker' | 'main';
   showFps?: boolean;
   cursor?: boolean | { color?: string; borderColor?: string };
   sources?: TimescopeOptionsSources<Sources>;
@@ -45,7 +45,10 @@ export type TimescopeOptionsInitial<
 > = Omit<TimescopeOptions<Sources, Series, Track>, 'selection'> & {
   selection?: SelectionInitial;
 } & Omit<TimescopeStateOptions, 'time' | 'zoom'> & {
-    target?: HTMLElement | string;
+    target?: TimescopeBackendTarget;
+    backend?: TimescopeBackendChoice | readonly TimescopeBackendChoice[];
+    renderThread?: TimescopeRenderThread;
+    environment?: TimescopeEnvironment;
     fonts?: (string | TimescopeFont)[];
     wheelSensitivity?: number;
   } & (
@@ -80,38 +83,7 @@ export function createDefineTimescopeOptions(wrapper?: (opts: object) => object)
   };
 }
 
-export function createDefineTimescopeSources(wrapper?: (opts: object) => object) {
-  return function <const Sources extends Record<string, TimescopeSourceInput>>(opts: TimescopeOptionsSources<Sources>) {
-    return (wrapper ? wrapper(opts) : opts) as typeof opts;
-  };
-}
-
-export function createDefineTimescopeTracks(wrapper?: (opts: object) => object) {
-  return function <const Track extends string>(opts: TimescopeOptionsTracks<Track>) {
-    return (wrapper ? wrapper(opts) : opts) as typeof opts;
-  };
-}
-
-export function createDefineTimescopeSeries(wrapper?: (opts: object) => object) {
-  return function <
-    const Sources extends Record<string, TimescopeSourceInput>,
-    const Series extends Record<string, TimescopeSeriesInput>,
-    const Track extends string = 'default',
-  >(
-    opts: TimescopeOptionsSeries<Sources, Series, Track>,
-    // oxlint-disable-next-line no-unused-vars
-    sources?: TimescopeOptionsSources<Sources>,
-    // oxlint-disable-next-line no-unused-vars
-    tracks?: TimescopeOptionsTracks<Track>,
-  ) {
-    return (wrapper ? wrapper(opts) : opts) as typeof opts;
-  };
-}
-
 export const defineTimescopeOptions = createDefineTimescopeOptions();
-export const defineTimescopeSources = createDefineTimescopeSources();
-export const defineTimescopeTracks = createDefineTimescopeTracks();
-export const defineTimescopeSeries = createDefineTimescopeSeries();
 
 export type { NumberLike as TimescopeNumberLike } from '#src/core/decimal';
 export type { TimeLike as TimescopeTimeLike } from '#src/core/time';

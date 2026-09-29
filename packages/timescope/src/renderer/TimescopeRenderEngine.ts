@@ -29,6 +29,7 @@ import { TimescopeViewport } from '#src/renderer/TimescopeViewport';
 import type {
   Interaction,
   TimescopeRenderEngineOptions,
+  TimescopePath2DConstructor,
   TimescopeRenderingContext,
   TimescopeYProjectionWire,
 } from '#src/renderer/types';
@@ -50,6 +51,7 @@ export type TimescopeRenderEngineEnvironment = {
   fonts?: FontFaceSet;
   requestAnimationFrame?: (callback: () => void) => number | void;
   cancelAnimationFrame?: (handle: number) => void;
+  Path2D?: TimescopePath2DConstructor;
   layers?: TimescopeLayer[];
 };
 
@@ -72,9 +74,29 @@ export class TimescopeRenderEngine {
     const ownedFonts = new Set<FontFace>();
     const loadedFonts = new Set<string>();
     const fontAbort = new AbortController();
-    const schedule = environment.requestAnimationFrame ?? globalThis.requestAnimationFrame.bind(globalThis);
+    const fallbackFrames = new Map<number, ReturnType<typeof setTimeout>>();
+    let nextFallbackFrame = 0;
+    const schedule =
+      environment.requestAnimationFrame ??
+      globalThis.requestAnimationFrame?.bind(globalThis) ??
+      ((callback: () => void) => {
+        const id = ++nextFallbackFrame;
+        fallbackFrames.set(
+          id,
+          setTimeout(() => {
+            fallbackFrames.delete(id);
+            callback();
+          }, 0),
+        );
+        return id;
+      });
     const cancelFrame =
-      environment.cancelAnimationFrame ?? ((handle: number) => globalThis.cancelAnimationFrame?.(handle));
+      environment.cancelAnimationFrame ??
+      ((handle: number) => {
+        if (globalThis.cancelAnimationFrame) globalThis.cancelAnimationFrame(handle);
+        else clearTimeout(fallbackFrames.get(handle));
+        fallbackFrames.delete(handle);
+      });
     function requestAnimationFrame(callback: () => void) {
       if (disposed) return;
       const handle = schedule(() => {
@@ -100,6 +122,7 @@ export class TimescopeRenderEngine {
     let frameLatchToken = 0;
     let abortFramePreparation: ((reason: DOMException) => void) | undefined;
     let renderPending = false;
+    const redrawWaiters = new Set<{ resolve: () => void; reject: (error: unknown) => void }>();
     const deferredSyncs: TimescopeSyncMessage[] = [];
     const deferredDataChanges = new Set<string>();
     let deferredOptions: TimescopeRenderEngineOptions | undefined;
@@ -161,6 +184,7 @@ export class TimescopeRenderEngine {
 
     const renderingContext = {
       ctx: null!,
+      Path2D: environment.Path2D ?? globalThis.Path2D,
 
       options: {},
       tracks: [],
@@ -716,7 +740,13 @@ export class TimescopeRenderEngine {
       },
 
       redraw: () => {
+        if (frameLatched || readyFrame.target) {
+          return Promise.reject(new DOMException('A frame latch is active', 'InvalidStateError'));
+        }
+        if (disposed) return Promise.reject(new DOMException('Render engine disposed', 'AbortError'));
+        const result = new Promise<void>((resolve, reject) => redrawWaiters.add({ resolve, reject }));
         render();
+        return result;
       },
 
       'data:changed'(key) {
@@ -734,6 +764,8 @@ export class TimescopeRenderEngine {
     this.dispose = () => {
       if (disposed) return;
       disposed = true;
+      for (const waiter of redrawWaiters) waiter.reject(new DOMException('Render engine disposed', 'AbortError'));
+      redrawWaiters.clear();
       frameLatchToken++;
       abortFramePreparation?.(new DOMException('Render engine disposed', 'AbortError'));
       abortFramePreparation = undefined;
@@ -856,26 +888,42 @@ export class TimescopeRenderEngine {
 
     const update = () => {
       dirty = false;
-      if (renderPending) {
-        renderPending = false;
-        try {
+      let error: unknown;
+      let rendered = false;
+      try {
+        if (renderPending) {
+          renderPending = false;
+          try {
+            renderSync(renderingContext);
+            rendered = true;
+          } finally {
+            finishPendingRender();
+            applyDeferredFrameChanges();
+          }
+        } else if (!frameLatched && !readyFrame.target) {
+          timeAxis.presentAt(timeAxis.configuredPlaybackTime ?? Decimal(Date.now() / 1000));
+          if (renderRequired()) render();
+          updateCaches(renderingContext);
           renderSync(renderingContext);
-        } catch (error) {
-          console.error('Failed to render frame:', error);
-        } finally {
-          finishPendingRender();
-          applyDeferredFrameChanges();
+          rendered = true;
         }
-      } else if (!frameLatched) {
-        timeAxis.presentAt(timeAxis.configuredPlaybackTime ?? Decimal(Date.now() / 1000));
-        if (renderRequired()) render();
-        updateCaches(renderingContext);
-        renderSync(renderingContext);
+
+        if (renderingContext.options.showFps) showFps();
+
+        if (liveViewChangeRequired()) viewChanged();
+      } catch (cause) {
+        error = cause;
+        if (!redrawWaiters.size) console.error('Failed to render frame:', cause);
+      } finally {
+        if (rendered || error) {
+          const waiters = [...redrawWaiters];
+          redrawWaiters.clear();
+          for (const waiter of waiters) {
+            if (error) waiter.reject(error);
+            else waiter.resolve();
+          }
+        }
       }
-
-      if (renderingContext.options.showFps) showFps();
-
-      if (liveViewChangeRequired()) viewChanged();
     };
   }
 }

@@ -1,4 +1,3 @@
-
 export type TextStyleOptions = {
   color?: string;
   fontWeight?: string;

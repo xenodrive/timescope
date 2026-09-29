@@ -26,7 +26,11 @@ import { createDataSeries, type TimescopeDataSeries } from '#src/main/TimescopeD
 import { createDataSource, type TimescopeDataSource } from '#src/main/TimescopeDataSource';
 import { TimescopeDomain } from '#src/main/TimescopeDomain';
 import { TimescopeViewRegistry } from '#src/main/TimescopeView';
-import type { TimescopeDataCacheOptionsWire, TimescopeRenderEngineOptions } from '#src/renderer/types';
+import type {
+  TimescopeDataCacheOptionsWire,
+  TimescopePath2DConstructor,
+  TimescopeRenderEngineOptions,
+} from '#src/renderer/types';
 import { Decimal } from '@kikuchan/decimal';
 
 // Each renderer holds one reference per distinct Source, regardless of aliases.
@@ -58,8 +62,23 @@ const defaultRendererOptions: TimescopeOptions = {
 };
 
 export type TimescopeRendererOptions = {
-  canvas: HTMLCanvasElement;
+  canvas: TimescopeCanvas;
   fonts?: (string | TimescopeFont)[];
+  environment?: TimescopeEnvironment | Promise<TimescopeEnvironment>;
+};
+
+/** A 2D canvas supplied by the host environment, including Node canvas implementations. */
+export type TimescopeCanvas = {
+  width: number;
+  height: number;
+  getContext(type: '2d'): unknown;
+};
+
+export type TimescopeEnvironment = {
+  requestAnimationFrame?: (callback: () => void) => number | void;
+  cancelAnimationFrame?: (handle: number) => void;
+  Path2D?: TimescopePath2DConstructor;
+  fonts?: FontFaceSet;
 };
 
 type LayerDataMapping = [string, TimescopeLayerDataClass, object, TimescopeDataCacheOptionsWire];
@@ -489,11 +508,11 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
   }
 
   resize(size: Parameters<RenderEngineCommands['resize']>[0]) {
-    this.call('resize', size);
+    return this.call('resize', size);
   }
 
-  redraw() {
-    this.call('redraw', undefined);
+  redraw(): Promise<void> {
+    return this.call('redraw', undefined);
   }
 
   onPointerEvent(info: InteractionInfo) {
@@ -658,7 +677,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
       this.#sources[source]?.invalidate();
     }
 
-    this.call('reload', undefined);
+    return this.call('reload', undefined);
   }
 }
 

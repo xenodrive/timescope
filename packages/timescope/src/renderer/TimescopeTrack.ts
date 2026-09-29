@@ -2,7 +2,7 @@ import { TimescopeAnimatedValue } from '#src/core/animation';
 import { TimescopeObservable } from '#src/core/event';
 import type { TimescopeYAxisData, TimescopeYProjectionWire } from '#src/renderer/types';
 import { asProjectionData, compareYProjection } from '#src/renderer/yProjection';
-import type { TimescopeRenderingContext } from './types';
+import type { TimescopeRenderingContext } from './types.ts';
 
 type ProjectionState = {
   projection: TimescopeYProjectionWire;

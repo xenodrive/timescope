@@ -5,7 +5,7 @@ import { disperse } from '#src/renderer/layers/disperse';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
 import { forEachTrack } from '#src/renderer/rendering';
 import type { TimescopeRenderingContext, TimescopeSeriesTooltipData } from '#src/renderer/types';
-import type { TimescopeDataCache } from '../TimescopeDataCache';
+import type { TimescopeDataCache } from '../TimescopeDataCache.ts';
 
 export function tooltipXPlacement(x: number, left: number, right: number, sideX: number) {
   if (x < left) return { x: left, sideX: 1, sticky: true };

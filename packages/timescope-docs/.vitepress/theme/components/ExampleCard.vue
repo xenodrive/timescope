@@ -101,7 +101,7 @@ async function copy() {
         <span class="example-tag">{{ tag }}</span>
         <h2>{{ title }}</h2>
       </div>
-      <a v-if="preset" class="example-code-button" :href="withBase(`/guide/playground?preset=${preset}`)"
+      <a v-if="preset" class="example-code-button" :href="withBase(`/guide/examples/playground?preset=${preset}`)"
         >→ Playground</a
       >
       <button v-else class="example-code-button" :aria-label="`View code for ${title}`" @click="$emit('open')">

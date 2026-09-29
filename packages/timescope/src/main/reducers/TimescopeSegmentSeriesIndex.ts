@@ -1,7 +1,12 @@
 import type { TimescopeChunk } from '#src/core/chunk';
 import { Decimal } from '#src/core/decimal';
 import type { TimescopeDataRow } from '#src/main/TimescopeData';
-import { addValue, mergeAggregate, publicAggregate, type MutableValueAggregate } from './TimescopeAggregateSeriesIndex';
+import {
+  addValue,
+  mergeAggregate,
+  publicAggregate,
+  type MutableValueAggregate,
+} from './TimescopeAggregateSeriesIndex.ts';
 
 type Aggregate = Map<string, MutableValueAggregate>;
 function combine(left?: Aggregate, right?: Aggregate): Aggregate | undefined {

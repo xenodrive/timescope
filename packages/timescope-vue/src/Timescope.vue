@@ -13,12 +13,7 @@
 import type { Decimal } from '@kikuchan/decimal';
 import type {
   TimescopeOptions,
-  TimescopeOptionsDomains,
   TimescopeOptionsInitial,
-  TimescopeOptionsSelection,
-  TimescopeOptionsSeries,
-  TimescopeOptionsSources,
-  TimescopeOptionsTracks,
   TimescopeRange,
   TimescopeSeriesInput,
   TimescopeSourceInput,
@@ -27,6 +22,8 @@ import { Timescope } from 'timescope';
 import { customRef, markRaw, onBeforeUnmount, toRaw, useTemplateRef, watch } from 'vue';
 
 const emit = defineEmits<{
+  ready: [];
+  mount: [];
   timechanged: [Decimal | null];
   timechanging: [Decimal | null];
   timeanimating: [Decimal | null];
@@ -48,43 +45,25 @@ const emit = defineEmits<{
   'update:selectionRangeChanging': [[Decimal, Decimal] | null];
 }>();
 
-const props = withDefaults(
-  defineProps<{
-    width?: string;
-    height?: string;
-    background?: string;
+const props = defineProps<{
+  options?: TimescopeOptions<Sources, Series, Track>;
+  time?: Decimal | number | null | string | Date;
+  timeRange?: [
+    Decimal | number | null | string | Date | undefined,
+    Decimal | number | null | string | Date | undefined,
+  ];
+  zoom?: number;
+  zoomRange?: [number | undefined, number | undefined];
+  initialTime?: Decimal | number | null | string | Date;
+  initialZoom?: number;
+  initialFit?: Extract<TimescopeOptionsInitial<Sources, Series, Track>, { fit: unknown }>['fit'];
 
-    time?: Decimal | number | null | string | Date;
-    timeRange?: [
-      Decimal | number | null | string | Date | undefined,
-      Decimal | number | null | string | Date | undefined,
-    ];
-    zoom?: number;
-    zoomRange?: [number | undefined, number | undefined];
-    fit?: Extract<TimescopeOptionsInitial<Sources, Series, Track>, { fit: unknown }>['fit'];
+  selectionRange?: TimescopeRange<Decimal> | null;
 
-    sources?: TimescopeOptionsSources<Sources>;
-    series?: TimescopeOptionsSeries<Sources, Series, Track>;
-    tracks?: TimescopeOptionsTracks<Track>;
-    domains?: TimescopeOptionsDomains;
+  renderThread?: TimescopeOptionsInitial<Sources, Series, Track>['renderThread'];
 
-    cursor?: TimescopeOptions['cursor'];
-    selection?: TimescopeOptionsSelection;
-
-    selectionRange?: TimescopeRange<Decimal> | null;
-
-    showFps?: boolean;
-    renderThread?: TimescopeOptions['renderThread'];
-
-    fonts?: TimescopeOptionsInitial<Sources, Series, Track>['fonts'];
-  }>(),
-  {
-    width: '100%',
-    height: '36px',
-    cursor: true,
-    selection: undefined,
-  },
-);
+  fonts?: TimescopeOptionsInitial<Sources, Series, Track>['fonts'];
+}>();
 
 type Combination =
   | ['timechanged', 'time']
@@ -111,27 +90,42 @@ function createTimescopeRef<T extends Combination>(...args: T) {
   });
 }
 
+function rawOptions(options?: TimescopeOptions<Sources, Series, Track>) {
+  if (!options) return {};
+  return {
+    ...toRaw(options),
+    sources:
+      options.sources &&
+      (Object.fromEntries(
+        Object.entries(options.sources).map(([key, source]) => [key, toRaw(source)]),
+      ) as typeof options.sources),
+  };
+}
+
+const useFit = props.initialFit !== undefined && props.time === undefined && props.zoom === undefined;
+if (props.initialFit !== undefined && (props.initialTime !== undefined || props.initialZoom !== undefined)) {
+  throw new TypeError('initialFit cannot be combined with initialTime or initialZoom');
+}
+
 const timescope = markRaw(
   new Timescope<Sources, Series, Track>({
+    ...rawOptions(props.options),
     renderThread: props.renderThread,
-    ...(props.fit !== undefined ? { fit: props.fit } : { time: props.time ?? null, zoom: props.zoom ?? 0 }),
+    ...(useFit
+      ? { fit: props.initialFit }
+      : {
+          time: props.time !== undefined ? props.time : (props.initialTime ?? null),
+          zoom: props.zoom ?? props.initialZoom ?? 0,
+        }),
     timeRange: props.timeRange,
     zoomRange: props.zoomRange,
 
     fonts: props.fonts,
-    sources:
-      props.sources &&
-      (Object.fromEntries(
-        Object.entries(props.sources).map(([key, source]) => [key, toRaw(source)]),
-      ) as typeof props.sources),
-    series: props.series,
-    tracks: props.tracks,
-    domains: props.domains,
     selection:
-      props.selectionRange === undefined || props.selection === false
-        ? props.selection
+      props.selectionRange === undefined || props.options?.selection === false
+        ? props.options?.selection
         : {
-            ...(typeof props.selection === 'object' ? props.selection : {}),
+            ...(typeof props.options?.selection === 'object' ? props.options.selection : {}),
             range: props.selectionRange,
           },
   }),
@@ -153,8 +147,12 @@ defineExpose({
   setTime: timescope.setTime.bind(timescope),
   setZoom: timescope.setZoom.bind(timescope),
   fitTo: timescope.fitTo.bind(timescope),
+  prepareView: timescope.prepareView.bind(timescope),
+  nextFrame: timescope.nextFrame.bind(timescope),
 });
 
+timescope.on('ready', () => emit('ready'));
+timescope.on('mount', () => emit('mount'));
 timescope.on('timechanging', (e) => emit('timechanging', e.value));
 timescope.on('timechanged', (e) => emit('timechanged', e.value));
 timescope.on('timeanimating', (e) => emit('timeanimating', e.value));
@@ -186,12 +184,12 @@ timescope.on('zoomanimating', (e) => emit('update:zoomanimating', e.value));
 timescope.on('selectionrangechanging', (e) => emit('update:selectionRangeChanging', e.value));
 timescope.on('selectionrangechanged', (e) => emit('update:selectionRange', e.value));
 
-if (props.time === undefined) {
+if (props.time === undefined && !useFit) {
   emit('update:time', timescope.time);
   emit('update:timechanging', timescope.time);
   emit('update:timeanimating', timescope.time);
 }
-if (props.zoom === undefined) {
+if (props.zoom === undefined && !useFit) {
   emit('update:zoom', timescope.zoom);
   emit('update:zoomchanging', timescope.zoom);
   emit('update:zoomanimating', timescope.zoom);
@@ -203,7 +201,9 @@ if (props.selectionRange === undefined) {
 
 watch(
   () => props.time,
-  () => timescope?.setTime(props.time ?? null),
+  (value) => {
+    if (value !== undefined) timescope.setTime(value);
+  },
 );
 watch(
   () => props.timeRange,
@@ -211,7 +211,9 @@ watch(
 );
 watch(
   () => props.zoom,
-  () => timescope?.setZoom(props.zoom ?? 0),
+  (value) => {
+    if (value !== undefined) timescope.setZoom(value);
+  },
 );
 watch(
   () => props.zoomRange,
@@ -219,43 +221,9 @@ watch(
 );
 
 watch(
-  () => [props.width, props.height, props.background],
-  () =>
-    timescope.updateOptions({
-      style: { width: props.width, height: props.height, background: props.background },
-    }),
-  { immediate: true },
-);
-
-watch(
-  () => [props.sources, props.series, props.tracks, props.domains],
-  () => {
-    const sources =
-      props.sources &&
-      (Object.fromEntries(
-        Object.entries(props.sources).map(([key, source]) => [key, toRaw(source)]),
-      ) as typeof props.sources);
-    timescope.setOptions({
-      ...timescope.options,
-      sources,
-      series: props.series,
-      tracks: props.tracks,
-      domains: props.domains,
-    } as TimescopeOptions<Sources, Series, Track>);
-  },
+  () => props.options,
+  (value) => timescope.setOptions(rawOptions(value)),
   { deep: true },
-);
-
-watch(
-  () => props.cursor,
-  () => timescope.updateOptions({ cursor: props.cursor }),
-  { immediate: true, deep: true },
-);
-
-watch(
-  () => props.selection,
-  () => timescope.updateOptions({ selection: props.selection }),
-  { immediate: true, deep: true },
 );
 watch(
   () => props.selectionRange,
@@ -263,12 +231,6 @@ watch(
     if (props.selectionRange !== undefined) timescope.setSelectionRange(props.selectionRange);
   },
   { immediate: true, deep: true },
-);
-
-watch(
-  () => [props.showFps, props.renderThread],
-  () => timescope.updateOptions({ showFps: props.showFps, renderThread: props.renderThread }),
-  { immediate: true },
 );
 
 const el = useTemplateRef('container-ref');

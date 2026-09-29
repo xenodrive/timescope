@@ -1,8 +1,12 @@
 <script lang="ts">
-  import { Timescope } from '@timescope/svelte';
+  import { Timescope, type Decimal } from '@timescope/svelte';
+
+  const options = { style: { height: '80px' }, showFps: false };
+  let time = $state<Decimal | null | undefined>(undefined);
+  let zoom = $state<number | undefined>(undefined);
 
   type IsAny<T> = 0 extends 1 & T ? true : false;
   const componentIsTyped: IsAny<typeof Timescope> = false;
 </script>
 
-<Timescope zoom={0} renderThread="main" />
+<Timescope {options} bind:time bind:zoom initialFit={[0, 30]} renderThread="main" />

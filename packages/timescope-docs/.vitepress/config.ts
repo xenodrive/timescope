@@ -52,7 +52,7 @@ export default defineConfig({
         link: '/guide/getting-started',
       },
       { text: 'Examples', link: '/guide/examples/' },
-      { text: 'Playground', link: '/guide/playground' },
+      { text: 'Advanced', link: '/guide/advanced/' },
       { text: 'API', link: '/api/timescope' },
     ],
     socialLinks: [{ icon: 'github', link: 'https://github.com/xenodrive/timescope' }],
@@ -63,13 +63,35 @@ export default defineConfig({
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Core Concepts', link: '/guide/concepts' },
-            { text: 'Playground', link: '/guide/playground' },
           ],
         },
         {
           text: 'Examples',
           link: '/guide/examples/',
-          items: examples.map(({ name, title }) => ({ text: title, link: `/guide/examples/#${name}` })),
+          items: [
+            ...examples.map(({ name, title }) => ({ text: title, link: `/guide/examples/#${name}` })),
+            { text: 'Playground', link: '/guide/examples/playground' },
+          ],
+        },
+        {
+          text: 'Advanced',
+          link: '/guide/advanced/',
+          items: [
+            {
+              text: 'Framework Bindings',
+              link: '/guide/advanced/frameworks',
+              items: [
+                { text: 'Vue', link: '/guide/advanced/frameworks/vue' },
+                { text: 'React', link: '/guide/advanced/frameworks/react' },
+                { text: 'Svelte', link: '/guide/advanced/frameworks/svelte' },
+                { text: 'Solid', link: '/guide/advanced/frameworks/solid' },
+                { text: 'Luna', link: '/guide/advanced/frameworks/luna' },
+              ],
+            },
+            { text: 'Loading and Updating Data', link: '/guide/advanced/data' },
+            { text: 'Controlling Views', link: '/guide/advanced/views' },
+            { text: 'Backends', link: '/guide/advanced/backends' },
+          ],
         },
         {
           text: 'API Reference',

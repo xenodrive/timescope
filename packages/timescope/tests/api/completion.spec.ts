@@ -14,53 +14,18 @@ const completionFilePath = fileURLToPath(new URL('../fixtures/completion.ts', im
 const completionCases: CompletionCase[] = [
   {
     marker: 'COMPLETION_TEST_1',
-    include: ['value', '#zero', '#top', '#bottom', '@time', 'value@time'],
-    exclude: ['value#avg', 'value#min'],
+    include: ['price', '@time', 'price@time'],
+    exclude: ['amount'],
   },
   {
     marker: 'COMPLETION_TEST_2',
-    include: ['foobar', '@maxtime', '#zero', '#top', '#bottom', 'foobar@maxtime'],
-    exclude: ['foobar#avg', 'foobar#min', 'value', '@time', 'value@time'],
+    include: ['amount', '@time', 'amount@time'],
+    exclude: ['price'],
   },
   {
     marker: 'COMPLETION_TEST_3',
-    include: ['price', '@timestamp', 'price@timestamp'],
-    exclude: ['price#avg', 'price#min', 'amount', '@date', 'value', '@time'],
-  },
-  {
-    marker: 'COMPLETION_TEST_4',
-    include: ['amount', '@date', 'amount@date'],
-    exclude: ['amount#avg', 'amount#min', 'price', '@timestamp', 'value', '@time'],
-  },
-  {
-    marker: 'COMPLETION_TEST_5',
-    include: ['value', 'value#avg', 'value#min', '#zero', '#top', '#bottom', '@time', 'value@time'],
-    exclude: [],
-  },
-  {
-    marker: 'COMPLETION_TEST_6',
-    include: ['value', 'value#min', 'value#p95', '@time', 'value#min@time'],
-    exclude: ['metric#raw', '@timestamp'],
-  },
-  {
-    marker: 'COMPLETION_TEST_7',
-    include: ['metric#raw', 'metric#raw#min', '@timestamp', 'metric#raw#min@timestamp'],
-    exclude: ['value', '@time'],
-  },
-  {
-    marker: 'COMPLETION_TEST_8',
-    include: ['load', '@recorded', 'load@recorded'],
-    exclude: ['value', '@time', 'load#min'],
-  },
-  {
-    marker: 'COMPLETION_TEST_9',
-    include: ['reading', '@sample', 'reading@sample'],
-    exclude: ['reading#avg', 'value', '@time'],
-  },
-  {
-    marker: 'COMPLETION_TEST_10',
-    include: ['signal', '@stamp', 'signal@stamp'],
-    exclude: ['signal#avg', 'value', '@time'],
+    include: ['value', '@time', 'value@time'],
+    exclude: ['price', 'amount'],
   },
 ];
 

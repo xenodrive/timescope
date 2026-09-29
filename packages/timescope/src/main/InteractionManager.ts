@@ -17,7 +17,7 @@ type InteractionOptions = {
   transform?: (p: Vector2f, e: PointerEvent) => Vector2f;
   handler?: InteractionEventHandler;
   cursor?: InteractionCursorHandler;
-  element?: HTMLElement;
+  element?: HTMLElement | SVGSVGElement;
 };
 
 /** @internal */
@@ -26,7 +26,7 @@ export class InteractionManager {
   #record: Record<number, InteractionPointerInfo> = {};
   #pointers: InteractionPointerInfo[] = [];
 
-  #element?: HTMLElement;
+  #element?: HTMLElement | SVGSVGElement;
 
   #transform: (p: Vector2f, e: PointerEvent) => Vector2f;
 
@@ -172,12 +172,12 @@ export class InteractionManager {
 
   #abortController?: AbortController;
 
-  attach(el: HTMLElement) {
+  attach(el: HTMLElement | SVGSVGElement) {
     this.#abortController?.abort();
     this.#abortController = new AbortController();
     const signal = this.#abortController.signal;
 
-    const feed = (e: PointerEvent) => this.#feed(e);
+    const feed = (e: Event) => this.#feed(e as PointerEvent);
     el.addEventListener('pointerdown', feed, { signal });
     window.addEventListener('pointermove', feed, { passive: true, signal });
     window.addEventListener('pointerup', feed, { passive: true, signal });

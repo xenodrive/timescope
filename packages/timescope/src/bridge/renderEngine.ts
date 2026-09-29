@@ -53,6 +53,7 @@ export function connectWorkerRenderer(port: WorkerMessagePort, callbacks: Render
     return Promise.all([initialized, result]).then(() => {});
   };
   return {
+    ready: initialized.then(() => {}),
     call,
     notify,
     dispose() {

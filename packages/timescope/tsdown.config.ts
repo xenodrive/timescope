@@ -15,6 +15,7 @@ const configBase = defineConfig({
   cwd: root,
   plugins: [RolldownInlineWorkerPlugin()],
   sourcemap: profileBuild,
+  deps: { neverBundle: ['skia-canvas'] },
 });
 
 export default defineConfig([
@@ -34,6 +35,8 @@ export default defineConfig([
         exports: {
           '.': {
             types: './index.d.ts',
+            browser: './index.browser.js',
+            node: './index.node.js',
             import: './index.js',
             require: './index.js',
           },
@@ -41,6 +44,24 @@ export default defineConfig([
         },
       });
     },
+  },
+  {
+    ...configBase,
+    entry: path.join(root, 'src/index.node.ts'),
+    format: ['esm'],
+    fixedExtension: false,
+    dts: false,
+    clean: false,
+    outputOptions: { dir: outDir },
+  },
+  {
+    ...configBase,
+    entry: path.join(root, 'src/index.browser.ts'),
+    format: ['esm'],
+    fixedExtension: false,
+    dts: false,
+    clean: false,
+    outputOptions: { dir: outDir },
   },
   {
     ...configBase,

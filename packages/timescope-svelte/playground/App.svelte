@@ -1,15 +1,17 @@
 <script lang="ts">
   import { Timescope } from '@timescope/svelte';
   import type { Decimal } from '@timescope/svelte';
-  import type { TimescopeRange } from 'timescope';
+  import type { TimescopeRange } from '@timescope/svelte';
 
   let time: Decimal | null = null;
   let timeChanging: Decimal | null = null;
   let timeAnimating: Decimal | null = null;
   let selectionRangeChanging: TimescopeRange<Decimal> | null = null;
+  const options = { style: { height: '80px' } };
 </script>
 
 <Timescope
+  {options}
   bind:time
   on:timechanging={(e) => (timeChanging = e.detail)}
   on:timeanimating={(e) => (timeAnimating = e.detail)}
