@@ -4,289 +4,330 @@ titleTemplate: Timescope API
 
 # Timescope Options
 
-`TimescopeOptions` is accepted by `setOptions()`. `updateOptions()` accepts partial options and supports deleting named entries with `null`. The constructor accepts `TimescopeOptionsInitial`, which includes the same configurable options and the initial-only fields listed in [Timescope](/api/timescope#options-constructor-only). Configurable options have the same effect in the constructor and `setOptions()`.
+| Type / helper                     | Accepted by / result                                                             |
+| --------------------------------- | -------------------------------------------------------------------------------- |
+| `TimescopeOptions`                | `setOptions()` and framework `options` props                                     |
+| `TimescopeOptionsInitial`         | Constructor; adds [initial-only fields](/api/timescope#options-constructor-only) |
+| `TimescopeUpdateOptions`          | `updateOptions()`; partial settings, `null` to delete named entries              |
+| `defineTimescopeOptions(options)` | Typed options with inferred source, series, and track names                      |
 
 ## Options
 
-| Key         | Type                                                 | Behavior                                           |
-| ----------- | ---------------------------------------------------- | -------------------------------------------------- |
-| `style`     | `{ width?, height?, background? }`                   | Sets canvas size and background.                   |
-| `cursor`    | `boolean \| { color?, borderColor? }`                | Shows and styles the time cursor. Default: `true`. |
-| `showFps`   | `boolean`                                            | Shows the FPS overlay.                             |
-| `sources`   | `Record<string, TimescopeSourceInput>`               | Defines data sources.                              |
-| `domains`   | `Record<string, TimescopeDomainOptions>`             | Defines shared value domains.                      |
-| `series`    | `Record<string, TimescopeSeriesInput>`               | Defines series.                                    |
-| `tracks`    | `Record<string, { height?, symmetric?, timeAxis? }>` | Defines track layout.                              |
-| `selection` | `boolean \| { resizable?, color?, invert? }`         | Configures range selection.                        |
-
-The cursor colors default to `color: 'white'` and `borderColor: 'red'`.
-
-`backend` and `renderThread` are constructor-only options; see [Backends](/guide/advanced/backends).
+| Key         | Type                                                       | Default / contract                                                     |
+| ----------- | ---------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `style`     | `{ width?: string, height?: string, background?: string }` | CSS dimensions and background; browser defaults `100%`, `36px`, `#fff` |
+| `cursor`    | `boolean \| { color?: string, borderColor?: string }`      | `true`; colors `white` / `red`                                         |
+| `showFps`   | `boolean`                                                  | `false`                                                                |
+| `sources`   | `Record<string, TimescopeSourceInput>`                     | [Data sources](#sources)                                               |
+| `domains`   | `Record<string, TimescopeDomainOptions>`                   | [Shared value domains](#domains)                                       |
+| `series`    | `Record<string, TimescopeSeriesInput>`                     | [Series](#series)                                                      |
+| `tracks`    | `Record<string, { height?, symmetric?, timeAxis? }>`       | [Track layout](#tracks)                                                |
+| `selection` | `boolean \| { resizable?, color?, invert? }`               | `true`; [selection options](#selection)                                |
 
 ## Sources
 
-For the acquisition and query model, see [Sources](/guide/concepts#sources).
-
 ### Input Types
 
-| Input                              | Behavior                                                                  |
-| ---------------------------------- | ------------------------------------------------------------------------- |
-| `readonly TimescopeDataRowInput[]` | Uses inline data. Changes to the original array are not observed.         |
-| `{ data }`                         | Uses inline data with source options.                                     |
-| `string` or `{ url }`              | Loads a snapshot URL, or loads chunks when the URL contains placeholders. |
-| `function` or `{ loader }`         | Loads chunks. Set `chunked: false` to use a snapshot loader.              |
-| `{ loader: dataLoader }`           | Uses a reusable [DataLoader](#reusable-dataloader) instance.              |
-| `TimescopeDataSource`              | Uses a source created by `createDataSource()` or a custom source.         |
+| `TimescopeSourceInput`                 | Acquisition                                                                              |
+| -------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `readonly TimescopeDataRowInput[]`     | Inline snapshot; original-array mutations are not observed                               |
+| `{ data, ...options }`                 | Inline snapshot with source options                                                      |
+| `string` or `{ url, ...options }`      | Snapshot URL; range requests when the URL contains [placeholders](#url-placeholders)     |
+| `function` or `{ loader, ...options }` | Range loader; `chunked: false` for a snapshot function                                   |
+| `{ loader: dataLoader, ...options }`   | Reusable [DataLoader](#reusable-dataloader); snapshot instances require `chunked: false` |
+| `TimescopeDataSource`                  | Existing source instance                                                                 |
 
 ### Source Types
 
-`createDataSource(input)` constructs one of these implementations. Custom DataSource instances pass through unchanged.
-
-| `type`               | Behavior                                                               | Acquisition       | Updates                    |
-| -------------------- | ---------------------------------------------------------------------- | ----------------- | -------------------------- |
-| `'simple'` (default) | Returns unaggregated point and interval rows.                          | Snapshot or range | Invalidation/reacquisition |
-| `'point-aggregate'`  | Returns point min/max/avg. Points must be in nondecreasing time order. | Snapshot          | `append()`                 |
-| `'point-percentile'` | Returns point percentiles.                                             | Snapshot          | Invalidation/reacquisition |
-
-Point-aggregate sources support [append()](#append-only-segment-tree).
+| `type`               | Rows / output                      | Acquisition       | `append()` |
+| -------------------- | ---------------------------------- | ----------------- | ---------- |
+| `'simple'` (default) | Points and intervals, unaggregated | Snapshot or range | —          |
+| `'point-aggregate'`  | Ordered points; min/max/average    | Snapshot          | Supported  |
+| `'point-percentile'` | Points; percentiles                | Snapshot          | —          |
 
 ### Source Options
 
-| Key           | Type                                                                                         | Behavior                                                                                                                                                                                         |
-| ------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `chunkSize`   | `number \| (resolution: Decimal) => number`                                                  | Preferred number of intervals per display-cache chunk at the selected data resolution. Default: `256`. Must return a positive safe integer and remain stable for the same source and resolution. |
-| `chunkOrigin` | `TimescopeNumberLike`                                                                        | Preferred chunk origin, also used to anchor point aggregation buckets. Default: `0`.                                                                                                             |
-| `immediate`   | `boolean`                                                                                    | Allows loading while the view is moving. Default: `true`.                                                                                                                                        |
-| `resolutions` | `TimescopeNumberLike[]`                                                                      | Hints for preferred loader resolutions. Direct queries may request other positive resolutions.                                                                                                   |
-| `zoomLevels`  | `number[]`                                                                                   | Alternative way to specify resolution hints, using zoom levels.                                                                                                                                  |
-| `decoder`     | `(payload) => readonly TimescopeDataRowInput[] \| Promise<readonly TimescopeDataRowInput[]>` | Converts a loaded payload to rows.                                                                                                                                                               |
-| `mappings`    | `TimescopeMappings`                                                                          | Maps payload paths to time and value fields.                                                                                                                                                     |
-| `type`        | `'simple' \| 'point-aggregate' \| 'point-percentile'`                                        | Selects a concrete DataSource.                                                                                                                                                                   |
-| `cacheSize`   | `number`                                                                                     | Output chunk LRU capacity. Default: `1000`; active and in-flight entries remain retained. `0` disables unreferenced result retention.                                                            |
-| `percentiles` | `{ values?: (0.5 \| 0.9 \| 0.95)[], primary?: 0.5 \| 0.9 \| 0.95 }`                          | Selects percentile suffixes and the primary value for point-percentile sources.                                                                                                                  |
+| Key           | Type                                                                                              | Default / contract                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `data`        | `unknown`                                                                                         | Inline payload; row array without a transform                                        |
+| `url`         | `string`                                                                                          | Snapshot or templated range URL                                                      |
+| `loader`      | `TimescopeRangeLoader \| TimescopeSnapshotLoader \| TimescopeDataLoader`                          | Acquisition function or reusable loader                                              |
+| `chunked`     | `boolean`                                                                                         | Function loader: `true`; `false` for a whole-dataset function                        |
+| `type`        | `'simple' \| 'point-aggregate' \| 'point-percentile'`                                             | `'simple'`                                                                           |
+| `chunkSize`   | `number \| ((resolution: Decimal) => number)`                                                     | `256`; positive safe integer, stable for a given resolution                          |
+| `chunkOrigin` | `TimescopeNumberLike`                                                                             | `0`; chunk and aggregation-bucket origin                                             |
+| `immediate`   | `boolean`                                                                                         | `true`; permit loading while the view moves                                          |
+| `resolutions` | `readonly TimescopeNumberLike[]`                                                                  | Preferred positive range-loader intervals                                            |
+| `zoomLevels`  | `readonly number[]`                                                                               | Resolution hints as zoom levels; `resolutions` takes precedence                      |
+| `decoder`     | `(payload: any) => readonly TimescopeDataRowInput[] \| Promise<readonly TimescopeDataRowInput[]>` | Payload conversion                                                                   |
+| `mappings`    | `TimescopeMappings`                                                                               | Payload-field mapping                                                                |
+| `cacheSize`   | `number`                                                                                          | `1000`; nonnegative integer; retained inactive query results; `0` disables retention |
+| `percentiles` | `{ values?: readonly (0.5 \| 0.9 \| 0.95)[], primary?: 0.5 \| 0.9 \| 0.95 }`                      | Point-percentile only; all three outputs, primary `0.5`                              |
 
-`data`, `url`, and `loader` are mutually exclusive. `decoder` and `mappings` are also mutually exclusive.
+| Constraint          | Rule                                     |
+| ------------------- | ---------------------------------------- |
+| Acquisition         | Exactly one of `data`, `url`, `loader`   |
+| Transform           | At most one of `decoder`, `mappings`     |
+| Supplied DataLoader | Transforms configured on the DataLoader  |
+| Snapshot sources    | Resolution hints do not restrict queries |
 
-Built-in Sources retain chunk size and origin. Range-backed Sources publish resolution hints; snapshot Sources do not. Direct queries need not align with these hints.
+### DataSource API
+
+| Signature                                                                                 | Returns / type                                                                                                    |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `createDataSource(input: TimescopeSourceInput)`                                           | `TimescopeDataSource`; `TimescopeAppendOnlyDataSource` for point-aggregate input; existing instances pass through |
+| `source.query(request: TimescopeDataSourceQuery)`                                         | `Promise<readonly TimescopeDataRow[]>`                                                                            |
+| `source.invalidate(range?: [TimescopeTimeLike<undefined>, TimescopeTimeLike<undefined>])` | `void`                                                                                                            |
+| `source.on('invalidate', handler)`                                                        | Unsubscribe function; payload `{ type: 'invalidate', value: { range?, revision } }`                               |
+| `source.dispose?.()`                                                                      | `void`; release a standalone source                                                                               |
+| `source.chunkSize`, `source.chunkOrigin`, `source.immediate`, `source.cacheSize`          | Readonly source settings                                                                                          |
+| `source.resolutions`                                                                      | `readonly Decimal[] \| undefined`; preferred query intervals                                                      |
 
 ### Direct Queries
 
 ```ts
-const rows = await source.query({
-  range: [Decimal('1.3'), Decimal('8.7')],
-  resolution: Decimal('0.2'),
-});
+type TimescopeDataSourceQuery = {
+  range: [Decimal, Decimal];
+  resolution: Decimal;
+};
 ```
 
-`query({ range, resolution })` takes a finite ordered Decimal range and a positive Decimal resolution. It bypasses the display cache; snapshot data remains retained. Range Sources forward the request to their Loader, including the [neighboring-row response contract](#range-loader). Aggregate buckets stay anchored to `chunkOrigin` and are returned whole, with neighboring context.
+| Field / output      | Contract                                                              |
+| ------------------- | --------------------------------------------------------------------- |
+| `range`             | Finite, ordered; `start <= end`; independent of chunk boundaries      |
+| `resolution`        | Positive interval in row time units                                   |
+| Simple range source | Same request and response contract as a [range loader](#range-loader) |
+| Aggregated output   | Whole buckets anchored to `chunkOrigin`, with neighboring context     |
 
 ### Payloads and Decoders
 
-The argument to `decoder(payload)` depends on how the source acquires data:
+| Acquisition | `decoder(payload)` input     |
+| ----------- | ---------------------------- |
+| `data`      | Supplied data                |
+| `url`       | Fetched `Response`           |
+| `loader`    | Resolved loader return value |
 
-| Acquisition | Decoder input                                    |
-| ----------- | ------------------------------------------------ |
-| `data`      | The supplied data.                               |
-| `url`       | The fetched `Response`, before reading its body. |
-| `loader`    | The loader's resolved return value.              |
-
-Return rows or a Promise of rows. Without a decoder, Responses are read as JSON; payloads must be row arrays or, with `mappings`, record arrays.
+| Transform  | Required output / input                                 |
+| ---------- | ------------------------------------------------------- |
+| `decoder`  | Return a row array or Promise of one                    |
+| `mappings` | Input is a record array; `Response` bodies read as JSON |
+| Neither    | Input is a row array; `Response` bodies read as JSON    |
 
 ### Snapshot Loader
 
-`chunked: false`: `loader()` takes no arguments and returns rows or a transform payload, synchronously or as a Promise. The Source retains the snapshot until invalidated.
+```ts
+type TimescopeSnapshotLoader<T = unknown> = () => T | Promise<T>;
+```
+
+| Setting           | Contract                               |
+| ----------------- | -------------------------------------- |
+| `chunked: false`  | Required for snapshot function loaders |
+| Snapshot lifetime | Retained until invalidation            |
 
 ### Rows
 
-| Field    | Type                                          | Behavior                                              |
-| -------- | --------------------------------------------- | ----------------------------------------------------- |
-| `time`   | `TimescopeTimeLike<never>`                    | Sets the row time. Mutually exclusive with `times`.   |
-| `times`  | `Record<string, TimescopeTimeLike<never>>`    | Sets named row times such as `start` and `end`.       |
-| `value`  | `TimescopeNumberLike \| null`                 | Sets the row value. Mutually exclusive with `values`. |
-| `values` | `Record<string, TimescopeNumberLike \| null>` | Sets named row values.                                |
-| `data`   | `unknown`                                     | Provides metadata to mark callbacks.                  |
+| `TimescopeDataRowInput` field | Type                                          | Contract                                       |
+| ----------------------------- | --------------------------------------------- | ---------------------------------------------- |
+| `time`                        | `TimescopeTimeLike<never>`                    | Single time; mutually exclusive with `times`   |
+| `times`                       | `Record<string, TimescopeTimeLike<never>>`    | Named times; at least one                      |
+| `value`                       | `TimescopeNumberLike \| null`                 | Single value; mutually exclusive with `values` |
+| `values`                      | `Record<string, TimescopeNumberLike \| null>` | Named values                                   |
+| `data`                        | `unknown`                                     | Optional row metadata                          |
 
-A row must contain at least one time. Its temporal support is a point when all times are equal, otherwise `[min(times), max(times))`, independently of `using`. Simple sources accept both; point-aggregate and point-percentile reject intervals. See [Canonical Rows](/guide/concepts#canonical-rows) for the data model.
+| Row extent | Definition                                      |
+| ---------- | ----------------------------------------------- |
+| Point      | All row times equal                             |
+| Interval   | `[min(times), max(times))`; simple sources only |
+
+| Normalized row / callback field | Type                              |
+| ------------------------------- | --------------------------------- |
+| `times`                         | `Record<string, Decimal>`         |
+| `values`                        | `Record<string, Decimal \| null>` |
+| `data`                          | `unknown`                         |
 
 ### Mappings
 
-| Field    | Type                     | Behavior                                     |
-| -------- | ------------------------ | -------------------------------------------- |
-| `times`  | `Record<string, string>` | Maps canonical time names to payload paths.  |
-| `values` | `Record<string, string>` | Maps canonical value names to payload paths. |
+| Field    | Type                     | Contract                  |
+| -------- | ------------------------ | ------------------------- |
+| `times`  | `Record<string, string>` | Time name → payload path  |
+| `values` | `Record<string, string>` | Value name → payload path |
+
+Path syntax: `record.timestamp` for nested fields; `primary, fallback` for the first non-null value.
 
 ### Aggregated Output
 
-Point-aggregate sources provide `#avg`, `#first`, `#last`, `#min`, and `#max`; the unsuffixed value is the average. Point-percentile sources provide `#first`, `#last`, `#min`, `#max`, `#p50`, `#p90`, and `#p95`; the primary value defaults to p50. Configure `percentiles: { values, primary }` to select percentile outputs.
+| Source           | Value suffixes                                                     | Unsuffixed value                   |
+| ---------------- | ------------------------------------------------------------------ | ---------------------------------- |
+| Point-aggregate  | `#avg`, `#first`, `#last`, `#min`, `#max`                          | Average                            |
+| Point-percentile | `#first`, `#last`, `#min`, `#max`, selected `#p50`, `#p90`, `#p95` | `percentiles.primary`; default p50 |
 
-Singleton buckets retain the original point time. Buckets containing multiple points use the bucket midpoint. Set `series.data.instantaneous.resolution` independently when the tooltip should use finer data than the chart.
+| Bucket          | Output time     |
+| --------------- | --------------- |
+| One point       | Original time   |
+| Multiple points | Bucket midpoint |
 
 ### URL Placeholders
 
-| Placeholder           | Value                       |
-| --------------------- | --------------------------- |
-| `{z}`, `{zoom}`       | Zoom level.                 |
-| `{r}`, `{resolution}` | Selected source resolution. |
-| `{s}`, `{start}`      | Requested range start time. |
-| `{e}`, `{end}`        | Requested range end time.   |
+| Placeholder           | Value                                      |
+| --------------------- | ------------------------------------------ |
+| `{z}`, `{zoom}`       | Zoom corresponding to requested resolution |
+| `{r}`, `{resolution}` | Requested resolution                       |
+| `{s}`, `{start}`      | Requested range start                      |
+| `{e}`, `{end}`        | Requested range end                        |
 
 ### Range Loader
 
-`loader({ range, resolution })` returns rows or a transform payload, synchronously or as a Promise. Requests contain an arbitrary finite ordered Decimal range and a positive Decimal resolution; they need not align with chunk boundaries or resolution hints. Match row density to the requested resolution. See [Range Loader](/guide/concepts#range-loader) for the response model and [Chunk Loading](/guide/concepts#chunk-loading) for how display requests are chosen.
+```ts
+type TimescopeLoadRequest = { range: [Decimal, Decimal]; resolution: Decimal };
+type TimescopeRangeLoader<T = unknown> = (request: TimescopeLoadRequest) => T | Promise<T>;
+```
 
-Return all rows intersecting `[start, end)`:
-
-- Points satisfy `start <= time < end`.
-- Intervals satisfy `rowStart < end && start < rowEnd`; return complete, untrimmed rows.
-
-For links, the loader **SHOULD** return extra rows consisting of the nearest neighbors on each side: one for lines, steps, and their areas; two for curves and curve areas, as available, even when the range contains no points.
-
-This recommendation also applies to direct queries and range DataLoader calls. For example, a very narrow range containing no points can return two neighbors on each side for curves, if available — four rows in total.
+| Request / response            | Contract                                                                            |
+| ----------------------------- | ----------------------------------------------------------------------------------- |
+| Request                       | Arbitrary finite ordered range; positive resolution; no chunk-alignment requirement |
+| Point rows                    | All points with `start <= time < end`                                               |
+| Interval rows                 | All rows with `rowStart < end && start < rowEnd`; complete and untrimmed            |
+| Lines / steps and their areas | Recommended nearest neighbor on each side, where available                          |
+| Curves and curve areas        | Recommended two nearest neighbors on each side, where available                     |
+| Range with no points          | Same neighboring-row recommendation                                                 |
+| Density                       | Appropriate to the requested resolution                                             |
 
 ### Invalidation and Caching
 
-Display queries share cached results per Source. `cacheSize` limits inactive result retention; eviction preserves snapshots. Failed acquisitions are retryable.
-
-```ts
-source.invalidate(); // All data
-source.invalidate([start, end]); // An affected range
-source.invalidate([latestDataTime, undefined]); // The live tail, at every resolution
-```
-
-- Endpoints accept `TimescopeTimeLike<undefined>`; omitted endpoints are unbounded. Include late-arriving samples in the affected range.
-- Overlapping and boundary chunks reload; stale cache results and invalidated in-flight results are rejected.
-- Snapshot invalidation always reacquires the whole snapshot, discarding appends absent from the acquisition input. `append()` retains data and notifies only the changed range.
-- `timescope.reload()` invalidates its Sources.
-
-Shared Sources are disposed when their last renderer releases them; standalone Sources require `dispose()`. Renaming within one update preserves the instance.
-
-`updateOptions()` retains omitted entries, recreates explicitly configured Sources, reuses supplied Source instances, and rebuilds updated Series from merged settings. Use `null` for an individual `sources`, `series`, `tracks`, or `domains` entry to remove it (for example, `updateOptions({ series: { old: null } })`). Updates that leave a Series referring to a missing Source, Track, or named Domain are rejected. `setOptions()` replaces all settings, including renderer defaults. Callbacks retain their closures.
+| Operation / setting        | Contract                                                               |
+| -------------------------- | ---------------------------------------------------------------------- |
+| `invalidate()`             | Reacquire all data on demand                                           |
+| `invalidate([start, end])` | Invalidate the affected range; `undefined` endpoint is unbounded       |
+| Snapshot invalidation      | Reacquire the whole snapshot; discard appends absent from its input    |
+| `cacheSize: 0`             | No inactive query-result retention; snapshots remain until invalidated |
+| Shared source lifetime     | Automatically disposed after the last chart releases it                |
+| Standalone source lifetime | Caller invokes `source.dispose?.()`                                    |
 
 ### Reusable DataLoader
 
-`createDataLoader(options)` returns a `TimescopeDataLoader`. For its role relative to a Source, see [DataLoader and DataSource](/guide/concepts#dataloader-and-datasource).
+| Signature / member                                      | Returns / type                         | Contract                                                          |
+| ------------------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------- |
+| `createDataLoader(options: TimescopeDataLoaderOptions)` | `TimescopeDataLoader`                  | Acquisition and transforms from [Source Options](#source-options) |
+| `new TimescopeDataLoader(options)`                      | `TimescopeDataLoader`                  | Same acquisition options                                          |
+| `loader.ranged`                                         | `boolean`                              | Readonly; whether `load()` requires a request                     |
+| `loader.load()`                                         | `Promise<readonly TimescopeDataRow[]>` | Snapshot only; fresh acquisition per call                         |
+| `loader.load(request: TimescopeLoadRequest)`            | `Promise<readonly TimescopeDataRow[]>` | Range only; fresh acquisition per call                            |
 
-| Member                        | Contract                                                                                 |
-| ----------------------------- | ---------------------------------------------------------------------------------------- |
-| `ranged`                      | Whether `load()` requires a range request.                                               |
-| `load()`                      | Snapshot acquisition; returns a Promise of normalized readonly rows.                     |
-| `load({ range, resolution })` | Range acquisition; takes an ordered range of Decimals and a positive Decimal resolution. |
+`TimescopeDataLoaderOptions`: `data` / `url` / `loader`, `chunked`, `decoder` / `mappings`.
 
-Each call acquires data without caching. A request is required for range Loaders and forbidden for snapshot Loaders.
+### Appending Points
 
-```ts
-import { createDataLoader, createDataSource } from 'timescope';
+| Method              | Returns         |
+| ------------------- | --------------- |
+| `append(rowOrRows)` | `Promise<void>` |
 
-const loader = createDataLoader({
-  url: '/samples.json',
-  decoder: async (response: Response) => (await response.json()).samples,
-});
-
-const rows = await loader.load(); // Normalized readonly rows.
-const source = createDataSource({ loader, chunked: false });
-source.invalidate(); // Reacquire on the next query.
-```
-
-Pass via `loader`; configure transforms on the DataLoader only. Its `ranged` flag controls acquisition mode; snapshot instances use `chunked: false`. Row field names and metadata types are not preserved for Source inference.
-
-### Appending Points {#append-only-segment-tree}
-
-`append(row | rows): Promise<void>` — point-aggregate only.
-
-- Initial and appended points must be in nondecreasing time order; equal times retain insertion order. Invalid batches insert nothing.
-- Direct Source `mappings` apply to appends; decoders and supplied DataLoader transforms do not.
-- Refreshes consumers automatically. The Promise confirms the data update, not frame presentation.
+| Constraint    | Contract                                                                                |
+| ------------- | --------------------------------------------------------------------------------------- |
+| Source        | `point-aggregate` only                                                                  |
+| Input         | One point row or readonly row array                                                     |
+| Order         | Nondecreasing time across initial and appended rows; equal times retain insertion order |
+| Invalid batch | No rows inserted                                                                        |
+| Transforms    | Direct source `mappings` apply; decoders and DataLoader transforms do not               |
+| Refresh       | Automatic; no `reload()` required                                                       |
+| Promise       | Data update complete; drawing may still be pending                                      |
 
 ## Series
 
-See [Series](/guide/concepts#series) for how data, drawing, tracks, and domains relate.
-
-| Key                  | Type                                       | Behavior                                                   |
-| -------------------- | ------------------------------------------ | ---------------------------------------------------------- |
-| `data.source`        | `string`                                   | Selects a source from `options.sources`.                   |
-| `data.name`          | `string`                                   | Sets the display name.                                     |
-| `data.color`         | `string`                                   | Sets the default chart color.                              |
-| `data.domain`        | `string \| TimescopeDomainOptions`         | Selects a shared domain or defines an inline domain.       |
-| `data.resolution`    | `TimescopeDataResolution`                  | Resolves and snaps view resolution to source resolution.   |
-| `data.instantaneous` | `false \| { using?, zoom?, resolution? }`  | Configures values sampled at the cursor.                   |
-| `chart`              | `TimescopeChartType \| { marks?, links? }` | Selects a preset or defines marks and links.               |
-| `tooltip`            | `boolean \| { label?, format? }`           | Enables the tooltip and configures its label or formatter. |
-| `track`              | `string`                                   | Selects a track.                                           |
+| Key                  | Type                                       | Contract                                           |
+| -------------------- | ------------------------------------------ | -------------------------------------------------- |
+| `data.source`        | `string`                                   | Required; name in `options.sources`                |
+| `data.name`          | `string`                                   | Display name                                       |
+| `data.color`         | `string`                                   | Default chart color                                |
+| `data.domain`        | `string \| TimescopeDomainOptions`         | Shared domain name or inline domain                |
+| `data.resolution`    | `TimescopeDataResolution`                  | [Source-resolution selection](#resolution)         |
+| `data.instantaneous` | `false \| { using?, zoom?, resolution? }`  | [Cursor sampling](#instantaneous-values)           |
+| `chart`              | `TimescopeChartType \| { marks?, links? }` | Preset or custom primitives                        |
+| `tooltip`            | `boolean \| { label?: string, format? }`   | Tooltip settings; `false` disables cursor sampling |
+| `track`              | `string`                                   | Track name                                         |
 
 ### Resolution
 
-`TimescopeDataResolution` accepts a snap mode, a resolution value, a resolver, or `{ resolve?, snap? }`.
+| `TimescopeDataResolution` form                                              | Meaning                     |
+| --------------------------------------------------------------------------- | --------------------------- |
+| `'nearest' \| 'floor' \| 'ceil'`                                            | Snap mode                   |
+| `TimescopeNumberLike`                                                       | Preferred positive interval |
+| `(context: TimescopeResolutionContext) => TimescopeNumberLike`              | Preferred-interval resolver |
+| `{ resolve?: TimescopeResolutionResolver, snap?: TimescopeResolutionSnap }` | Resolver and snap mode      |
 
-| Field     | Type                                                        | Behavior                                                       |
-| --------- | ----------------------------------------------------------- | -------------------------------------------------------------- |
-| `resolve` | `TimescopeNumberLike \| ((context) => TimescopeNumberLike)` | Chooses a preferred source resolution.                         |
-| `snap`    | `'nearest' \| 'floor' \| 'ceil'`                            | Snaps to an available source resolution. Default: `'nearest'`. |
+| Context / default          | Value                                                                   |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `context.resolution`       | `Decimal`; display time units per pixel, `2 ** (-zoom)`                 |
+| `context.resolutions`      | `readonly Decimal[]`; preferred source intervals, empty if unrestricted |
+| Default preferred interval | Display resolution                                                      |
+| Default snap               | `'nearest'`                                                             |
+| Snap candidates            | Source intervals; integer-zoom intervals if none supplied               |
 
-The resolver receives `{ resolution, resolutions }`:
+| Snap      | Selection                                            |
+| --------- | ---------------------------------------------------- |
+| `nearest` | Closest on the logarithmic zoom scale                |
+| `floor`   | Largest interval at or below the preferred interval  |
+| `ceil`    | Smallest interval at or above the preferred interval |
 
-| Field         | Type                 | Meaning                                                                                   |
-| ------------- | -------------------- | ----------------------------------------------------------------------------------------- |
-| `resolution`  | `Decimal`            | Display time units per pixel: `2 ** (-zoom)`. At zoom `0`, one pixel spans one time unit. |
-| `resolutions` | `readonly Decimal[]` | Output intervals published by `source.resolutions`; empty when unrestricted.              |
-
-Return a positive interval in row time units. Default: display resolution. Snapping uses published Source intervals, or integer-zoom intervals when none are published.
-
-| Snap      | Selection                                             |
-| --------- | ----------------------------------------------------- |
-| `nearest` | Closest on the logarithmic zoom scale.                |
-| `floor`   | Largest interval at or below the preferred interval.  |
-| `ceil`    | Smallest interval at or above the preferred interval. |
-
-Directional snapping falls back to the nearest endpoint. The result is the query/loader resolution, distinct from chart callbacks' display resolution.
+Directional snapping falls back to the nearest endpoint.
 
 ### Instantaneous Values
 
-| Field        | Type                       | Behavior                                 |
-| ------------ | -------------------------- | ---------------------------------------- |
-| `using`      | `Using1<[string, string]>` | Selects the value sampled at the cursor. |
-| `zoom`       | `number`                   | Selects sampling resolution by zoom.     |
-| `resolution` | `TimescopeNumberLike`      | Selects sampling resolution directly.    |
-
-Setting either `tooltip: false` or `data.instantaneous: false` disables cursor sampling for the series.
+| Field                       | Type                       | Contract                    |
+| --------------------------- | -------------------------- | --------------------------- |
+| `using`                     | `Using1<[string, string]>` | Value sampled at the cursor |
+| `zoom`                      | `number`                   | Sampling zoom               |
+| `resolution`                | `TimescopeNumberLike`      | Sampling interval           |
+| `data.instantaneous: false` | —                          | Disable cursor sampling     |
 
 ### Tooltip
 
-| Field    | Type                                              | Behavior                                               |
-| -------- | ------------------------------------------------- | ------------------------------------------------------ |
-| `label`  | `string`                                          | Overrides the tooltip label.                           |
-| `format` | `({ time, value, name, unit, digits }) => string` | Formats a tooltip value. `value` is `Decimal \| null`. |
+| Field    | Type                  | Contract               |
+| -------- | --------------------- | ---------------------- |
+| `label`  | `string`              | Tooltip label override |
+| `format` | `(context) => string` | Value formatter        |
+
+| Formatter context field | Type                  |
+| ----------------------- | --------------------- |
+| `time`                  | `Decimal`             |
+| `value`                 | `Decimal \| null`     |
+| `name`                  | `string \| undefined` |
+| `unit`                  | `string`              |
+| `digits`                | `number`              |
 
 ## Using Selectors
 
-See [Using Selectors](/guide/concepts#using-selectors) for the coordinate-selection model.
+| Form                  | Selection                 |
+| --------------------- | ------------------------- |
+| `'value@time'`        | Named value and time      |
+| `'value'`             | Named value, default time |
+| `'@start'`            | Default value, named time |
+| `['min', 'max']`      | Two coordinates           |
+| `'#zero'`             | Track's shared baseline   |
+| `'#top'`, `'#bottom'` | Chart-area edges          |
+| `'value#avg'`         | Named aggregate value     |
 
-| Form             | Selects                                            |
-| ---------------- | -------------------------------------------------- |
-| `'value@time'`   | Named value and named time.                        |
-| `'value'`        | Named value with the default time.                 |
-| `'@start'`       | Default value at the named time.                   |
-| `['min', 'max']` | Two coordinates.                                   |
-| `'#zero'`        | Domain zero.                                       |
-| `'#top'`         | Top of the chart area.                             |
-| `'#bottom'`      | Bottom of the chart area.                          |
-| `'value#avg'`    | An aggregate produced by a point-aggregate source. |
-
-Single-value marks default to `'value@time'`. `line`, `bar`, and `section` marks default to `['min', 'max']`. Single-value links default to `'value@time'`; area links use the value and the Track's shared baseline (`#zero`) by default.
+| Primitive                      | Default `using`                     |
+| ------------------------------ | ----------------------------------- |
+| Single-coordinate mark / link  | `'value@time'`                      |
+| `line`, `bar`, `section` marks | `['min', 'max']`                    |
+| Area links                     | Value and shared baseline (`#zero`) |
 
 ## Chart Presets
 
-| Preset                                                      | Result                                                        |
-| ----------------------------------------------------------- | ------------------------------------------------------------- |
-| `'lines'`, `'lines:filled'`                                 | Line chart, optionally filled.                                |
-| `'curves'`, `'curves:filled'`                               | Monotone cubic chart, optionally filled.                      |
-| `'steps-start'`, `'steps'`, `'steps-end'`                   | Step chart. Add `:filled` for a filled chart.                 |
-| `'points'`                                                  | Circle marks.                                                 |
-| `'linespoints'`, `'curvespoints'`                           | Lines or curves with circle marks. Add `:filled` for fill.    |
-| `'stepspoints-start'`, `'stepspoints'`, `'stepspoints-end'` | Steps with circle marks. Add `:filled` for fill.              |
-| `'impulses'`, `'impulsespoints'`                            | Lines from the shared baseline, optionally with circle marks. |
-| `'bars'`, `'bars:filled'`                                   | Bars from the shared baseline.                                |
+| Preset                                                      | Result                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------- |
+| `'lines'`, `'lines:filled'`                                 | Line chart, optionally filled                           |
+| `'curves'`, `'curves:filled'`                               | Monotone cubic chart, optionally filled                 |
+| `'steps-start'`, `'steps'`, `'steps-end'`                   | Steps; optional `:filled`                               |
+| `'points'`                                                  | Circle marks                                            |
+| `'linespoints'`, `'curvespoints'`                           | Lines / curves with circles; optional `:filled`         |
+| `'stepspoints-start'`, `'stepspoints'`, `'stepspoints-end'` | Steps with circles; optional `:filled`                  |
+| `'impulses'`, `'impulsespoints'`                            | Lines from the shared baseline, optionally with circles |
+| `'bars'`, `'bars:filled'`                                   | Bars from the shared baseline                           |
 
 ## Links
+
+`chart.links`: array of `{ draw, using?, style? }`, or `(context) => array`.
 
 | `draw`                                                | Coordinates | Style        |
 | ----------------------------------------------------- | ----------- | ------------ |
@@ -297,6 +338,8 @@ Single-value marks default to `'value@time'`. `line`, `bar`, and `section` marks
 
 ## Marks
 
+`chart.marks`: array of `{ draw, using?, style? }`, or `(context) => array`.
+
 | `draw`                                          | Coordinates | Style                             |
 | ----------------------------------------------- | ----------- | --------------------------------- |
 | `'circle'`                                      | One         | Stroke, Fill, Size, Offset        |
@@ -304,56 +347,63 @@ Single-value marks default to `'value@time'`. `line`, `bar`, and `section` marks
 | `'cross'`, `'plus'`, `'minus'`                  | One         | Stroke, Size, Angle, Offset       |
 | `'line'`, `'section'`                           | Two         | Stroke, Size, Offset              |
 | `'bar'`                                         | Two         | Stroke, Fill, Size, Box, Offset   |
-| `'region'`                                      | Two         | Stroke, Fill, Box, Offset         |
+| `'region'`                                      | Two         | Stroke, Fill, Box                 |
 | `'text'`                                        | One         | Text, Size, Angle, Offset         |
 | `'icon'`                                        | One         | Icon, Size, Angle, Offset         |
 | `'path'`                                        | One         | Path, Size, Angle, Offset         |
 
 ## Style
 
-Mark callbacks receive `{ times, values, data, resolution }`; link callbacks receive `{ resolution }`. Times are `Decimal`, values are `Decimal | null`, and `data` is row metadata. `resolution` is display time units per pixel (`2 ** (-zoom)`), not the loader interval.
+| Callback | Context                                                                                                           |
+| -------- | ----------------------------------------------------------------------------------------------------------------- |
+| Mark     | `{ times: Record<string, Decimal>, values: Record<string, Decimal \| null>, data: unknown, resolution: Decimal }` |
+| Link     | `{ resolution: Decimal }`                                                                                         |
+
+| Callback support         | Contract                                                                  |
+| ------------------------ | ------------------------------------------------------------------------- |
+| `draw`, `using`, `style` | Value or `(context) => value`                                             |
+| Style fields             | Value or `(context) => value`, except fixed `origin`, `scale`, `fillPost` |
+| `resolution`             | Display time units per pixel, `2 ** (-zoom)`                              |
 
 ### Stroke
 
-| Key              | Type       |
-| ---------------- | ---------- |
-| `lineWidth`      | `number`   |
-| `lineColor`      | `string`   |
-| `lineDashArray`  | `number[]` |
-| `lineDashOffset` | `number`   |
+| Key              | Type             |
+| ---------------- | ---------------- |
+| `lineWidth`      | `number`; pixels |
+| `lineColor`      | `string`         |
+| `lineDashArray`  | `number[]`       |
+| `lineDashOffset` | `number`         |
 
 ### Fill
 
-| Key           | Type      |
-| ------------- | --------- |
-| `fillColor`   | `string`  |
-| `fillOpacity` | `number`  |
-| `fillPost`    | `boolean` |
+| Key           | Type      | Contract                                          |
+| ------------- | --------- | ------------------------------------------------- |
+| `fillColor`   | `string`  | Explicit color, including alpha                   |
+| `fillOpacity` | `number`  | Alpha multiplier; default `1`, clamped to `0`–`1` |
+| `fillPost`    | `boolean` | Fill after the stroke                             |
 
-| Color                | Marks                                                            | Links                        |
-| -------------------- | ---------------------------------------------------------------- | ---------------------------- |
-| Default              | Series color at 25% alpha, precomposited against the background. | Series color at 25% alpha.   |
-| Explicit `fillColor` | Used as-is, including alpha.                                     | Used as-is, including alpha. |
-
-`fillOpacity` multiplies the resulting fill alpha; default `1`, clamped to `0`–`1`. It affects neither strokes nor the default shading strength.
+| Default fill | Color                                         |
+| ------------ | --------------------------------------------- |
+| Marks        | Series color at 25% alpha over the background |
+| Links        | Series color at 25% alpha                     |
 
 ### Geometry
 
-| Key       | Type                                            | Behavior                                                 |
-| --------- | ----------------------------------------------- | -------------------------------------------------------- |
-| `size`    | `number`                                        | Sets pixel size. Meaning depends on the primitive.       |
-| `angle`   | `number`                                        | Sets rotation in degrees.                                |
-| `offset`  | `[number, number]`                              | Sets pixel offset `[x, y]`.                              |
-| `extrude` | `number \| [number, number?, number?, number?]` | Expands a bar or region as `[top, right, bottom, left]`. |
-| `radius`  | `number`                                        | Sets bar or region corner radius in pixels.              |
+| Key       | Type                                            | Contract                                   |
+| --------- | ----------------------------------------------- | ------------------------------------------ |
+| `size`    | `number`                                        | Pixel size; primitive-specific             |
+| `angle`   | `number`                                        | Rotation in degrees                        |
+| `offset`  | `[number, number]`                              | Pixel offset `[x, y]`                      |
+| `extrude` | `number \| [number, number?, number?, number?]` | Box expansion `[top, right, bottom, left]` |
+| `radius`  | `number`                                        | Box corner radius in pixels                |
 
 ### Path
 
-| Key      | Type               |
-| -------- | ------------------ |
-| `path`   | `string`           |
-| `origin` | `[number, number]` |
-| `scale`  | `number`           |
+| Key      | Type                      |
+| -------- | ------------------------- |
+| `path`   | `string`; SVG path data   |
+| `origin` | `[number, number]`; fixed |
+| `scale`  | `number`; fixed           |
 
 ### Text
 
@@ -383,79 +433,95 @@ Mark callbacks receive `{ times, values, data, resolution }`; link callbacks rec
 | `iconOutlineColor` | `string`                                                                      |
 | `iconOutlineWidth` | `number`                                                                      |
 
-`origin` and `scale` are fixed values. Other style values accept callbacks where supported by the selected primitive.
+### Font Style
 
-`TimescopeFontStyle` accepts a CSS canvas font string or an object with `style`, `variant`, `weight`, `stretch`, `size`, `lineHeight`, and `family`. `size` accepts a number in pixels or a CSS size string; `lineHeight` accepts a unitless number or a CSS line-height string. For text and icon marks, `font.size` takes precedence over `style.size`; if omitted, `style.size` supplies the font size. A string `font` is applied as-is, including its size. Text marks default to `normal 14px Timescope, sans-serif`; icon marks default to `normal 16px icons`.
+`TimescopeFontStyle`: CSS canvas font string or the following object.
 
-Object-form `family` accepts comma-separated fallback families (e.g. `'Inter, sans-serif'`). Quote a family name that itself contains a comma (e.g. `'"A, B", sans-serif'`). Unquoted names containing quotes, backslashes, or control characters are escaped when forming the canvas font string; already-quoted names are preserved.
+| Field                                   | Type                                          |
+| --------------------------------------- | --------------------------------------------- |
+| `style`, `variant`, `weight`, `stretch` | `string`                                      |
+| `size`                                  | `number` in pixels or CSS size `string`       |
+| `lineHeight`                            | Unitless `number` or CSS line-height `string` |
+| `family`                                | `string`; comma-separated fallback families   |
+
+| Usage             | Default font                        |
+| ----------------- | ----------------------------------- |
+| Text marks        | `normal 14px Timescope, sans-serif` |
+| Icon marks        | `normal 16px icons`                 |
+| Time-axis labels  | `normal 12px Timescope, sans-serif` |
+| Value-axis labels | `normal 11px Timescope, sans-serif` |
+
+Mark font-size precedence: string `font` as supplied → object `font.size` → mark `style.size` → default.
 
 ## Tracks
 
-Omitting `tracks` creates an implicit `default` track. Explicit `tracks: {}` is invalid, including when reached by deleting the last track with `updateOptions()`.
+| Key         | Type                                  | Contract                                 |
+| ----------- | ------------------------------------- | ---------------------------------------- |
+| `height`    | `number`                              | Fixed CSS-pixel height                   |
+| `symmetric` | `boolean`                             | Mirror positive and negative chart space |
+| `timeAxis`  | `boolean \| TimescopeTimeAxisOptions` | Show, hide, or configure the time axis   |
 
-| Key         | Type                                  | Behavior                                   |
-| ----------- | ------------------------------------- | ------------------------------------------ |
-| `height`    | `number`                              | Sets a fixed height in pixels.             |
-| `symmetric` | `boolean`                             | Mirrors positive and negative chart space. |
-| `timeAxis`  | `boolean \| TimescopeTimeAxisOptions` | Shows, hides, or configures the time axis. |
+| `tracks` input | Result                               |
+| -------------- | ------------------------------------ |
+| Omitted        | Implicit `default` track             |
+| `{}`           | Invalid; at least one track required |
 
 ### Time Axis
 
-The time axis is drawn at the Track's [shared baseline](/guide/concepts#shared-baseline). Hiding the axis does not remove the baseline used by `#zero`.
+| Key          | Type                                                     | Contract                                                                        |
+| ------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `axis`       | `false \| { color?: string }`                            | Axis-line visibility / color                                                    |
+| `ticks`      | `false \| { color?: string }`                            | Tick visibility / color                                                         |
+| `labels`     | `false \| { color?: string, font?: TimescopeFontStyle }` | Label visibility / style                                                        |
+| `relative`   | `boolean`                                                | Time relative to zero                                                           |
+| `timeFormat` | `TimeFormatFunc \| TimeFormatLabeler`                    | Custom labels                                                                   |
+| `timeUnit`   | `'s' \| 'ms' \| 'us' \| 'ns'`                            | Numeric time unit; default `'s'`                                                |
+| `timeZone`   | `string`                                                 | `'local'` (default), `'utc'`, or IANA name; absolute labels and tick boundaries |
 
-| Key          | Type                                  | Behavior                                                                             |
-| ------------ | ------------------------------------- | ------------------------------------------------------------------------------------ |
-| `axis`       | `false \| { color? }`                 | Hides or styles the axis line.                                                       |
-| `ticks`      | `false \| { color? }`                 | Hides or styles tick lines.                                                          |
-| `labels`     | `false \| { color?, font? }`          | Hides or styles labels.                                                              |
-| `relative`   | `boolean`                             | Formats time relative to zero.                                                       |
-| `timeFormat` | `TimeFormatFunc \| TimeFormatLabeler` | Formats time-axis labels.                                                            |
-| `timeUnit`   | `'s' \| 'ms' \| 'us' \| 'ns'`         | Sets the numeric time unit used for labels. Default: `'s'`.                          |
-| `timeZone`   | `string`                              | Sets the time zone for absolute-time labels and tick boundaries. Default: `'local'`. |
+| Formatter                  | Signature / fields                                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `TimeFormatFunc`           | `(context: TimeFormatFuncOptions) => string \| undefined`; `undefined` uses default formatting                                       |
+| `TimeFormatFuncOptions`    | `{ time: Decimal, unit: 's' \| 'ms' \| 'us' \| 'ns', level: CalendarLevel, digits: number, stride?: bigint }`                        |
+| `CalendarLevel`            | `'subsecond' \| 'second' \| 'minute' \| 'hour' \| 'day' \| 'month' \| 'year' \| 'relative'`                                          |
+| `TimeFormatLabeler`        | Optional `year`, `month`, `quarter`, `date`, `minutes`, `seconds`: `(context: TimeFormatLabelerOptions) => string`                   |
+| `TimeFormatLabelerOptions` | `year`, `second`: `bigint`; `quarter`, `month`, `day`, `hour`, `minute`, `week`, `digits`: `number`; `time`, `subseconds`: `Decimal` |
 
-`TimeFormatFunc` receives `{ time, unit, level, digits, stride? }` and returns `string | undefined`. `TimeFormatLabeler` provides optional formatters for year, month, quarter, date, minutes, and seconds.
-
-`timeZone` accepts `'local'`, `'utc'`, or an IANA name (e.g. `'Asia/Tokyo'`); labelers receive components in that zone.
-
-`labels.font` uses the same font format as [text marks](#text). The default is `normal 12px Timescope, sans-serif`.
+Labeler components use `timeZone`; `week` is weekday (`0` = Sunday). Hiding the axis preserves the `#zero` baseline.
 
 ## Selection
 
-Selection is resizable by default. Shift-drag creates a range.
+| Value / key | Type      | Default / contract                              |
+| ----------- | --------- | ----------------------------------------------- |
+| `false`     | `boolean` | Disable selection and clear the current range   |
+| `true`      | `boolean` | Enable default selection                        |
+| `resizable` | `boolean` | `true`; shift-drag creation and handle resizing |
+| `color`     | `string`  | Overlay color                                   |
+| `invert`    | `boolean` | Shade outside the range                         |
 
-| Value or key | Type      | Behavior                                   |
-| ------------ | --------- | ------------------------------------------ |
-| `false`      | `boolean` | Disables selection.                        |
-| `true`       | `boolean` | Enables default selection behavior.        |
-| `resizable`  | `boolean` | Enables creating and resizing a selection. |
-| `color`      | `string`  | Sets overlay color.                        |
-| `invert`     | `boolean` | Shades outside the selected range.         |
-
-`selection.range` is accepted **only by the constructor** as the initial selected range. It is consumed during construction and does not appear in `timescope.options`. `setSelectionRange()` and `clearSelectionRange()` update the current `selectionRange` at runtime without changing `options.selection`. Replacing options without `selection` does not clear the current range; explicitly setting `selection: false` disables selection and clears it.
+Current range: [`setSelectionRange()`](/api/timescope#navigation) or component `selectionRange`. Initial range: constructor-only `selection.range`.
 
 ## Domains
 
-| Key           | Type                                                                    | Behavior                                                                            |
-| ------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `scale`       | `'linear' \| 'linear-symmetric' \| 'log'`                               | Sets the value scale.                                                               |
-| `axis`        | `boolean \| 'left' \| 'right' \| TimescopeYAxisOptions`                 | Shows and configures a value axis.                                                  |
-| `animation`   | `boolean`                                                               | Animates range changes. Default: `true`.                                            |
-| `range`       | `TimescopeNumberLike \| [min?, max?] \| { expand?, shrink?, default? }` | Sets or configures the value range.                                                 |
-| `expand`      | `boolean`                                                               | Allows the range to expand for observed values. Default: `false`.                   |
-| `shrink`      | `boolean`                                                               | Allows the range to contract. Default: `true`.                                      |
-| `floatingGap` | `number`                                                                | Sets the pixel gap between a floating range and the shared baseline. Default: `20`. |
-| `unit`        | `string`                                                                | Sets the tooltip and value-axis unit.                                               |
-| `digits`      | `number`                                                                | Sets decimal places in tooltips and value axes.                                     |
+| Key           | Type                                                                    | Default / contract                                                                              |
+| ------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `scale`       | `'linear' \| 'linear-symmetric' \| 'log'`                               | `'linear'`                                                                                      |
+| `axis`        | `boolean \| 'left' \| 'right' \| TimescopeYAxisOptions`                 | Optional value axis                                                                             |
+| `animation`   | `boolean`                                                               | `true`; range transitions                                                                       |
+| `range`       | `TimescopeNumberLike \| [min?, max?] \| { expand?, shrink?, default? }` | Bounds are `TimescopeNumberLike`; unbounded ends follow visible data; scalar means `[0, value]` |
+| `expand`      | `boolean`                                                               | `false`; allow expansion beyond specified bounds                                                |
+| `shrink`      | `boolean`                                                               | `true`; allow the range to contract                                                             |
+| `floatingGap` | `number`                                                                | `20`; pixels between a floating range and the shared baseline                                   |
+| `unit`        | `string`                                                                | Tooltip and value-axis unit                                                                     |
+| `digits`      | `number`                                                                | Tooltip and value-axis decimal places                                                           |
 
-An unbounded range follows visible values. A single numeric range value means `[0, value]`.
+| Object `range` field | Type / contract                                                       |
+| -------------------- | --------------------------------------------------------------------- |
+| `default`            | `TimescopeNumberLike \| [TimescopeNumberLike?, TimescopeNumberLike?]` |
+| `expand`, `shrink`   | `boolean`; top-level settings take precedence                         |
 
-For a value axis, `axis: { side?, label?, color?, font? }` styles the axis title and tick labels. `font` uses the same format as [text marks](#text); its default is `normal 11px Timescope, sans-serif`.
-
-See [Domains](/guide/concepts#domains) for independent and shared scales, [Auto Scaling](/guide/concepts#auto-scaling) for `expand` and `shrink`, and [Floating Ranges](/guide/concepts#floating-ranges) for the relationship to the Track's shared baseline.
-
-With `shrink: true`, automatic constant data yields `[v, v]` and one tick when the value axis is enabled. Nonzero constants are centered, except under `linear-symmetric`; zero stays on the [shared baseline](/guide/concepts#shared-baseline). `animation: false` disables range transitions. Fixed bounds and `shrink: false` still constrain the range.
-
-## See Also
-
-- [Timescope](/api/timescope)
-- [Core Concepts](/guide/concepts)
+| `TimescopeYAxisOptions` field | Type                 |
+| ----------------------------- | -------------------- |
+| `side`                        | `'left' \| 'right'`  |
+| `label`                       | `string`             |
+| `color`                       | `string`             |
+| `font`                        | `TimescopeFontStyle` |

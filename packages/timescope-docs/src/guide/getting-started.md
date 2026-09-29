@@ -16,37 +16,59 @@ npm install timescope
 <div id="timescope"></div>
 ```
 
-```TypeScript
+```ts
 import { Timescope } from 'timescope';
 
-const timescope = new Timescope({
-  target: '#timescope'
-});
+const timescope = new Timescope({ target: '#timescope' });
 ```
 
 <ExampleSimple />
 
-## Time control
+## Accessing the selected time
 
-```TypeScript
-timescope.time; // Decimal | null
-```
+Read the selected time directly, or subscribe to changes from chart interaction.
 
-```TypeScript
-timescope.on('timechanged', (event) => {
-  const time = event.value; // Decimal | null
+```ts
+console.log(timescope.time); // Decimal | null
+
+timescope.on('timechanged', ({ value }) => {
+  console.log(value);
 });
 ```
 
-```TypeScript
-timescope.setTime(10);                      // number (seconds by default)
-timescope.setTime('2024-01-15T10:00:00Z');  // ISO string
-timescope.setTime(new Date());              // Date
-timescope.setTime(null);                    // follow the live clock
+## View control
+
+### Changing the initial view
+
+Set an initial time and zoom, or fit a whole interval:
+
+```ts
+new Timescope({ target: '#timescope', time: 15, zoom: 3 });
 ```
+
+```ts
+new Timescope({ target: '#timescope', fit: [0, 30] });
+```
+
+### Programmatic control
+
+Time inputs accept numbers (seconds by default), date strings, and `Date` objects. Use `null` to follow the live clock.
+
+```ts
+timescope.setTime(15);
+timescope.setTime('2026-01-15T10:00:00Z');
+timescope.setTime(new Date());
+timescope.setTime(null);
+timescope.setZoom(2);
+timescope.fitTo([0, 30]);
+```
+
+[Method reference](/api/timescope#navigation)
 
 ## Next steps
 
 - Learn the [Core Concepts](/guide/concepts)
 - Explore [Examples](/guide/examples/)
-- Dive into the [API Reference](/api/timescope)
+- Connect remote data and application controls with [Advanced guides](/guide/advanced/)
+- Use a [Framework Binding](/guide/advanced/frameworks)
+- Look up signatures and options in the [API Reference](/api/timescope)

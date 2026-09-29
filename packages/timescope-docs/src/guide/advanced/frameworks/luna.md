@@ -2,29 +2,21 @@
 title: Luna
 ---
 
-<script setup>
-import ChartPreview from './chart-preview.vue';
-</script>
-
 # Luna
 
-Pass signal accessors to keep Luna state connected to the chart. The [shared binding guide](/guide/advanced/frameworks) covers configuration, initial views, and lifecycle rules.
-
-## Install
+Install and use `@timescope/luna` instead of `timescope`. It provides the Luna component and re-exports the core helpers and types, so a separate `timescope` installation is not needed.
 
 ```bash
 npm install @timescope/luna @luna_ui/luna
 ```
 
-## Chart and accessor state
+## Component
 
-<ChartPreview />
-
-Pass `time` and `zoom` themselves as props. The chart reads the accessors and reports changes to their setters. The button navigates through the same signal.
+Pass signal accessors for reactive props and child text, and use change callbacks to update Luna signals. The component handles mounting and disposal; callbacks receive values directly.
 
 ```tsx
 import { createSignal } from '@luna_ui/luna';
-import { Timescope, defineTimescopeOptions, Decimal } from '@timescope/luna';
+import { Decimal, Timescope, defineTimescopeOptions } from '@timescope/luna';
 
 const options = defineTimescopeOptions({
   style: { height: '240px' },
@@ -35,11 +27,11 @@ const options = defineTimescopeOptions({
       { time: 30, value: 2 },
     ],
   },
-  series: { values: { data: { source: 'values', color: '#0d9488' }, chart: 'lines' } },
+  series: { values: { data: { source: 'values' }, chart: 'lines' } },
   tracks: { default: { timeAxis: { relative: true } } },
 });
 
-function Chart() {
+export default function Chart() {
   const [time, setTime] = createSignal<Decimal | null>(Decimal(15));
   const [zoom, setZoom] = createSignal(3);
 
@@ -55,44 +47,21 @@ function Chart() {
 }
 ```
 
-## Accessor props
+| Task                           | Luna syntax                                                               |
+| ------------------------------ | ------------------------------------------------------------------------- |
+| Bind time and zoom             | `time={time}`, `zoom={zoom}` with their change callbacks                  |
+| Bind a selection               | `selectionRange={selection}` and `onSelectionRangeChanged={setSelection}` |
+| Update configuration           | `options={() => ...}` returning a new complete options object             |
+| Set chart height               | `options.style.height`                                                    |
+| Follow the clock               | `setTime(null)`                                                           |
+| Run after the chart has a size | `onReady={onReady}`                                                       |
 
-| Reactive input        | Luna syntax                                                   |
-| --------------------- | ------------------------------------------------------------- |
-| Current time and zoom | `time={time}`, `zoom={zoom}`                                  |
-| Current selection     | `selectionRange={selection}`                                  |
-| Navigation limits     | `timeRange={timeRange}`, `zoomRange={zoomRange}`              |
-| Configuration         | `options={options}` where `options` returns the configuration |
+## Initial fit
 
-These props also accept plain values. For reactive inputs, pass the **accessor**, such as `time={time}`; passing `time={time()}` supplies the value read at that point instead.
-
-Pair current-value accessors with `onTimeChanged`, `onZoomChanged`, and `onSelectionRangeChanged`. Callbacks receive values directly. Reactive child text also uses an accessor, as in the example's `<output>`.
-
-Keep controlled accessors initialized: an accessor returning `undefined` is treated as `null` for time and selection, or `0` for zoom. This differs from omitting the prop. For a fitted, chart-managed initial view, omit current-value props:
+For a chart-managed view, omit the time and zoom props:
 
 ```tsx
-<Timescope options={options} initialFit={[0, 30]} />
+<Timescope options={options} initialFit={{ range: [0, 30], padding: 24 }} />
 ```
 
-Initial values, `renderThread`, and `fonts` can also be accessors, but are only read when the instance is created.
-
-## Reactive configuration
-
-An options accessor can derive the configuration from application signals:
-
-```tsx
-const options = () =>
-  defineTimescopeOptions({
-    style: { height: '240px' },
-    sources: { values: source },
-    series: { values: { data: { source: 'values', color: color() }, chart: 'lines' } },
-  });
-
-return <Timescope options={options} initialFit={[0, 30]} />;
-```
-
-Here `source` is a stable DataSource and `color` is a signal accessor. Return a new configuration when settings change; keep sources stable for [data updates](/guide/advanced/data#reuse-a-source).
-
-## Notifications and view control
-
-Use `onTimeChanging` and `onTimeAnimating` to display intermediate positions, and `onReady` or `onMount` for drawable lifecycle events. Control the view through props and signals.
+[Props and callbacks](/api/frameworks) · [Options](/api/timescope-options) · [Data updates](/guide/advanced/data)

@@ -2,29 +2,21 @@
 title: Vue
 ---
 
-<script setup>
-import ChartPreview from './chart-preview.vue';
-</script>
-
 # Vue
 
-Use Vue refs and `v-model` to keep the chart and application state synchronized. The [shared binding guide](/guide/advanced/frameworks) covers configuration, initial views, and lifecycle rules.
-
-## Install
+Install and use `@timescope/vue` instead of `timescope`. It provides the Vue component and re-exports the core helpers and types, so a separate `timescope` installation is not needed.
 
 ```bash
 npm install @timescope/vue
 ```
 
-## Chart and bound state
+## Component
 
-<ChartPreview />
-
-The example below renders this line chart with a time/zoom readout. Dragging updates the refs; the button updates the same time ref to navigate from the parent.
+Pass chart configuration through `options` and use `v-model` to synchronize time and zoom with Vue refs. The component handles mounting and disposal.
 
 ```vue
 <script setup lang="ts">
-import { Timescope, defineTimescopeOptions } from '@timescope/vue';
+import { Decimal, Timescope, defineTimescopeOptions } from '@timescope/vue';
 import { ref } from 'vue';
 
 const time = ref<Decimal | null>(Decimal(15));
@@ -38,7 +30,7 @@ const options = defineTimescopeOptions({
       { time: 30, value: 2 },
     ],
   },
-  series: { values: { data: { source: 'values', color: '#0d9488' }, chart: 'lines' } },
+  series: { values: { data: { source: 'values' }, chart: 'lines' } },
   tracks: { default: { timeAxis: { relative: true } } },
 });
 </script>
@@ -50,44 +42,20 @@ const options = defineTimescopeOptions({
 </template>
 ```
 
-## Vue-specific bindings
+| Task                               | Vue syntax                                                                                |
+| ---------------------------------- | ----------------------------------------------------------------------------------------- |
+| Set chart configuration and height | `:options="options"`; `options.style.height`                                              |
+| Update configuration               | `options.style = { height: '320px' }` with `defineTimescopeOptions` from `@timescope/vue` |
+| Bind a selection                   | `v-model:selection-range="selection"`; state type `[Decimal, Decimal] \| null`            |
+| Follow the clock                   | `time.value = null`                                                                       |
+| Run after the chart has a size     | `@ready="onReady"`                                                                        |
 
-| Purpose                         | Vue syntax                                   |
-| ------------------------------- | -------------------------------------------- |
-| Current time and zoom           | `v-model:time="time"`, `v-model:zoom="zoom"` |
-| Current selection               | `v-model:selection-range="selection"`        |
-| Read a drag's intermediate time | `@timechanging="value => ..."`               |
-| Read animation position         | `@timeanimating="value => ..."`              |
-| Drawable lifecycle              | `@ready="onReady"`, `@mount="onMount"`       |
+## Initial fit
 
-Event handlers receive the value directly. To fit the initial data instead of supplying the current position, start `time` and `zoom` as undefined refs and add `:initial-fit="[0, 30]"`.
-
-## Reactive configuration
-
-Import `defineTimescopeOptions()` from **`@timescope/vue`**. It makes the configuration reactive and preserves supplied DataSource instances for use with Vue reactivity. Replacing the options or changing nested reactive settings updates the chart:
-
-```ts
-options.style = { height: '320px' };
-```
-
-Use [source update methods](/guide/advanced/data) for incoming data rather than rebuilding the options on every sample.
-
-## Component refs
-
-For a one-off command such as fitting a range, attach a template ref:
+For a chart-managed view, omit the time and zoom bindings:
 
 ```vue
-<script setup lang="ts">
-import { Timescope } from '@timescope/vue';
-import { useTemplateRef } from 'vue';
-
-const chart = useTemplateRef('chart');
-</script>
-
-<template>
-  <Timescope ref="chart" :initial-fit="[0, 30]" />
-  <button type="button" @click="chart?.fitTo([0, 30])">Fit range</button>
-</template>
+<Timescope :options="options" :initial-fit="{ range: [0, 30], padding: 24 }" />
 ```
 
-The ref also exposes current and intermediate values, plus the [shared imperative methods](/guide/advanced/frameworks#lifecycle-and-imperative-controls).
+[Props, events, and ref methods](/api/frameworks) · [Options](/api/timescope-options) · [Data updates](/guide/advanced/data)

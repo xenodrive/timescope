@@ -49,20 +49,41 @@ export default defineConfig({
     nav: [
       {
         text: 'Guide',
-        link: '/guide/getting-started',
+        link: '/guide/',
       },
       { text: 'Examples', link: '/guide/examples/' },
-      { text: 'Advanced', link: '/guide/advanced/' },
-      { text: 'API', link: '/api/timescope' },
+      { text: 'API', link: '/api/' },
     ],
     socialLinks: [{ icon: 'github', link: 'https://github.com/xenodrive/timescope' }],
     sidebar: (() => {
       const shared = [
         {
           text: 'Guide',
+          link: '/guide/',
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Core Concepts', link: '/guide/concepts' },
+            {
+              text: 'Advanced',
+              link: '/guide/advanced/',
+              items: [
+                { text: 'Loading and Updating Data', link: '/guide/advanced/data' },
+                { text: 'Controlling Views', link: '/guide/advanced/views' },
+                { text: 'Rendering Backends', link: '/guide/advanced/backends' },
+              ],
+            },
+            {
+              text: 'Framework Bindings',
+              link: '/guide/advanced/frameworks',
+              collapsed: true,
+              items: [
+                { text: 'Vue', link: '/guide/advanced/frameworks/vue' },
+                { text: 'React', link: '/guide/advanced/frameworks/react' },
+                { text: 'Svelte', link: '/guide/advanced/frameworks/svelte' },
+                { text: 'Solid', link: '/guide/advanced/frameworks/solid' },
+                { text: 'Luna', link: '/guide/advanced/frameworks/luna' },
+              ],
+            },
           ],
         },
         {
@@ -74,30 +95,12 @@ export default defineConfig({
           ],
         },
         {
-          text: 'Advanced',
-          link: '/guide/advanced/',
-          items: [
-            {
-              text: 'Framework Bindings',
-              link: '/guide/advanced/frameworks',
-              items: [
-                { text: 'Vue', link: '/guide/advanced/frameworks/vue' },
-                { text: 'React', link: '/guide/advanced/frameworks/react' },
-                { text: 'Svelte', link: '/guide/advanced/frameworks/svelte' },
-                { text: 'Solid', link: '/guide/advanced/frameworks/solid' },
-                { text: 'Luna', link: '/guide/advanced/frameworks/luna' },
-              ],
-            },
-            { text: 'Loading and Updating Data', link: '/guide/advanced/data' },
-            { text: 'Controlling Views', link: '/guide/advanced/views' },
-            { text: 'Backends', link: '/guide/advanced/backends' },
-          ],
-        },
-        {
           text: 'API Reference',
+          link: '/api/',
           items: [
             { text: 'Timescope', link: '/api/timescope' },
             { text: 'Timescope Options', link: '/api/timescope-options' },
+            { text: 'Framework Components', link: '/api/frameworks' },
             { text: 'Decimal', link: '/api/decimal' },
             { text: 'Calendar', link: '/api/calendar' },
           ],

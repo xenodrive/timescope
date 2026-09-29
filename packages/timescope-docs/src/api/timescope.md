@@ -4,133 +4,189 @@ titleTemplate: Timescope API
 
 # Timescope
 
-The `Timescope` class manages rendering, user interaction, and data processing. Instances are created via the constructor and can be reconfigured using `setOptions` or `updateOptions`.
+```ts
+import { Timescope } from 'timescope';
+```
 
 ## Constructor
 
-```TypeScript
+```ts
 new Timescope(options?: TimescopeOptionsInitial<Sources, Series, Track>)
 ```
 
-Creates a new Timescope instance with the provided options.
-
 ### Options (constructor only)
 
-All other option fields are defined in [Timescope Options](/api/timescope-options).
+Configurable fields: [Timescope Options](/api/timescope-options).
 
-| Key                | Type                                                                         | Description                                                           |
-| ------------------ | ---------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `time`             | `TimescopeTimeLike`                                                          | Initial cursor time (use `setTime()` later).                          |
-| `fit`              | `[start, end] \| { range: [start, end], padding?: number \| [left, right] }` | Initial visible time range. Specify instead of `time` and `zoom`.     |
-| `timeRange`        | `[TimescopeTimeLike?, TimescopeTimeLike?]`                                   | Initial timeline bounds (use `setTimeRange()` later).                 |
-| `zoom`             | `TimescopeNumberLike`                                                        | Initial zoom (use `setZoom()` later).                                 |
-| `zoomRange`        | `[TimescopeNumberLike?, TimescopeNumberLike?]`                               | Initial zoom limits (use `setZoomRange()` later).                     |
-| `target`           | `HTMLElement \| string \| TimescopeCanvas`                                   | Mount target or an external canvas.                                   |
-| `backend`          | `TimescopeBackendChoice \| TimescopeBackendChoice[]`                         | Ordered backend candidates (Node: Skia then Canvas; browser: Canvas). |
-| `renderThread`     | `'worker' \| 'main'`                                                         | Rendering thread (auto-selected when omitted).                        |
-| `fonts`            | `(string \| { family, source, desc? })[]`                                    | CSS stylesheets or font definitions to load.                          |
-| `wheelSensitivity` | `number`                                                                     | Wheel delta per zoom level (default: `200`).                          |
-| `selection.range`  | `[TimescopeTimeLike, TimescopeTimeLike] \| null`                             | Initial selection only; use `setSelectionRange()` later.              |
+| Key                | Type                                                                                           | Default / contract                                                                                |
+| ------------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `time`             | `TimescopeTimeLike`                                                                            | `null`; initial cursor time                                                                       |
+| `zoom`             | `TimescopeNumberLike`                                                                          | `0`; initial zoom                                                                                 |
+| `fit`              | `[start, end] \| { range: [start, end], padding?: number \| [left, right] }`                   | Initial fit after sizing; endpoints `TimescopeTimeLike<never>`; incompatible with `time` / `zoom` |
+| `timeRange`        | `[TimescopeTimeLike \| undefined, TimescopeTimeLike \| undefined]`                             | `[undefined, null]`; unbounded past to current clock                                              |
+| `zoomRange`        | `[TimescopeNumberLike \| undefined, TimescopeNumberLike \| undefined]`                         | Both ends unbounded                                                                               |
+| `target`           | `Element \| string \| TimescopeCanvas`                                                         | Mount target; omitted for later `mount()`                                                         |
+| `backend`          | `'canvas' \| 'skia-canvas' \| readonly ('canvas' \| 'skia-canvas')[]`                          | First compatible candidate; browser default Canvas; Node.js default Skia then Canvas              |
+| `renderThread`     | `'worker' \| 'main'`                                                                           | Automatic; browser Worker when supported, otherwise main                                          |
+| `environment`      | `TimescopeEnvironment`                                                                         | Optional canvas-environment overrides                                                             |
+| `fonts`            | `(string \| { family: string, source: string \| BufferSource, desc?: FontFaceDescriptors })[]` | [Font inputs](#fonts)                                                                             |
+| `wheelSensitivity` | `number`                                                                                       | `200`; wheel delta per zoom level                                                                 |
+| `selection.range`  | `[TimescopeTimeLike<never>, TimescopeTimeLike<never>] \| null`                                 | `null`; initial selection                                                                         |
 
-`fit` is applied once when the canvas first has a size. `padding` is in CSS pixels: a number applies to both sides, or use `[left, right]`.
+| `fit` constraint | Value                                                                                |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| Range            | `start < end`                                                                        |
+| Padding          | Nonnegative finite CSS pixels; default `0`; scalar for both sides or `[left, right]` |
 
 #### Fonts
 
-Browser renderers always load the bundled `Timescope` font. When `fonts` is omitted, Timescope also loads fonts declared by accessible `@font-face` rules in the document. An empty array disables document font loading, but not the bundled font. String entries are CSS stylesheet URLs; object entries contain a font family, a CSS font source or `BufferSource`, and optional `FontFaceDescriptors`. The bundled font is not automatically registered with Skia Canvas in Node.js.
+| Input        | Additional loading                                                            |
+| ------------ | ----------------------------------------------------------------------------- |
+| Omitted      | Accessible document `@font-face` rules                                        |
+| `[]`         | None                                                                          |
+| String entry | CSS stylesheet URL                                                            |
+| Object entry | `family`, CSS font `source` or `BufferSource`, optional `FontFaceDescriptors` |
+
+| Environment | Bundled `Timescope` font     |
+| ----------- | ---------------------------- |
+| Browser     | Always loaded                |
+| Skia Canvas | Not automatically registered |
+
+### Input types
+
+| Type                           | Accepted values                                                                                     |
+| ------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `TimescopeNumberLike`          | `number`, numeric `string`, `bigint`, `Decimal`                                                     |
+| `TimescopeTimeLike`            | `number`, `bigint`, `Decimal`, date/time `string`, `Date`, `null`; `Date` converts to epoch seconds |
+| `TimescopeTimeLike<never>`     | Concrete time; excludes `null` and `undefined`                                                      |
+| `TimescopeTimeLike<undefined>` | Concrete time or an unbounded `undefined` endpoint                                                  |
+| `TimescopeCanvas`              | `{ width: number, height: number, getContext(type: '2d'): unknown }`                                |
+| `TimescopeEnvironment`         | Optional `requestAnimationFrame`, `cancelAnimationFrame`, `Path2D`, `fonts: FontFaceSet`            |
 
 ## Properties
 
-| Property                 | Type                                                           | Description                                                                               |
-| ------------------------ | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `time`                   | `Decimal \| null`                                              | Current cursor time                                                                       |
-| `timeChanging`           | `Decimal \| null`                                              | Cursor time during an active change                                                       |
-| `timeAnimating`          | `Decimal \| null`                                              | Cursor time during animation                                                              |
-| `timeRange`              | `[Decimal \| null \| undefined, Decimal \| null \| undefined]` | Time bounds                                                                               |
-| `zoom`                   | `number`                                                       | Current zoom value                                                                        |
-| `zoomChanging`           | `number`                                                       | Zoom during an active change                                                              |
-| `zoomAnimating`          | `number`                                                       | Zoom during animation                                                                     |
-| `zoomRange`              | `[number \| undefined, number \| undefined]`                   | Zoom limits                                                                               |
-| `selectionRange`         | `[Decimal, Decimal] \| null`                                   | Current selection range                                                                   |
-| `selectionRangeChanging` | `[Decimal, Decimal] \| null`                                   | Selection range during an active change                                                   |
-| `size`                   | `{ x, y, width, height, dpr }`                                 | Canvas position, dimensions, and DPR                                                      |
-| `disabled`               | `boolean`                                                      | Interaction enabled/disabled                                                              |
-| `animating`              | `boolean`                                                      | Cursor-time animation in progress                                                         |
-| `editing`                | `boolean`                                                      | Cursor time is being edited                                                               |
-| `options`                | `TimescopeOptions`                                             | Current reconfigurable configuration (excludes constructor-only fields and current state) |
-| `target`                 | `Element \| TimescopeCanvas \| null`                           | Backend's actual drawing target; null when unmounted                                      |
-| `canvas`                 | `TimescopeCanvas \| null`                                      | Canvas surface, if the backend uses one                                                   |
+| Property                 | Type                                                                   | Access / meaning                                                  |
+| ------------------------ | ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `time`                   | `Decimal \| null`                                                      | Read/write; selected time; `null` follows the clock               |
+| `timeChanging`           | `Decimal \| null`                                                      | Read; time during interaction                                     |
+| `timeAnimating`          | `Decimal \| null`                                                      | Read; time during animation                                       |
+| `timeRange`              | `[Decimal \| null \| undefined, Decimal \| null \| undefined]`         | Read; navigation bounds                                           |
+| `zoom`                   | `number`                                                               | Read/write; selected zoom                                         |
+| `zoomChanging`           | `number`                                                               | Read; zoom during interaction                                     |
+| `zoomAnimating`          | `number`                                                               | Read; zoom during animation                                       |
+| `zoomRange`              | `[number \| undefined, number \| undefined]`                           | Read; zoom bounds                                                 |
+| `selectionRange`         | `[Decimal, Decimal] \| null`                                           | Read; selected range                                              |
+| `selectionRangeChanging` | `[Decimal, Decimal] \| null`                                           | Read; selection during interaction                                |
+| `size`                   | `{ x: number, y: number, width: number, height: number, dpr: number }` | Read; viewport position, CSS-pixel dimensions, device pixel ratio |
+| `disabled`               | `boolean`                                                              | Read/write; `true` disables interaction; default `false`          |
+| `animating`              | `boolean`                                                              | Read; cursor-time animation active                                |
+| `editing`                | `boolean`                                                              | Read; cursor time being edited                                    |
+| `options`                | `TimescopeOptions`                                                     | Read; configurable options, excluding initial state               |
+| `target`                 | `Element \| TimescopeCanvas \| null`                                   | Read; actual drawing target, `null` when unmounted                |
+| `canvas`                 | `TimescopeCanvas \| null`                                              | Read; drawing canvas                                              |
 
 ## Methods
 
-| Method                        | Purpose                                                                                                   |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `setTime(value, animation?)`  | Update the cursor time. Pass `null` to follow "now". See [Animation](#animation).                         |
-| `setTimeRange(range?)`        | Constrain the time domain. Pass `undefined` to restore defaults.                                          |
-| `setZoom(value, animation?)`  | Set zoom programmatically. See [Animation](#animation).                                                   |
-| `setZoomRange(range?)`        | Clamp zoom to `[min, max]`.                                                                               |
-| `fitTo(range, options?)`      | Center and zoom to show `[start, end]` fully; defer until sized if necessary. Returns a boolean.          |
-| `setPlaybackTime(value)`      | Set the live-clock value used while `time` is `null`.                                                     |
-| `prepareView()`               | Create a pending view whose data can be fetched before activation. See [Prepared views](#prepared-views). |
-| `setSelectionRange(range)`    | Highlight `[start, end]` on the canvas. Pass `null` to clear it.                                          |
-| `clearSelectionRange()`       | Remove the selection overlay.                                                                             |
-| `setOptions(next)`            | Replace style, sources, or series at runtime.                                                             |
-| `updateOptions(next)`         | Merge partial option changes (e.g., swap a single chart) without recreating the whole Timescope instance. |
-| `reload(sources?)`            | Wait for the backend, then invalidate selected sources. Returns `Promise<boolean>`.                       |
-| `resize(width, height, dpr?)` | Wait for the backend, then resize an external canvas. Returns `Promise<boolean>`.                         |
-| `redraw()`                    | Request a renderer redraw.                                                                                |
-| `nextFrame()`                 | Request a frame and wait for drawing to finish; does not fetch new data.                                  |
-| `mount(target)`               | Mount the selected backend on a target. Returns `this`.                                                   |
-| `unmount()`                   | Unmount the backend and release its owned resources.                                                      |
-| `dispose()`                   | Release resources when Timescope is no longer needed.                                                     |
-| `on(event, handler)`          | Subscribe to events. Returns an unsubscribe function.                                                     |
+### Navigation
 
-`setOptions()` replaces the current configurable options; it has the same effect as supplying those options to the constructor, except for constructor-only initial state. `updateOptions()` applies partial changes while retaining omitted options. Set individual `sources`, `series`, `tracks`, or `domains` entries to `null` to remove them. Neither method changes the current selection range unless selection is explicitly disabled.
+| Signature                                                                                           | Returns   | Contract                                                              |
+| --------------------------------------------------------------------------------------------------- | --------- | --------------------------------------------------------------------- |
+| `setTime(value: TimescopeTimeLike, animation?: TimescopeAnimationInput)`                            | `boolean` | Set time; `null` follows the clock; `false` for invalid input         |
+| `setZoom(value: TimescopeNumberLike, animation?: TimescopeAnimationInput)`                          | `boolean` | Set zoom; `false` for invalid input                                   |
+| `setTimeRange(range?: [TimescopeTimeLike \| undefined, TimescopeTimeLike \| undefined])`            | `void`    | `undefined` restores `[undefined, null]`                              |
+| `setZoomRange(range?: [TimescopeNumberLike \| undefined, TimescopeNumberLike \| undefined])`        | `void`    | `undefined` removes limits                                            |
+| `fitTo(range: [TimescopeTimeLike<never>, TimescopeTimeLike<never>], options?: TimescopeFitOptions)` | `boolean` | Fit range, deferred until sized; `false` for invalid range or padding |
+| `setPlaybackTime(value: TimescopeTimeLike)`                                                         | `void`    | Clock used while `time` is `null`; `null` restores wall clock         |
+| `setSelectionRange(range: [TimescopeTimeLike<never>, TimescopeTimeLike<never>] \| null)`            | `void`    | Set or clear selection; ignored with `selection: false`               |
+| `clearSelectionRange()`                                                                             | `void`    | Clear selection                                                       |
+
+| `TimescopeFitOptions` field | Type                                      | Default                            |
+| --------------------------- | ----------------------------------------- | ---------------------------------- |
+| `animation`                 | `boolean`                                 | `true`                             |
+| `padding`                   | `number \| [left: number, right: number]` | `0`; nonnegative finite CSS pixels |
+
+### Configuration
+
+| Signature                                      | Returns            | Contract                                                                      |
+| ---------------------------------------------- | ------------------ | ----------------------------------------------------------------------------- |
+| `setOptions(next: TimescopeOptions)`           | `void`             | Replace configuration; omitted settings use defaults                          |
+| `updateOptions(patch: TimescopeUpdateOptions)` | `void`             | Merge settings; `null` removes a named source, series, track, or domain       |
+| `reload(sources?: string[])`                   | `Promise<boolean>` | Invalidate named sources, or all if omitted; `false` if unavailable or failed |
+
+| Constraint            | Rule                                                                              |
+| --------------------- | --------------------------------------------------------------------------------- |
+| Current state         | Time and zoom preserved; selection preserved unless explicitly disabled           |
+| Named references      | Every referenced source, track, and named domain must exist                       |
+| DataSource input      | Explicit source configuration replaces that source; a supplied instance is reused |
+| `reload()` completion | Invalidation requested; replacement data and drawing may still be pending         |
+
+### Rendering and lifecycle
+
+| Signature                                              | Returns                 | Contract                                                                         |
+| ------------------------------------------------------ | ----------------------- | -------------------------------------------------------------------------------- |
+| `prepareView()`                                        | `TimescopePreparedView` | Editable pending view                                                            |
+| `resize(width: number, height: number, dpr?: number)`  | `Promise<boolean>`      | Resize external canvas; DPR default `1`; `false` for automatic sizing or failure |
+| `redraw()`                                             | `Promise<void>`         | Request drawing; no data fetch                                                   |
+| `nextFrame()`                                          | `Promise<void>`         | Wait for a drawable mount and completed drawing; no data fetch                   |
+| `mount(target?: Element \| string \| TimescopeCanvas)` | `this`                  | Mount on a compatible target; built-in backends require a target                 |
+| `unmount()`                                            | `void`                  | Release the mounted chart; retain externally supplied canvas                     |
+| `dispose()`                                            | `void`                  | Release the instance                                                             |
+| `on(event, handler)`                                   | `() => void`            | Subscribe; returned function unsubscribes                                        |
 
 ### Animation
 
-| Value                            | Behavior                                 |
-| -------------------------------- | ---------------------------------------- |
-| `false`                          | Change immediately.                      |
-| `'in-out'`                       | Animate with a smooth start and end.     |
-| `'linear'`                       | Animate at a constant rate.              |
-| `'out'`                          | Animate with a slowing finish.           |
-| `{ animation, duration, lazy? }` | Set easing and duration in milliseconds. |
-
-When omitted, `setTime()` uses `'out'` for 500 ms and `setZoom()` uses `'linear'` for 200 ms. Explicit easing strings use 500 ms.
+| `TimescopeAnimationInput`                  | Contract                                                                                                                                  |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `false`                                    | Immediate change                                                                                                                          |
+| `'in-out'`                                 | Smooth start and end; 500 ms                                                                                                              |
+| `'linear'`                                 | Constant rate; 500 ms                                                                                                                     |
+| `'out'`                                    | Slowing finish; 500 ms                                                                                                                    |
+| `{ animation, duration, lazy?, tangent? }` | `animation`: easing name or `false`; `duration`: milliseconds; `lazy`: commit value after animation; `tangent`: initial slope for `'out'` |
+| Omitted for `setTime()`                    | `'out'`, 500 ms                                                                                                                           |
+| Omitted for `setZoom()`                    | `'linear'`, 200 ms                                                                                                                        |
 
 ### Prepared views
 
-`prepareView()` creates a draft of the next view. Call `view.setTime()`, `view.setZoom()`, or `view.setPlaybackTime()` to set its target without changing Timescope's current state. Creating or editing a draft does not pause rendering or begin loading; ordinary Timescope setters keep working normally.
+| `TimescopePreparedView` member | Returns / type  | Contract                                                                            |
+| ------------------------------ | --------------- | ----------------------------------------------------------------------------------- |
+| `signal`                       | `AbortSignal`   | Readonly cancellation signal                                                        |
+| `setTime(value, animation?)`   | `boolean`       | Draft time; same arguments as `Timescope.setTime()`                                 |
+| `setZoom(value, animation?)`   | `boolean`       | Draft zoom; same arguments as `Timescope.setZoom()`                                 |
+| `setPlaybackTime(value)`       | `void`          | Draft clock; same argument as `Timescope.setPlaybackTime()`                         |
+| `fetch()`                      | `Promise<void>` | Load required data and activate the view; drawing completion requires `nextFrame()` |
+| `abort(reason?: unknown)`      | `void`          | Cancel the draft or fetch; default reason `AbortError`                              |
 
-`await view.fetch()` begins the transaction: it captures the current viewport with the draft's changes, holds presentation of the target view, and waits for every required data source and cache to prepare that target. On success it activates the target data and state together and schedules drawing. It **does not** wait for the scheduled drawing to finish; use `await timescope.nextFrame()` if you need the pixels. Only one view can be fetching at a time. `view.abort()` discards a draft or cancels a fetch. Ordinary setters, option changes, resizing, user interaction, or unmounting also cancel an active fetch. Use `view.signal` or handle an `AbortError` when cancellation matters.
+| Condition                                                               | Result                              |
+| ----------------------------------------------------------------------- | ----------------------------------- |
+| Edit after `fetch()` or `abort()`                                       | `InvalidStateError`                 |
+| Fetch without a mount, or while another view is fetching                | Rejected with `InvalidStateError`   |
+| Navigation, interaction, option change, resize, or unmount during fetch | Rejected with `AbortError`          |
+| Data acquisition failure                                                | Rejected with the acquisition error |
 
 ## Events
 
-| Event                    | `event.value`                | Timing                                                                                |
-| ------------------------ | ---------------------------- | ------------------------------------------------------------------------------------- |
-| `timechanging`           | `Decimal \| null`            | Fired while the cursor time is changing.                                              |
-| `timechanged`            | `Decimal \| null`            | Fired when the cursor time changes.                                                   |
-| `timeanimating`          | `Decimal \| null`            | Fired for cursor-time values during animation.                                        |
-| `timeanimated`           | `Decimal \| null`            | Fired when cursor-time animation finishes.                                            |
-| `zoomchanging`           | `number`                     | Fired while zoom is changing.                                                         |
-| `zoomchanged`            | `number`                     | Fired when zoom changes.                                                              |
-| `zoomanimating`          | `number`                     | Fired for zoom values during animation.                                               |
-| `zoomanimated`           | `number`                     | Fired when zoom animation finishes.                                                   |
-| `selectionrangechanging` | `[Decimal, Decimal] \| null` | Fired while the selection range is changing.                                          |
-| `selectionrangechanged`  | `[Decimal, Decimal] \| null` | Fired when the selection range changes or clears.                                     |
-| `mount`                  | `'mount'`                    | The renderer is initialized and its target has a non-zero size; fires once per mount. |
-| `ready`                  | `'ready'`                    | The first mount becomes drawable; fires once per Timescope instance.                  |
-| `unmount`                | `'unmount'`                  | A mounted canvas was removed.                                                         |
-| `error`                  | `Error`                      | Backend selection or initialization failed.                                           |
-| `resize`                 | `'resize'`                   | Canvas size or device pixel ratio changed.                                            |
-| `change`                 | `'change'`                   | Observable state changed.                                                             |
+Value-event payload: `{ type, value, origin? }`.
 
-Selection is resizable by default. Shift-drag creates a range; set `selection: false` to disable it. The methods above also update the overlay programmatically.
+| Event                    | `value`                      | Timing                                     |
+| ------------------------ | ---------------------------- | ------------------------------------------ |
+| `timechanging`           | `Decimal \| null`            | Cursor time changing                       |
+| `timechanged`            | `Decimal \| null`            | Selected time committed                    |
+| `timeanimating`          | `Decimal \| null`            | Cursor-time animation progressing          |
+| `timeanimated`           | `Decimal \| null`            | Cursor-time animation finished             |
+| `zoomchanging`           | `number`                     | Zoom changing                              |
+| `zoomchanged`            | `number`                     | Selected zoom committed                    |
+| `zoomanimating`          | `number`                     | Zoom animation progressing                 |
+| `zoomanimated`           | `number`                     | Zoom animation finished                    |
+| `selectionrangechanging` | `[Decimal, Decimal] \| null` | Selection changing                         |
+| `selectionrangechanged`  | `[Decimal, Decimal] \| null` | Selection committed or cleared             |
+| `error`                  | `Error`                      | Backend selection or initialization failed |
 
-Value events call the handler with `{ type, value, origin? }`. Lifecycle and `change` events call it with the event-name string. `on()` returns an unsubscribe function.
+Lifecycle-event payload: the event-name string.
 
-## See Also
-
-- [Timescope Options](/api/timescope-options)
-- [Chunk Loading](/guide/concepts#chunk-loading)
-- [Events example](/guide/examples/#events)
+| Event     | Timing                                                       |
+| --------- | ------------------------------------------------------------ |
+| `ready`   | First drawable mount with a non-zero size; once per instance |
+| `mount`   | Each drawable mount with a non-zero size                     |
+| `unmount` | Mounted chart removed                                        |
+| `resize`  | Canvas size or device pixel ratio changed                    |
+| `change`  | Observable state changed                                     |

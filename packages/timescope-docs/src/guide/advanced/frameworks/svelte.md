@@ -2,38 +2,36 @@
 title: Svelte
 ---
 
-<script setup>
-import ChartPreview from './chart-preview.vue';
-</script>
-
 # Svelte
 
-Use Svelte 5 state and `bind:` to synchronize the view. The [shared binding guide](/guide/advanced/frameworks) covers configuration, initial views, and lifecycle rules.
-
-## Install
+Install and use `@timescope/svelte` instead of `timescope`. It provides the Svelte component and re-exports the core helpers and types, so a separate `timescope` installation is not needed.
 
 ```bash
 npm install @timescope/svelte
 ```
 
-## Chart and two-way bindings
+## Component
 
-<ChartPreview />
-
-Dragging and scrolling update the bound state. Assigning to `time` from the button moves the chart in the other direction.
+Use Svelte 5's `bind:` to synchronize time and zoom with `$state`. The component handles mounting and disposal.
 
 ```svelte
 <script lang="ts">
-  import { Decimal, Timescope, type TimescopeOptions } from '@timescope/svelte';
+  import { Decimal, Timescope, defineTimescopeOptions } from '@timescope/svelte';
 
   let time = $state<Decimal | null>(Decimal(15));
   let zoom = $state(3);
-  const options = {
+  const options = defineTimescopeOptions({
     style: { height: '240px' },
-    sources: { values: [{ time: 0, value: 1 }, { time: 15, value: 3 }, { time: 30, value: 2 }] },
-    series: { values: { data: { source: 'values', color: '#0d9488' }, chart: 'lines' } },
+    sources: {
+      values: [
+        { time: 0, value: 1 },
+        { time: 15, value: 3 },
+        { time: 30, value: 2 },
+      ],
+    },
+    series: { values: { data: { source: 'values' }, chart: 'lines' } },
     tracks: { default: { timeAxis: { relative: true } } },
-  } satisfies TimescopeOptions;
+  });
 </script>
 
 <Timescope {options} bind:time bind:zoom />
@@ -41,49 +39,21 @@ Dragging and scrolling update the bound state. Assigning to `time` from the butt
 <output>Time: {time?.toString() ?? 'live'} · Zoom: {zoom.toFixed(2)}</output>
 ```
 
-## Bindings and component events
+| Task                               | Svelte syntax                                                  |
+| ---------------------------------- | -------------------------------------------------------------- |
+| Set chart configuration and height | `{options}`; `options.style.height`                            |
+| Update configuration               | Store options in `$state.raw` and assign a new complete object |
+| Bind a selection                   | `bind:selectionRange`; state type `[Decimal, Decimal] \| null` |
+| Follow the clock                   | `time = null`                                                  |
+| Run after the chart has a size     | `on:ready={onReady}`                                           |
+| Read an intermediate time          | `on:timechanging={event => preview = event.detail}`            |
 
-| Purpose                | Svelte syntax                              |
-| ---------------------- | ------------------------------------------ |
-| Current time and zoom  | `bind:time`, `bind:zoom`                   |
-| Current selection      | `bind:selectionRange`                      |
-| Read intermediate time | `on:timechanging={event => ...}`           |
-| Drawable lifecycle     | `on:ready={onReady}`, `on:mount={onMount}` |
+## Initial fit
 
-The binding uses component events: read their value from **`event.detail`**. For example, `on:timechanging={event => preview = event.detail}` updates a separate intermediate readout. Use ordinary `onclick` for your own HTML buttons, as above.
-
-To fit on creation, initialize the bound `time` and `zoom` to undefined and add `initialFit={[0, 30]}`. The fitted values flow back into the bindings.
-
-## Replace reactive options
-
-For settings that change, store options in `$state.raw` and assign a new complete configuration. Keep supplied DataSource instances stable:
-
-```ts
-let options = $state.raw<TimescopeOptions>({
-  style: { height: '240px' },
-  sources: { values: source },
-  series: { values: { data: { source: 'values' }, chart: 'lines' } },
-});
-
-function resizeChart() {
-  options = { ...options, style: { height: '320px' } };
-}
-```
-
-Here `source` is a DataSource created for this chart. Replacing the object applies the new configuration; use [source methods](/guide/advanced/data) for data updates.
-
-## Component instance
-
-Use `bind:this` for imperative controls:
+For a chart-managed view, omit the time and zoom bindings:
 
 ```svelte
-<script lang="ts">
-  import { Timescope, type TimescopeAPI } from '@timescope/svelte';
-  let chart: TimescopeAPI | undefined;
-</script>
-
-<Timescope bind:this={chart} initialFit={[0, 30]} />
-<button type="button" onclick={() => chart?.fitTo([0, 30])}>Fit range</button>
+<Timescope {options} initialFit={{ range: [0, 30], padding: 24 }} />
 ```
 
-The instance exposes the [shared imperative methods](/guide/advanced/frameworks#lifecycle-and-imperative-controls).
+[Props, events, and ref methods](/api/frameworks) · [Options](/api/timescope-options) · [Data updates](/guide/advanced/data)

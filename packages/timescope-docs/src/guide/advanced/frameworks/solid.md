@@ -2,28 +2,20 @@
 title: Solid
 ---
 
-<script setup>
-import ChartPreview from './chart-preview.vue';
-</script>
-
 # Solid
 
-Pass signal values in JSX and use callbacks to update the signals. The [shared binding guide](/guide/advanced/frameworks) covers configuration, initial views, and lifecycle rules.
-
-## Install
+Install and use `@timescope/solid` instead of `timescope`. It provides the Solid component and re-exports the core helpers and types, so a separate `timescope` installation is not needed.
 
 ```bash
 npm install @timescope/solid
 ```
 
-## Chart and signal state
+## Component
 
-<ChartPreview />
-
-Read `time()` and `zoom()` where the component needs their values. Chart interactions update the signals through callbacks; the button updates the same time signal.
+Read signal values in JSX and pass change callbacks to synchronize chart interactions with Solid signals. The component handles mounting and disposal; callbacks receive values directly.
 
 ```tsx
-import { Timescope, defineTimescopeOptions, Decimal } from '@timescope/solid';
+import { Decimal, Timescope, defineTimescopeOptions } from '@timescope/solid';
 import { createSignal } from 'solid-js';
 
 const options = defineTimescopeOptions({
@@ -35,11 +27,11 @@ const options = defineTimescopeOptions({
       { time: 30, value: 2 },
     ],
   },
-  series: { values: { data: { source: 'values', color: '#0d9488' }, chart: 'lines' } },
+  series: { values: { data: { source: 'values' }, chart: 'lines' } },
   tracks: { default: { timeAxis: { relative: true } } },
 });
 
-function Chart() {
+export default function Chart() {
   const [time, setTime] = createSignal<Decimal | null>(Decimal(15));
   const [zoom, setZoom] = createSignal(3);
 
@@ -57,36 +49,21 @@ function Chart() {
 }
 ```
 
-## Read values in JSX
+| Task                           | Solid syntax                                                                       |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| Bind time and zoom             | `time={time()}`, `zoom={zoom()}` with their change callbacks                       |
+| Bind a selection               | `selectionRange={selection()}` and `onSelectionRangeChanged={setSelection}`        |
+| Update configuration           | Return a new complete options object from `createMemo`; pass `options={options()}` |
+| Follow the clock               | `setTime(null)`                                                                    |
+| Run after the chart has a size | `onReady={onReady}`                                                                |
+| Style the host element         | `class` and `style`; chart height goes in `options.style.height`                   |
 
-| Value prop                     | Change callback                          |
-| ------------------------------ | ---------------------------------------- |
-| `time={time()}`                | `onTimeChanged={setTime}`                |
-| `zoom={zoom()}`                | `onZoomChanged={setZoom}`                |
-| `selectionRange={selection()}` | `onSelectionRangeChanged={setSelection}` |
+## Initial fit
 
-Pass **values**, such as `time={time()}`, rather than the accessor function. Keep reactive reads in JSX or another reactive context so later signal changes reach the chart.
-
-Callbacks receive values directly. `onTimeChanging` and `onTimeAnimating` provide intermediate positions; `onReady` and `onMount` report drawable lifecycle events.
-
-To fit initially, start the time and zoom signals as undefined and pass `initialFit={[0, 30]}`. Use the signals for subsequent navigation.
-
-## Derived configuration
-
-Use a memo for options derived from signals, returning a new configuration when a setting changes:
+For a chart-managed view, omit the time and zoom props:
 
 ```tsx
-const options = createMemo(() =>
-  defineTimescopeOptions({
-    style: { height: '240px' },
-    sources: { values: source },
-    series: { values: { data: { source: 'values', color: color() }, chart: 'lines' } },
-  }),
-);
-
-return <Timescope options={options()} initialFit={[0, 30]} />;
+<Timescope options={options} initialFit={{ range: [0, 30], padding: 24 }} />
 ```
 
-Import `createMemo` from `solid-js`. Here `source` is a stable DataSource and `color` is a signal accessor. Pass the memo's value as `options={options()}`. Replace the options object to apply changes instead of mutating a plain nested field.
-
-The Solid component also accepts `class` and `style` for its host element. Use `options.style` for the chart's own dimensions and background.
+[Props and callbacks](/api/frameworks) · [Options](/api/timescope-options) · [Data updates](/guide/advanced/data)

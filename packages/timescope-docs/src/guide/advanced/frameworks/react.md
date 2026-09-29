@@ -2,31 +2,23 @@
 title: React
 ---
 
-<script setup>
-import ChartPreview from './chart-preview.vue';
-</script>
-
 # React
 
-Pair value props with callbacks to synchronize React state. The [shared binding guide](/guide/advanced/frameworks) covers configuration, initial views, and lifecycle rules.
-
-## Install
+Install and use `@timescope/react` instead of `timescope`. It provides the React component and re-exports the core helpers and types, so a separate `timescope` installation is not needed.
 
 ```bash
 npm install @timescope/react
 ```
 
-## Chart and state callbacks
+## Component
 
-<ChartPreview />
-
-The chart reports time and zoom to `useState`. The button changes the time from React; dragging and scrolling update the readout through the same state.
+Pair time and zoom props with change callbacks to keep React state synchronized with chart interactions. The component handles mounting and disposal; callbacks receive values directly.
 
 ```tsx
-import { Timescope, Decimal, type TimescopeOptions } from '@timescope/react';
+import { Decimal, Timescope, defineTimescopeOptions } from '@timescope/react';
 import { useState } from 'react';
 
-const options = {
+const options = defineTimescopeOptions({
   style: { height: '240px' },
   sources: {
     values: [
@@ -35,11 +27,11 @@ const options = {
       { time: 30, value: 2 },
     ],
   },
-  series: { values: { data: { source: 'values', color: '#0d9488' }, chart: 'lines' } },
+  series: { values: { data: { source: 'values' }, chart: 'lines' } },
   tracks: { default: { timeAxis: { relative: true } } },
-} satisfies TimescopeOptions;
+});
 
-function Chart() {
+export default function Chart() {
   const [time, setTime] = useState<Decimal | null>(Decimal(15));
   const [zoom, setZoom] = useState(3);
 
@@ -57,54 +49,20 @@ function Chart() {
 }
 ```
 
-## Props and callbacks
+| Task                               | React syntax                                                                                   |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Set chart configuration and height | `options={options}`; `options.style.height`                                                    |
+| Update configuration               | Pass a new complete options object; keep static options outside the component or use `useMemo` |
+| Bind a selection                   | `selectionRange={selection}` and `onSelectionRangeChanged={setSelection}`                      |
+| Follow the clock                   | `setTime(null)`                                                                                |
+| Run after the chart has a size     | `onReady={onReady}`                                                                            |
 
-| Value prop       | Change callback           |
-| ---------------- | ------------------------- |
-| `time`           | `onTimeChanged`           |
-| `zoom`           | `onZoomChanged`           |
-| `selectionRange` | `onSelectionRangeChanged` |
+## Initial fit
 
-Callbacks receive values directly. Use `onTimeChanging` or `onTimeAnimating` for an intermediate-position readout, and `onReady` or `onMount` for drawable lifecycle notifications.
-
-To fit a range on creation, start both state values as undefined and pass `initialFit={[0, 30]}`. The resulting time and zoom arrive through the change callbacks.
-
-## Stable options across renders
-
-Keep a static options object outside the component, as above. If it depends on props or state, use `useMemo` and create a new object when those settings change:
+For a chart-managed view, omit the time and zoom props:
 
 ```tsx
-const options = useMemo<TimescopeOptions>(
-  () => ({
-    style: { height: '240px' },
-    sources: { values: source },
-    series: { values: { data: { source: 'values', color }, chart: 'lines' } },
-  }),
-  [source, color],
-);
+<Timescope options={options} initialFit={{ range: [0, 30], padding: 24 }} />
 ```
 
-Import `useMemo` from `react`. Here `source` is a stable DataSource and `color` is the desired series color. Mutating a nested field of an unchanged options object does not trigger a configuration update.
-
-## Imperative ref
-
-The binding exports `TimescopeAPI` for a component ref:
-
-```tsx
-import { Timescope, type TimescopeAPI } from '@timescope/react';
-import { useRef } from 'react';
-
-function ChartControls() {
-  const chart = useRef<TimescopeAPI>(null);
-  return (
-    <>
-      <Timescope ref={chart} initialFit={[0, 30]} />
-      <button type="button" onClick={() => chart.current?.fitTo([0, 30])}>
-        Fit range
-      </button>
-    </>
-  );
-}
-```
-
-See the [shared imperative methods](/guide/advanced/frameworks#lifecycle-and-imperative-controls) for commands available on this ref.
+[Props, callbacks, and ref methods](/api/frameworks) · [Options](/api/timescope-options) · [Data updates](/guide/advanced/data)

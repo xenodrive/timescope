@@ -4,106 +4,69 @@ title: Controlling Views
 
 # Controlling Views
 
-Applications often need to navigate to a result, change chart settings, or wait for a complete view before taking an image. Use current-state methods for navigation, configuration methods for chart settings, and prepared views when data must be ready before a view is presented.
-
-The snippets below use a mounted `Timescope` instance named `timescope`. For component props and refs, see [Framework Bindings](/guide/advanced/frameworks).
-
-## Navigate and fit a range
-
-```ts
-timescope.setTime('2026-01-15T10:00:00Z');
-timescope.setZoom(2);
-
-timescope.fitTo(['2026-01-15T10:00:00Z', '2026-01-15T11:00:00Z'], { padding: [24, 48] });
-```
-
-`fitTo()` chooses time and zoom so the interval fits inside the view. Padding is in CSS pixels. If the chart has no size yet, fitting is deferred until it does. Use the constructor's `fit` option, or a binding's `initialFit`, for a one-time initial fit.
-
-`setTime()` and `setZoom()` animate by default. Pass `false` as the second argument for an immediate change, or choose easing and duration:
-
-```ts
-timescope.setTime(30, false);
-timescope.setZoom(4, { animation: 'in-out', duration: 300 });
-```
-
-Constrain navigation with `setTimeRange([start, end])` and `setZoomRange([min, max])`. Selection is separate from navigation: `setSelectionRange([start, end])` highlights a range without fitting it, and `clearSelectionRange()` removes the highlight.
-
-See [Animation](/api/timescope#animation) and [Events](/api/timescope#events) for intermediate values and notifications.
+The snippets use a mounted `Timescope` instance named `timescope`. For basic navigation and fitting, see [Getting Started](/guide/getting-started#view-control).
 
 ## Follow a live or playback clock
 
-`time = null` follows the live clock. Setting a concrete time leaves follow mode:
+Set time to `null` to keep the chart following a clock. The default is wall-clock time; supply playback time to synchronize with media or a recorded signal.
 
 ```ts
 timescope.setTime(null, false); // Follow the clock.
-timescope.setTime(30, false); // Stay at a selected time.
+timescope.setTime(30, false); // Stay at time 30.
+
+timescope.setPlaybackTime(12.5); // Playback time, in the data's time units.
+timescope.setTime(null, false); // Follow playback.
+timescope.setPlaybackTime(12.6); // Advance playback.
+timescope.setPlaybackTime(null); // Return to the wall clock.
 ```
-
-For replay or media synchronization, supply a playback clock in the same time units as your data:
-
-```ts
-timescope.setPlaybackTime(12.5);
-timescope.setTime(null, false);
-
-// As playback advances:
-timescope.setPlaybackTime(12.6);
-
-// Return to the wall clock:
-timescope.setPlaybackTime(null);
-```
-
-Updating the playback clock affects the followed position only while `time` is `null`. Appending data and advancing the clock are separate operations; see [Append live points](/guide/advanced/data#append-live-points).
 
 ## Update chart configuration
 
-Use `updateOptions()` for a partial change:
+Change configuration when users switch chart styles, choose series, or adjust the layout. Use a partial update for a local change, or replace the options when your application holds the complete desired configuration.
+
+| Method                 | Configuration                                        |
+| ---------------------- | ---------------------------------------------------- |
+| `updateOptions(patch)` | Merge changes; retain omitted settings               |
+| `setOptions(next)`     | Replace configuration; omitted settings use defaults |
 
 ```ts
 timescope.updateOptions({
-  series: {
-    temperature: { chart: 'lines:filled' },
-  },
+  series: { temperature: { chart: 'lines:filled' } },
 });
-```
 
-Omitted settings remain in place. To remove a named source, series, track, or domain, set that entry to `null`. Remove or update its consumers in the same call so no series refers to a missing entry:
-
-```ts
+// Remove a source and its dependent series together.
 timescope.updateOptions({
   series: { temperature: null },
   sources: { measurements: null },
 });
 ```
 
-Use `setOptions(next)` when `next` is the complete desired configuration. Settings omitted from it return to their defaults. Framework bindings use this replacement behavior for their `options` prop.
-
-Neither method resets current time or zoom. Current selection is also preserved unless selection is explicitly disabled. Use the corresponding state setters to change the view.
-
-For data updates, prefer the source operations in [Loading and Updating Data](/guide/advanced/data). Explicitly configuring a source again recreates it; passing a stable DataSource instance lets presentation changes reuse it.
+Current time and zoom are preserved. For incoming samples: [Loading and Updating Data](/guide/advanced/data).
 
 ## Wait for data and drawing
 
-Different operations provide different guarantees:
+Before exporting an image, wait for both the view's data and its drawing to finish. A prepared view also lets you choose a different time and zoom before presenting that view.
 
-| Operation or event            | What it guarantees                                                    |
-| ----------------------------- | --------------------------------------------------------------------- |
-| `ready` / `mount`             | The chart is drawable and has a non-zero size                         |
-| `reload()`                    | Source invalidation has been requested                                |
-| `await view.fetch()`          | The prepared view's required data is ready and its state is activated |
-| `await timescope.nextFrame()` | A requested frame has finished drawing; it does not fetch data        |
+```text
+prepareView() → edit draft → await fetch() → await nextFrame() → export pixels
+                              data ready       drawing done
+```
 
-To load and draw the current view completely:
+| Operation or event   | Completion guarantee                           |
+| -------------------- | ---------------------------------------------- |
+| `ready` / `mount`    | Drawable chart with a non-zero size            |
+| `await reload()`     | Source invalidation requested                  |
+| `await view.fetch()` | Required data ready; prepared view activated   |
+| `await nextFrame()`  | Requested frame drawn; no data-fetch guarantee |
+
+Current view:
 
 ```ts
 await timescope.prepareView().fetch();
 await timescope.nextFrame();
 ```
 
-Use this sequence before exporting pixels, as in the [Node.js PNG example](/guide/advanced/backends#render-a-png-in-node-js).
-
-### Prepare a different view
-
-A prepared view is a draft. Set its target time and zoom without immediately moving the current view:
+Different view:
 
 ```ts
 const view = timescope.prepareView();
@@ -113,35 +76,26 @@ view.setZoom(3, false);
 try {
   await view.fetch();
   await timescope.nextFrame();
-  // The prepared view has been activated and drawn.
 } catch (error) {
   if (!(error instanceof Error && error.name === 'AbortError')) throw error;
-  // Navigation or another change superseded this request.
 }
 ```
 
-Creating and editing the draft does not load data or pause ordinary chart interaction. `fetch()` captures the current viewport with the draft's changes, loads the required data, then activates the data and state together. It schedules drawing; `nextFrame()` supplies the separate drawing guarantee.
+Navigation or view changes cancel an active fetch. Keep the view and size stable during export.
 
-### Cancellation
+[Prepared-view methods and cancellation](/api/timescope#prepared-views) · [Node.js PNG export](/guide/advanced/backends#render-a-png-in-node-js)
 
-Only one prepared view can be fetching at a time. Call `view.abort()` to discard a draft or cancel its fetch. Navigation, user interaction, option changes, resizing, or unmounting also cancel an active fetch; handle `AbortError` when those are expected. `view.signal` exposes cancellation to your application.
+## Cleanup
 
-For exports, keep the target size and view stable until both loading and drawing finish. For interactive navigation, allow a newer action to supersede a pending view rather than treating cancellation as a loading failure.
-
-## Release application resources
-
-Core event subscriptions return an unsubscribe function:
+Release the chart when its container is removed, and unsubscribe listeners when their application controls are no longer active. Framework components handle chart disposal through their own lifecycle.
 
 ```ts
 const stop = timescope.on('timechanged', ({ value }) => {
-  console.log('Selected time:', value?.toString() ?? 'live');
+  console.log(value?.toString() ?? 'live');
 });
 
-// When this subscriber is removed:
-stop();
-
-// When the whole chart is removed:
-timescope.dispose();
+stop(); // Remove this subscription.
+timescope.dispose(); // Release the chart.
 ```
 
-Also stop application-owned timers, playback listeners, and data producers when removing their chart. Framework bindings dispose their Timescope instance automatically.
+Stop application-owned timers and data producers when removing the component.
