@@ -27,18 +27,18 @@
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.1",
-    "@eslint/js": "^9.39.0",
+    "@eslint/js": "^9.39.5",
     "@kikuchan/calendar": "^0.2.0",
     "@kikuchan/decimal": "^0.2.0",
-    "@luna_ui/luna": "^0.23.0",
-    "eslint": "^9.39.0",
+    "@luna_ui/luna": "^0.23.2",
+    "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
-    "prettier": "^3.9.6",
+    "prettier": "^3.9.9",
     "prettier-plugin-organize-imports": "^4.3.0",
+    "timescope": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.70.0",
-    "timescope": "workspace:*"
+    "typescript-eslint": "^8.71.0"
   },
   "peerDependencies": {
     "@kikuchan/calendar": "^0.2.0",

@@ -107,12 +107,13 @@ describe('canvas targets', () => {
     const canvas = new Canvas(80, 40);
     const handleSyncEvent = TimescopeViewport.prototype.handleSyncEvent;
     let viewport: TimescopeViewport | undefined;
-    const sync = vi
-      .spyOn(TimescopeViewport.prototype, 'handleSyncEvent')
-      .mockImplementation(function (this: TimescopeViewport, message) {
-        handleSyncEvent.call(this, message);
-        viewport = this;
-      });
+    const sync = vi.spyOn(TimescopeViewport.prototype, 'handleSyncEvent').mockImplementation(function (
+      this: TimescopeViewport,
+      message,
+    ) {
+      handleSyncEvent.call(this, message);
+      viewport = this;
+    });
     const timescope = new Timescope({ target: canvas, time: 5.99, fonts: [] });
     try {
       timescope.setPlaybackTime(5.99);
