@@ -12,6 +12,7 @@ import type { RenderCall, RenderNotify } from '#src/bridge/rpc';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
 import { resolutionFor } from '#src/core/zoom';
+import { bundledFont } from '#src/main/bundledFont';
 import { resolveDocumentFonts, resolveFonts } from '#src/main/font';
 import type { TimescopeFont } from '#src/main/font';
 import type { InteractionInfo } from '#src/main/interaction';
@@ -138,6 +139,11 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
 
   protected attach(connection: TimescopeRendererConnection, fonts?: (string | TimescopeFont)[]) {
     this.#connection = connection;
+    if (typeof document !== 'undefined' && typeof FontFace !== 'undefined') {
+      void this.call('fonts', [bundledFont()]).catch((error) => {
+        if (!this.#disposed) console.error('Failed to initialize bundled font', error);
+      });
+    }
     void this.setFonts(fonts).catch((error) => {
       if (!this.#disposed) console.error('Failed to initialize fonts', error);
     });

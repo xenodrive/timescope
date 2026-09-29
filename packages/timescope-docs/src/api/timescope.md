@@ -36,7 +36,7 @@ All other option fields are defined in [Timescope Options](/api/timescope-option
 
 #### Fonts
 
-When `fonts` is omitted, Timescope loads fonts declared by accessible `@font-face` rules in the document. An empty array disables document font loading. String entries are CSS stylesheet URLs; object entries contain a font family, a CSS font source or `BufferSource`, and optional `FontFaceDescriptors`.
+Browser renderers always load the bundled `Timescope` font. When `fonts` is omitted, Timescope also loads fonts declared by accessible `@font-face` rules in the document. An empty array disables document font loading, but not the bundled font. String entries are CSS stylesheet URLs; object entries contain a font family, a CSS font source or `BufferSource`, and optional `FontFaceDescriptors`. The bundled font is not automatically registered with Skia Canvas in Node.js.
 
 ## Properties
 

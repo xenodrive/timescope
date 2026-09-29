@@ -11,8 +11,10 @@ export class TimescopeYAxisLayer extends TimescopeLayer {
     forEachTrack(timescope, (_id, track) => {
       const left = track.axes.filter((axis) => axis.side === 'left');
       const right = track.axes.filter((axis) => axis.side === 'right');
-      left.forEach((axis, index) => this.#renderAxis(timescope, track, axis, index));
-      right.forEach((axis, index) => this.#renderAxis(timescope, track, axis, index));
+      let leftOffset = 0;
+      let rightOffset = 0;
+      for (const axis of left) leftOffset += this.#renderAxis(timescope, track, axis, leftOffset);
+      for (const axis of right) rightOffset += this.#renderAxis(timescope, track, axis, rightOffset);
     });
   }
 
@@ -20,11 +22,11 @@ export class TimescopeYAxisLayer extends TimescopeLayer {
     timescope: TimescopeRenderingContext,
     track: TimescopeTrack,
     axis: TimescopeYAxisData['data'],
-    index: number,
+    offset: number,
   ) {
     const ctx = timescope.ctx;
     const left = axis.side === 'left';
-    const x = left ? index * Y_AXIS_WIDTH + 0.5 : timescope.size.width - index * Y_AXIS_WIDTH - 0.5;
+    const x = left ? offset + 0.5 : timescope.size.width - offset - 0.5;
     const direction = left ? 1 : -1;
 
     ctx.save();
@@ -33,7 +35,8 @@ export class TimescopeYAxisLayer extends TimescopeLayer {
     ctx.lineWidth = 1;
     ctx.font = resolveFont(axis.font, { weight: 'normal', size: 11, family: DEFAULT_FONT_FAMILY });
     ctx.textBaseline = 'middle';
-    ctx.textAlign = left ? 'left' : 'right';
+    ctx.textAlign = 'right';
+    const maxTickWidth = Math.max(0, ...axis.ticks.map((tick) => ctx.measureText(tick.text).width));
 
     const floating = track.fadeForDomain(axis.id);
     const bottom = floating > 0 ? Math.min(track.bottom, track.y0 - floating) : track.bottom;
@@ -65,14 +68,16 @@ export class TimescopeYAxisLayer extends TimescopeLayer {
     ctx.stroke();
 
     for (const { text, y } of ticks) {
-      ctx.fillText(text, x + direction * 8, y);
+      ctx.fillText(text, left ? x + 8 + maxTickWidth : x - 8, y);
     }
 
     if (title) {
       ctx.textBaseline = 'top';
+      ctx.textAlign = left ? 'left' : 'right';
       ctx.fillText(title, x - direction * 0.5, titleY);
     }
 
     ctx.restore();
+    return Math.max(Y_AXIS_WIDTH, maxTickWidth + 16);
   }
 }

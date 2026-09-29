@@ -108,10 +108,10 @@ The optional third argument is device pixel ratio (default `1`). Use `nextFrame(
 
 ## Fonts
 
-The default font family for time-axis labels, value axes, text marks, and tooltips is `Timescope, sans-serif`. Icon marks keep their own `icons` default. `fonts` configures font loading at creation:
+The bundled `Timescope` font loads automatically in browser renderers and is the default for time-axis labels, value axes, text marks, and tooltips. Icon marks keep their own `icons` default. `fonts` configures additional font loading at creation:
 
 - Omit it in the browser to load fonts declared by accessible document `@font-face` rules.
-- Pass `[]` to disable document font loading, as in the Node.js example.
+- Pass `[]` to disable document font loading, as in the Node.js example. In browsers the bundled font still loads.
 - Pass CSS stylesheet URLs or explicit `{ family, source, desc? }` definitions to choose fonts.
 
 ```ts
@@ -121,7 +121,7 @@ const timescope = new Timescope({
 });
 ```
 
-Loading a font makes it available; select its family in the relevant [text styles](/api/timescope-options#text). Explicit font sources are useful when the document's font rules are not accessible. Custom `font` values are used as provided. See the [font option reference](/api/timescope#fonts) for accepted source types.
+Loading a font makes it available; select its family in the relevant [text styles](/api/timescope-options#text). Explicit font sources are useful when the document's font rules are not accessible. Custom `font` values are used as provided; add `Timescope` to their family list if you want it as a fallback. The bundled font is not automatically registered with Skia Canvas in Node.js. See the [font option reference](/api/timescope#fonts) for accepted source types.
 
 ## Backend selection
 

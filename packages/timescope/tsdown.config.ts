@@ -8,9 +8,9 @@ const { root, outDir, ...config } = getCommonConfig(import.meta.dirname, {
   plugins: [RolldownInlineWorkerPlugin()],
 });
 const profileBuild = process.env.BENCHMARK_PROFILE_BUILD === '1';
-const fontImport = '../assets/Timescope.woff2?inline';
+const fontImport = '../assets/fonts/Timescope.woff2?inline';
 const fontId = '\0timescope-font';
-const fontPath = path.join(root, 'src/assets/Timescope.woff2');
+const fontPath = path.join(root, 'src/assets/fonts/Timescope.woff2');
 
 const inlineFontPlugin = {
   name: 'inline-timescope-font',

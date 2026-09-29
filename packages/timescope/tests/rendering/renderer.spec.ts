@@ -63,6 +63,42 @@ afterEach(() => {
 });
 
 describe('renderer integration', () => {
+  it('registers the bundled font alongside explicitly selected fonts, including an empty list', async () => {
+    const added = new Set<FontFace>();
+    const loaded: { family: string; source: string | BufferSource }[] = [];
+    class TestFontFace {
+      constructor(
+        readonly family: string,
+        source: string | BufferSource,
+      ) {
+        loaded.push({ family, source });
+      }
+      async load() {
+        return this;
+      }
+    }
+    vi.stubGlobal('FontFace', TestFontFace);
+    vi.stubGlobal('document', {
+      fonts: { add: (font: FontFace) => added.add(font), delete: (font: FontFace) => added.delete(font) },
+    });
+
+    const renderer = new TimescopeMainThreadRenderer({ canvas: canvas(), fonts: [] });
+    cleanups.push(() => renderer.dispose());
+    await vi.waitFor(() => expect(loaded.map((font) => font.family)).toContain('Timescope'));
+    expect((loaded[0].source as Uint8Array).subarray(0, 4)).toEqual(new TextEncoder().encode('wOF2'));
+    expect(added.size).toBe(1);
+    renderer.dispose();
+    expect(added.size).toBe(0);
+
+    const custom = new TimescopeMainThreadRenderer({
+      canvas: canvas(),
+      fonts: [{ family: 'custom', source: new Uint8Array([1]) }],
+    });
+    cleanups.push(() => custom.dispose());
+    await vi.waitFor(() => expect([...added].length).toBe(2));
+    expect(loaded.map((font) => font.family)).toEqual(['Timescope', 'Timescope', 'custom']);
+  });
+
   it('rebuilds explicitly updated settings and preserves omitted sources and series', () => {
     const renderer = new TimescopeMainThreadRenderer({ canvas: canvas(), fonts: [] });
     cleanups.push(() => renderer.dispose());
