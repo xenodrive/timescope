@@ -20,10 +20,13 @@
   "scripts": {
     "dev": "pnpm run -C packages/timescope dev",
     "docs": "pnpm run -C packages/timescope-docs start",
-    "build": "rm -rf dist/ && pnpm run build:libs && pnpm run check:libs; pnpm run build:docs",
-    "build:libs": "pnpm run -r --filter \\!timescope-docs --filter \\!. build",
-    "check:libs": "vitest run tests/dist-frameworks.test.ts",
-    "build:docs": "pnpm run -r --filter timescope-docs build"
+    "clean": "pnpm run clean:libs",
+    "clean:libs": "rm -rf dist",
+    "clean:docs": "rm -rf packages/timescope-docs/dist",
+    "build": "pnpm run build:libs; pnpm run build:docs",
+    "build:libs": "pnpm run clean:libs; pnpm run -r --filter \\!timescope-docs --filter \\!. build && pnpm run check:libs",
+    "build:docs": "pnpm run clean:docs; pnpm run -r --filter timescope-docs build",
+    "check:libs": "vitest run tests/dist-*.test.ts"
   },
   "packageManager": "pnpm@12",
   "devDependencies": {
