@@ -6,16 +6,16 @@ function chartState(height = 200) {
   const state = initialState();
   state.viewMode = 'fit';
   state.height = `${height}px`;
-  state.tracks = [{ ...newTrack('main'), relative: true }];
+  state.tracks[0].relative = true;
   state.domains = [newDomain('amplitude')];
-  state.series = [{ ...newSeries('signal', 'main', 'amplitude'), color: '#0d9488', layers: [newLayer('link')] }];
+  state.series = [{ ...newSeries('signal', 'default', 'amplitude'), color: '#0d9488', layers: [newLayer('link')] }];
   return state;
 }
 
 function responseState(scale) {
   const state = chartState();
   state.domains = [{ ...newDomain('response'), scale, axis: 'left', unit: 'ms' }];
-  const series = newSeries('response', 'main', 'response');
+  const series = newSeries('response', 'default', 'response');
   series.source = 'response';
   series.color = '#0d9488';
   series.layers = [{ ...newLayer('link'), draw: 'curve' }];
@@ -97,7 +97,7 @@ const definitions = [
         { ...newDomain('activity'), axis: 'right' },
       ];
       state.series = ['value', 'comparison'].map((field, index) => {
-        const series = newSeries(field, 'main', 'sharedAmplitude');
+        const series = newSeries(field, 'default', 'sharedAmplitude');
         series.name = index === 0 ? 'Signal · shared scale' : 'Comparison · shared scale';
         series.source = 'autoRange';
         series.field = field;
@@ -105,7 +105,7 @@ const definitions = [
         series.layers[0] = { ...newLayer('link'), from: field, color: series.color };
         return series;
       });
-      const activity = newSeries('activity', 'main', 'activity');
+      const activity = newSeries('activity', 'default', 'activity');
       activity.name = 'Activity · independent scale';
       activity.source = 'autoRange';
       activity.field = 'activity';
@@ -134,7 +134,7 @@ const definitions = [
       const state = chartState(300);
       state.range = [-0.5, 10.5];
       state.domains = [{ ...newDomain('lanes'), lower: 0, upper: 5, shrink: false, axis: 'none' }];
-      const series = newSeries('pipeline', 'main', 'lanes');
+      const series = newSeries('pipeline', 'default', 'lanes');
       series.source = 'tasks';
       series.field = 'lane@middle';
       series.tooltip = false;
@@ -165,10 +165,10 @@ const definitions = [
       state.range = [0, 65];
       state.loadMdiFont = true;
       state.domains = [{ ...newDomain('latency'), lower: 0, upper: 110, shrink: false, axis: 'left', unit: 'ms' }];
-      const signal = newSeries('signal', 'main', 'latency');
+      const signal = newSeries('signal', 'default', 'latency');
       signal.source = 'signal';
       signal.layers = [{ ...newLayer('link'), color: '#64748b' }];
-      const events = newSeries('annotations', 'main', 'latency');
+      const events = newSeries('annotations', 'default', 'latency');
       events.source = 'events';
       events.tooltip = false;
       events.layers = [

@@ -291,8 +291,9 @@ function compactSeries(series, firstTrack) {
   return result;
 }
 
-// Work only on configuration, never on source rows or callbacks. Empty named
-// domains and tracks must survive because series can still refer to them.
+// Compact complete configurations, not updateOptions patches. Never touch source
+// rows or callbacks. Keep named domains and track layout; a sole unused,
+// default-valued track can be implicit.
 export function compactOptions(options) {
   const result = withoutDefaults(options, { ...defaults.options, time: defaults.time, zoom: defaults.zoom });
   if (options.style) setNonempty(result, 'style', withoutDefaults(options.style, defaults.style));
@@ -306,9 +307,7 @@ export function compactOptions(options) {
     );
   }
   if (options.tracks) {
-    const tracks = Object.fromEntries(Object.entries(options.tracks).map(([id, track]) => [id, compactTrack(track)]));
-    if (Object.keys(tracks).length === 1 && tracks.default && !Object.keys(tracks.default).length) delete result.tracks;
-    else result.tracks = tracks;
+    result.tracks = Object.fromEntries(Object.entries(options.tracks).map(([id, track]) => [id, compactTrack(track)]));
   }
   const firstTrack = Object.keys(options.tracks ?? { default: {} })[0];
   if (options.series) {
@@ -319,6 +318,13 @@ export function compactOptions(options) {
     );
   }
   if (options.sources) setNonempty(result, 'sources', options.sources);
+  const tracks = Object.values(result.tracks ?? {});
+  if (
+    tracks.length === 1 &&
+    !Object.keys(tracks[0]).length &&
+    Object.values(result.series ?? {}).every((series) => series.track === undefined)
+  )
+    delete result.tracks;
   return result;
 }
 

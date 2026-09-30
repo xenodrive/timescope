@@ -211,7 +211,18 @@ returns to the defaults.
 - Charts on the same Track are overlaid, but their value scales are independent
   unless they explicitly share a Domain. Use a shared Domain to compare values
   on the same scale.
-- Omitting `tracks` creates an implicit `default` Track; `tracks: {}` is invalid.
+- Prefer the implicit `default` Track for a single drawing region. When no Track
+  customization is needed, omit `tracks` rather than adding an empty named Track
+  such as `tracks: { main: {} }` or `tracks: { default: {} }`. Series can omit
+  `track`, or explicitly use `track: 'default'` without defining `tracks`.
+  Define `tracks.default` only for overrides such as time-axis settings; use
+  additional named Tracks when separate drawing regions are needed.
+  If `tracks` is defined, Series without `track` use its first entry; an explicit
+  `track: 'default'` then requires a `default` entry. Keep even empty entries when
+  they define multiple regions, because their number and order determine layout.
+  `tracks: {}` is invalid. Omitting `tracks` restores the implicit Track in a
+  constructor or `setOptions()`; omission in `updateOptions()` retains the
+  existing layout.
 - Inline data arrays are snapshots: mutating the original array does not update
   the visualization. Read the source update API before implementing live data.
   Only point-aggregate sources expose `append()` among the built-in source types.
