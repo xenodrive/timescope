@@ -21,13 +21,17 @@ const configBase = defineConfig({
 export default defineConfig([
   {
     ...configBase,
-    entry: { index: path.join(root, 'src/index.browser.ts') },
+    entry: {
+      index: path.join(root, 'src/index.browser.ts'),
+      'index.node': path.join(root, 'src/index.node.ts'),
+    },
     format: ['esm'],
     fixedExtension: false,
     dts: true,
     clean: false,
     outputOptions: {
       dir: outDir,
+      chunkFileNames: 'chunk-[hash].js',
     },
     onSuccess() {
       fs.copyFileSync('./README.md', path.join(outDir, 'README.md'));
@@ -45,15 +49,6 @@ export default defineConfig([
         },
       });
     },
-  },
-  {
-    ...configBase,
-    entry: path.join(root, 'src/index.node.ts'),
-    format: ['esm'],
-    fixedExtension: false,
-    dts: false,
-    clean: false,
-    outputOptions: { dir: outDir },
   },
   {
     ...configBase,
