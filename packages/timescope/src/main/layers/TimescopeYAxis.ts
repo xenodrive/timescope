@@ -37,12 +37,20 @@ export class TimescopeYAxis extends TimescopeLayerDataBase<TimescopeYAxisData, T
         values.push(lower, lower.mul(middle).sqrt(precision), middle, middle.mul(upper).sqrt(precision), upper);
       } else {
         const step = upper.sub(lower).divExact(4);
-        for (let i = 0; i <= 4; i++) values.push(lower.add(step.mul(i)));
-        if (lower.lt(0) && upper.gt(0)) values.push(Decimal(0));
+        if (lower.le(0) && upper.ge(0)) {
+          // At most four steps fit on either side of zero; compare exact values
+          // rather than rounding a division to find the first visible tick.
+          for (let i = -4; i <= 4; i++) {
+            const value = step.mul(i);
+            if (value.ge(lower) && value.le(upper)) values.push(value);
+          }
+        } else {
+          for (let i = 0; i <= 4; i++) values.push(lower.add(step.mul(i)));
+        }
       }
     }
 
-    const ticks = [...new Map(values.map((value) => [value.toString(), value])).values()]
+    const ticks = values
       .toSorted((a, b) => a.cmp(b))
       .map((value) => ({
         value: projection.normalize(value),

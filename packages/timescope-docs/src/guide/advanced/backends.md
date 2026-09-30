@@ -34,7 +34,7 @@ const timescope = new Timescope({
 
 ## External canvases and sizing
 
-`target` supplies the backend's mount destination: a container, selector, or existing canvas. The browser backend creates a canvas inside a container target; a supplied canvas is used directly. Read `timescope.canvas` to access the canvas once mounted.
+Pass a container or selector as `target` for automatic sizing, or supply an existing canvas when your application manages its size. Read `timescope.canvas` to access the mounted canvas.
 
 Container targets follow layout automatically; supplied canvases require explicit resizing:
 
@@ -45,13 +45,13 @@ Container targets follow layout automatically; supplied canvases require explici
 
 After resizing an export canvas, [wait for data and drawing](/guide/advanced/views#wait-for-data-and-drawing) before reading pixels.
 
-Generated canvases fill a target with a definite CSS height; an auto-height target uses the canvas's `36px` intrinsic fallback. Bitmap resizing does not affect this layout size. Set dimensions and background on the target with CSS. The canvas is transparent; CSS backgrounds are not included in exported pixels.
+Set dimensions and background on the target with CSS. Give the target a definite height for a chart; otherwise it uses a `36px` fallback. The canvas is transparent; CSS backgrounds are not included in exported pixels.
 
 For inherited label colors, theme changes, and transparent backgrounds, see [Styling](/guide/advanced/styling).
 
 ## Render a PNG in the browser
 
-Keep shared chart and initial-view settings in `options`. Here, the browser backend creates a canvas inside `#chart`. Use main-thread rendering and follow the [data-and-drawing completion sequence](/guide/advanced/views#wait-for-data-and-drawing) before encoding it:
+Keep shared chart and initial-view settings in `options` and mount into `#chart`. Use main-thread rendering and follow the [data-and-drawing completion sequence](/guide/advanced/views#wait-for-data-and-drawing) before encoding it:
 
 ```html
 <div id="chart" style="width: 800px; height: 240px"></div>
@@ -74,23 +74,18 @@ try {
   const canvas = timescope.canvas;
   if (!(canvas instanceof HTMLCanvasElement)) throw new Error('Expected a browser canvas');
 
-  const png = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob);
-      else reject(new Error('PNG encoding failed'));
-    }, 'image/png');
-  });
-  // Download or upload png here.
+  const png = canvas.toDataURL('image/png');
+  // Use png as an <img> src or a download link's href.
 } finally {
   timescope.dispose();
 }
 ```
 
-Use the resulting `Blob` for a download or upload. The PNG uses the canvas's pixel dimensions, including DPR; use a [supplied canvas](#external-canvases-and-sizing) for a fixed output size.
+The result is a PNG data URL, ready for an image or download link. The PNG uses the canvas's pixel dimensions, including DPR; use a [supplied canvas](#external-canvases-and-sizing) for a fixed output size.
 
 ## Render a PNG in Node.js
 
-Reuse the same `options` and completion sequence. Node.js needs a supplied `Canvas` from `skia-canvas` rather than a DOM container. Select `backend: 'skia-canvas'`, read the canvas through the same property, and save with its native `toFile()` method instead of `toBlob()`.
+Reuse the same `options` and completion sequence. Supply a `Canvas` from `skia-canvas`, select `backend: 'skia-canvas'`, and save the PNG with `toFile()`.
 
 ```bash
 npm install timescope skia-canvas
@@ -149,7 +144,5 @@ Change `font` later with `setOptions()` or `updateOptions()`. [Framework compone
 | Omitted                | Accessible document `@font-face` rules    |
 | `[]`                   | None                                      |
 | URL / definition array | Specified stylesheets or font definitions |
-
-The bundled `Timescope` font is loaded automatically in the browser and registered with Skia Canvas in Node.js. Skia Canvas ignores `fonts`; register additional fonts with `FontLibrary.use()` before creating the Timescope. The bundled file is exported as `timescope/Timescope.woff2`.
 
 [Font inputs](/api/timescope#fonts) · [Font styles](/api/timescope-options#font-style) · [Framework components](/guide/advanced/frameworks)

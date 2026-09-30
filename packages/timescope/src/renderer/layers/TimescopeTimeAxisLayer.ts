@@ -2,7 +2,7 @@ import { TimescopeAnimatedValue } from '#src/core/animation';
 import { normalizeOptions } from '#src/core/options';
 import { DEFAULT_FONT_FAMILY, resolveFont } from '#src/main/fontStyle';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
-import { forEachTrack } from '#src/renderer/rendering';
+import { forEachTrack, renderLabel } from '#src/renderer/rendering';
 import type { TimescopeRenderingContext, TimescopeTimeAxisData } from '#src/renderer/types';
 
 // Match #3333 over white while keeping axis lines visible on dark backgrounds.
@@ -101,8 +101,6 @@ export class TimescopeTimeAxisLayer extends TimescopeLayer {
     );
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
 
     const labels = data.filter((tick) => tick.text);
     const positions = labels.map((tick) => timescope.timeAxis.p(tick.time.time));
@@ -118,12 +116,7 @@ export class TimescopeTimeAxisLayer extends TimescopeLayer {
       const x = positions[i];
       if (x + widths[i] / 2 < -4 || x - widths[i] / 2 > timescope.size.width + 4) continue;
       if (tick.labelIndex !== undefined && tick.labelIndex % BigInt(stride) !== 0n) continue;
-      ctx.save();
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.globalAlpha = 1;
-      ctx.strokeText(tick.text!, x, labelY);
-      ctx.restore();
-      ctx.fillText(tick.text!, x, labelY);
+      renderLabel(ctx, tick.text!, x, labelY);
     }
   }
 }

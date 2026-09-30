@@ -8,9 +8,10 @@ title: Styling
     id="example-styling"
     style="
       height: 320px;
-      color: var(--vp-c-text-1, #1f2937);
+      color: var(--chart-text-color, inherit);
       background: linear-gradient(120deg, #14b8a633, #8b5cf622 55%, #f59e0b33);
       border-radius: 12px;
+      overflow: hidden;
     "></div>
   <!-- #endregion html -->
 </template>

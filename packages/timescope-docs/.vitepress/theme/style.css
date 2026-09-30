@@ -4,6 +4,7 @@
   --vp-c-brand-3: #095469;
   --vp-c-brand-soft: #0e76951a;
   --landing-logo-font: inherit;
+  --chart-text-color: var(--vp-c-text-1);
 }
 
 .dark {

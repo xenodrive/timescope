@@ -71,6 +71,17 @@ export function renderTimeRangeInverse(
   if (r < width) ctx.fillRect(r, 0, width - r, height);
 }
 
+export function renderLabel(ctx: TimescopeRenderingContext['ctx'], text: string, x: number, y: number) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 3;
+  ctx.strokeText(text, x, y);
+  ctx.restore();
+  ctx.fillText(text, x, y);
+}
+
 export function renderCursor(timescope: TimescopeRenderingContext) {
   const ctx = timescope.ctx;
   const height = timescope.size.height;

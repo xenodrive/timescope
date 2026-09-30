@@ -1,6 +1,6 @@
 import { DEFAULT_FONT_FAMILY, resolveFont } from '#src/main/fontStyle';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
-import { forEachTrack } from '#src/renderer/rendering';
+import { forEachTrack, renderLabel } from '#src/renderer/rendering';
 import type { TimescopeTrack } from '#src/renderer/TimescopeTrack';
 import type { TimescopeRenderingContext, TimescopeYAxisData } from '#src/renderer/types';
 
@@ -72,13 +72,13 @@ export class TimescopeYAxisLayer extends TimescopeLayer {
     ctx.stroke();
 
     for (const { text, y } of ticks) {
-      ctx.fillText(text, left ? x + 8 + maxTickWidth : x - 8, y);
+      renderLabel(ctx, text, left ? x + 8 + maxTickWidth : x - 8, y);
     }
 
     if (title) {
       ctx.textBaseline = 'top';
       ctx.textAlign = left ? 'left' : 'right';
-      ctx.fillText(title, x - direction * 0.5, titleY);
+      renderLabel(ctx, title, x - direction * 0.5, titleY);
     }
 
     ctx.restore();

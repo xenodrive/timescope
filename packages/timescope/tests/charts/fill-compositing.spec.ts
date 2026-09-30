@@ -1,10 +1,66 @@
 import { createFillStyle, createMarkFillStyle, renderPath } from '#src/renderer/layers/TimescopeSeriesChartLayer';
 import { TimescopeTimeAxisLayer } from '#src/renderer/layers/TimescopeTimeAxisLayer';
+import { TimescopeYAxisLayer } from '#src/renderer/layers/TimescopeYAxisLayer';
 import type { TimescopeRenderingContext } from '#src/renderer/types';
 import { Canvas, Path2D } from 'skia-canvas';
 import { describe, expect, it } from 'vitest';
 
 describe('fill compositing', () => {
+  it('gives value-axis tick labels and the title transparent halos', () => {
+    const canvas = new Canvas(120, 60);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(0, 0, 120, 60);
+    const layer = new TimescopeYAxisLayer();
+    try {
+      layer.render({
+        ctx,
+        dpr: 1,
+        size: { width: 120, height: 60 },
+        options: { foreground: 'black' },
+        tracks: [
+          {
+            id: 'default',
+            oy: 0,
+            height: 60,
+            top: 0,
+            bottom: 60,
+            y0: 25,
+            fadeForDomain: () => 0,
+            yForDomain: () => 35,
+            axes: [
+              {
+                id: 'value',
+                side: 'left',
+                label: 'Axis',
+                font: { family: 'sans-serif' },
+                ticks: [{ text: '0.0', value: 0.5 }],
+              },
+            ],
+          },
+        ],
+      } as unknown as TimescopeRenderingContext);
+      for (const [y, height] of [
+        [0, 20],
+        [20, 30],
+      ]) {
+        const pixels = ctx.getImageData(0, y, 60, height).data;
+        let transparent = 0;
+        let text = 0;
+        for (let i = 0; i < pixels.length; i += 4) {
+          if (pixels[i + 3] === 0) transparent++;
+          if (pixels[i] === 0 && pixels[i + 1] === 0 && pixels[i + 2] === 0 && pixels[i + 3] > 0) text++;
+        }
+        expect(transparent).toBeGreaterThan(0);
+        expect(text).toBeGreaterThan(0);
+      }
+      expect([...ctx.getImageData(119, 59, 1, 1).data]).toEqual([0, 0, 255, 255]);
+      expect(ctx.globalCompositeOperation).toBe('source-over');
+    } finally {
+      layer.dispose();
+    }
+  });
+
   function draw(fillColor: string | undefined, clearFill = true, fillOpacity = 1) {
     const canvas = new Canvas(40, 20);
     const ctx = canvas.getContext('2d');
