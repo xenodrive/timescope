@@ -399,10 +399,6 @@ export class Timescope<
     return this.#canvas;
   }
 
-  get target(): Element | TimescopeCanvas | null {
-    return this.#backendMount?.canvas ?? null;
-  }
-
   async resize(width: number, height: number, dpr = 1): Promise<boolean> {
     try {
       await this.#backendReady;
@@ -433,7 +429,7 @@ export class Timescope<
       throw new Error('backend and renderThread are constructor-only options');
     validateTimescopeOptions(opts);
     this.#abortFetchingView();
-    this.#options = { style: undefined, ...opts } as TimescopeOptions;
+    this.#options = { ...opts } as TimescopeOptions;
     this.#applyOptions(this.#options, true);
   }
 
@@ -453,8 +449,6 @@ export class Timescope<
       this.#selectionRangeChanging = null;
     }
     if (!this.#backendMount || !this.#renderer) return;
-
-    if ('style' in opts) this.#backendMount.setStyle?.(opts.style);
 
     if (set) {
       this.#renderer.setOptions(opts as TimescopeOptions);
@@ -583,7 +577,6 @@ export class Timescope<
       ...options
     } = _opts;
     this.#options = {
-      style: undefined,
       ...options,
       ...(initialSelection !== undefined && {
         selection:
@@ -652,7 +645,6 @@ export class Timescope<
       renderThread: this.#renderThread,
       fonts: this.#fonts,
       environment: this.#environment,
-      style: this.#options.style,
     };
     const controller = new AbortController();
     this.#mountController = controller;
@@ -671,7 +663,13 @@ export class Timescope<
           continue;
         }
         const generation = this.#mountGeneration;
+        let foreground: string | undefined;
         const mounted = await candidate.mount(options, {
+          colorChanged: (color) => {
+            if (generation !== this.#mountGeneration || controller.signal.aborted) return;
+            foreground = color;
+            this.#renderer?.setForeground(color);
+          },
           fontsChanged: async (fonts) => {
             if (generation !== this.#mountGeneration || controller.signal.aborted) return;
             await this.#renderer?.setFonts(fonts);
@@ -701,6 +699,7 @@ export class Timescope<
         }
         try {
           const renderer = this.#finishMount(mounted, options);
+          if (foreground) renderer.setForeground(foreground);
           await renderer.ready;
         } catch (error) {
           if (this.#backendMount === mounted) {

@@ -17,26 +17,28 @@ titleTemplate: Timescope API
 | Prop             | Type                                                                                           | Contract                                                                                                |
 | ---------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `options`        | `TimescopeOptions`                                                                             | Complete chart configuration; updates replace it as with [`setOptions()`](/api/timescope#configuration) |
-| `time`           | `Decimal \| number \| string \| Date \| null`                                                  | Current time; `null` follows the clock                                                                  |
-| `zoom`           | `number`                                                                                       | Current zoom                                                                                            |
+| `time`           | `Decimal \| number \| string \| Date \| null`                                                  | Selected time; `null` follows the clock                                                                 |
+| `zoom`           | `number`                                                                                       | Selected zoom level                                                                                     |
 | `timeRange`      | `[time \| undefined, time \| undefined]`                                                       | Navigation bounds; endpoint type as for `time`                                                          |
 | `zoomRange`      | `[number \| undefined, number \| undefined]`                                                   | Zoom bounds                                                                                             |
-| `selectionRange` | `[Decimal, Decimal] \| null`                                                                   | Current selection; `null` clears it                                                                     |
-| `initialTime`    | Same as `time`                                                                                 | Creation only; default `null`; defined `time` takes precedence                                          |
-| `initialZoom`    | `number`                                                                                       | Creation only; default `0`; defined `zoom` takes precedence                                             |
-| `initialFit`     | `[start, end] \| { range: [start, end], padding?: number \| [left, right] }`                   | Creation only; endpoints `TimescopeTimeLike<never>`; padding in CSS pixels                              |
-| `renderThread`   | `'main' \| 'worker'`                                                                           | Creation only; automatic when omitted                                                                   |
-| `fonts`          | `(string \| { family: string, source: string \| BufferSource, desc?: FontFaceDescriptors })[]` | Creation only; [font inputs](/api/timescope#fonts)                                                      |
+| `selectionRange` | `[Decimal, Decimal] \| null`                                                                   | Selected range; `null` clears it                                                                        |
+| `initialTime`    | Same as `time`                                                                                 | Creation-only; default `null`; defined `time` takes precedence                                          |
+| `initialZoom`    | `number`                                                                                       | Creation-only; default `0`; defined `zoom` takes precedence                                             |
+| `initialFit`     | `[start, end] \| { range: [start, end], padding?: number \| [left, right] }`                   | Creation-only; endpoints `TimescopeTimeLike<never>`; padding in CSS pixels                              |
+| `renderThread`   | `'main' \| 'worker'`                                                                           | Creation-only; automatic when omitted                                                                   |
+| `fonts`          | `(string \| { family: string, source: string \| BufferSource, desc?: FontFaceDescriptors })[]` | Creation-only; [font inputs](/api/timescope#fonts)                                                      |
 
-| Constraint            | Rule                                                                                                             |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `initialFit`          | Applies with both `time` and `zoom` undefined at creation; incompatible with `initialTime` / `initialZoom`       |
-| Chart dimensions      | `options.style.width` / `options.style.height`                                                                   |
-| Selection appearance  | `options.selection`; `false` disables and clears selection                                                       |
-| Text font             | `options.font`; [global style and local overrides](/api/timescope-options#font-style); no standalone `font` prop |
-| Mounting and disposal | Automatic with component lifecycle                                                                               |
+| Constraint                    | Rule                                                                                                             |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `initialFit`                  | Applies with both `time` and `zoom` undefined at creation; incompatible with `initialTime` / `initialZoom`       |
+| Chart dimensions / background | CSS on the host element through component `style` or class props; fallback height `36px`                         |
+| Selection appearance          | `options.selection`; `false` disables and clears selection                                                       |
+| Text font                     | `options.font`; [global style and local overrides](/api/timescope-options#font-style); no standalone `font` prop |
+| Mounting and disposal         | Automatic with component lifecycle                                                                               |
 
 ## Reactive inputs
+
+Host styling is forwarded to the target element, not to the canvas or chart options. React accepts `style` as a CSS object and `className`; Solid accepts `style` and `class`; Vue accepts native `style` and `class` attributes. Svelte and Luna accept a CSS string in `style` and a string in `class`; Luna also accepts accessors for these props.
 
 | Framework | State input                                               | Options updates                                                                                                 |
 | --------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
@@ -48,20 +50,20 @@ titleTemplate: Timescope API
 
 ## Events and callbacks
 
-| Vue / Svelte event       | React / Solid / Luna callback | Value                                   |
-| ------------------------ | ----------------------------- | --------------------------------------- |
-| `timechanged`            | `onTimeChanged`               | `Decimal \| null`                       |
-| `timechanging`           | `onTimeChanging`              | `Decimal \| null`                       |
-| `timeanimating`          | `onTimeAnimating`             | `Decimal \| null`                       |
-| `zoomchanged`            | `onZoomChanged`               | `number`                                |
-| `zoomchanging`           | `onZoomChanging`              | `number`                                |
-| `zoomanimating`          | `onZoomAnimating`             | `number`                                |
-| `selectionrangechanged`  | `onSelectionRangeChanged`     | `[Decimal, Decimal] \| null`            |
-| `selectionrangechanging` | `onSelectionRangeChanging`    | `[Decimal, Decimal] \| null`            |
-| `animating`              | `onAnimating`                 | `boolean`; cursor-time animation active |
-| `editing`                | `onEditing`                   | `boolean`; cursor time being edited     |
-| `ready`                  | `onReady`                     | No value; first drawable mount          |
-| `mount`                  | `onMount`                     | No value; each drawable mount           |
+| Vue / Svelte event       | React / Solid / Luna callback | Value                            |
+| ------------------------ | ----------------------------- | -------------------------------- |
+| `timechanged`            | `onTimeChanged`               | `Decimal \| null`                |
+| `timechanging`           | `onTimeChanging`              | `Decimal \| null`                |
+| `timeanimating`          | `onTimeAnimating`             | `Decimal \| null`                |
+| `zoomchanged`            | `onZoomChanged`               | `number`                         |
+| `zoomchanging`           | `onZoomChanging`              | `number`                         |
+| `zoomanimating`          | `onZoomAnimating`             | `number`                         |
+| `selectionrangechanged`  | `onSelectionRangeChanged`     | `[Decimal, Decimal] \| null`     |
+| `selectionrangechanging` | `onSelectionRangeChanging`    | `[Decimal, Decimal] \| null`     |
+| `animating`              | `onAnimating`                 | `boolean`; time animation active |
+| `editing`                | `onEditing`                   | `boolean`; time being edited     |
+| `ready`                  | `onReady`                     | No value; first drawable mount   |
+| `mount`                  | `onMount`                     | No value; each drawable mount    |
 
 | Handler form                                   | Payload        |
 | ---------------------------------------------- | -------------- |

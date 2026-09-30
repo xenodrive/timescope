@@ -4,45 +4,45 @@ Timescope is a time-series visualizer with time navigation controls.
 
 - **Infinite by design** — unlimited range and precision with [Decimal](/api/decimal).
 - **Shared time** — keeps overlaid Charts and separate Tracks temporally aligned.
-- **Independent marks and links** — composable shapes and connections.
+- **Independent Marks and Links** — composable shapes and connections.
 
 ## Time, Zoom, and Resolution {#time-and-zoom}
 
-**Time** is the selected time, marked by the time cursor at the center of the view. **Resolution** is the time span per pixel. Together they determine the visible time window.
+**Time** is the selected time, marked by the time cursor at the center of the view. **Display resolution** is the time span per pixel. Together they determine the visible time range.
 
-**Zoom level** is a convenient logarithmic expression of resolution:
+**Zoom level** is a logarithmic expression of display resolution:
 
 $$
 \mathit{resolution} = 2^{-\mathit{zoom}}
 $$
 
-At zoom `0`, one pixel spans one time unit. Increasing zoom by one halves the resolution and the visible time span.
+At zoom `0`, one pixel spans one time unit. Increasing zoom by one halves the display resolution and the visible time span.
 
 Timescope uses [Decimal](/api/decimal) as a common numeric representation for time, values, and resolutions, preserving precision across widely different scales.
 
-`time = null` means the current time, so the view follows the live clock. `timeRange` bounds the navigable time, and `zoomRange` bounds the zoom level.
+`time = null` follows the clock (the wall clock by default); the property remains `null`, not the current timestamp. `timeRange` bounds navigation, and `zoomRange` bounds the zoom level.
 
 ![Time centers the visible range; zoom expresses its resolution, with navigation bounded by timeRange and zoomRange](./assets/time-zoom.svg)
 
 ## DataSources {#sources}
 
-A **DataSource** provides rows for an arbitrary time range and positive resolution.
-
-### DataLoader and DataSource
-
-A **DataLoader** acquires input and converts it into a common row format. A DataSource can use a DataLoader for acquisition while controlling how it produces the requested rows. Simple inline data is enough to start drawing; the acquisition strategy does not change how a Chart selects row fields.
-
-![A DataLoader acquires canonical rows; a DataSource answers Series requests by range and resolution](./assets/data-pipeline.svg)
-
-For snapshot loading, chunk loading, and range-loader response requirements, see [Loading and Updating Data](/guide/advanced/data).
+A **DataSource** provides rows for a requested time range and **data resolution**. Data resolution is a positive time interval describing the desired data granularity; it need not equal the display resolution.
 
 ### Canonical Rows
 
-A **canonical row** is a record in this common format: named times, named values, and optional metadata. DataSources and their consumers work with these records regardless of the original input format.
+A **canonical row** contains named `times`, named `values`, and optional `data` metadata. An input such as `{ time: 15, value: 3 }` is normalized to fields named `time` and `value` in those maps.
 
 ![Coordinates of one row: a point, multiple values at one time, or a value spanning a time interval](./assets/row-anatomy.svg)
 
-In an input row, equal times describe a point; different times describe the interval from earliest to latest. Either can carry one or several values. Metadata accompanies the row without defining its coordinates.
+Equal times describe a point; different times describe the half-open interval from earliest to latest. Either can carry one or several values. Metadata does not define coordinates. See the [row types](/api/timescope-options#rows) for accepted inputs.
+
+### DataLoader and DataSource
+
+A **DataLoader** acquires input and normalizes it into canonical rows, either as a complete snapshot or for a requested range. A DataSource uses those rows to answer queries, optionally aggregating them. Acquisition does not change how Charts select row fields.
+
+![A DataLoader acquires canonical rows; a DataSource answers Series requests by range and resolution](./assets/data-pipeline.svg)
+
+For loading callbacks, query requirements, and invalidation, see [Loading and Updating Data](/guide/advanced/data).
 
 ## Series
 
@@ -52,13 +52,19 @@ A **Series** brings together data from a DataSource, a value Domain, and shared 
 
 ### Instantaneous Value
 
-A Series also provides an **[instantaneous value](/api/timescope-options#instantaneous-values)** — a value sampled at the time cursor. It can use its own sampling resolution, allowing detailed values to be read alongside a broader view of the series. A Tooltip consumes this value to display information at the cursor.
+A Series also provides an **[instantaneous value](/api/timescope-options#instantaneous-values)** sampled at the time cursor. By default, it reads `value` from the latest row at or before the cursor, without interpolating drawn connections. Its sampling resolution can differ from the Chart's data resolution, allowing a Tooltip to show detailed values alongside a broader Chart view.
 
 ![A Series samples an instantaneous value at the time cursor, which a Tooltip can display alongside a broader Chart view](./assets/instantaneous-value.svg)
 
+## Tracks
+
+A **[Track](/api/timescope-options#tracks)** provides a drawing region for Series consumers such as Charts and Tooltips. Tracks stack vertically, while Charts on the same Track are overlaid. All Tracks share time and display resolution, preserving temporal alignment across separate drawing regions.
+
+![Charts overlay within a Track; vertically stacked Tracks share time and display resolution](./assets/tracks.svg)
+
 ## Charts
 
-A **Chart** visualizes the data of a Series using marks and links.
+A **Chart** visualizes the data of a Series using Marks and Links.
 
 ### Marks and Links
 
@@ -66,19 +72,13 @@ A **Chart** visualizes the data of a Series using marks and links.
 
 ![Circle marks, a line link, and an area link compose a chart](./assets/marks-and-links.svg)
 
-### `using` specifier {#using-selectors}
+### `using` selectors {#using-selectors}
 
-The [`using` specifier](/api/timescope-options#using-selectors) binds a primitive to the row's fields: a time supplies the horizontal coordinate and a value supplies the vertical coordinate. Different primitives can select different fields from the same row; this selects drawing coordinates without changing the row's time range.
+A [`using` selector](/api/timescope-options#using-selectors) binds a primitive to the row's fields: a time supplies the horizontal coordinate and a value supplies the vertical coordinate. Different primitives can select different fields from the same row, without changing the row's time range.
 
-Primitives take one or two positions, each defined by a time and a value. They can also refer to the Track's shared baseline (`#zero`) or the edges of its chart area (`#top`, `#bottom`).
+Primitives take one or two coordinates, each defined by a time and a value. They can also refer to the Track's [shared baseline](#shared-baseline) (`#zero`) or its chart-area edges (`#top`, `#bottom`).
 
 ![Selecting coordinates from row fields or Track baseline and chart-area references](./assets/using-selectors.svg)
-
-## Tracks
-
-A **[Track](/api/timescope-options#tracks)** provides a drawing region for Series consumers such as Charts and Tooltips. Tracks stack vertically, while Charts on the same Track are overlaid. All Tracks share time and display resolution, preserving temporal alignment across separate drawing regions.
-
-![Charts overlay within a Track; vertically stacked Tracks share time and display resolution](./assets/tracks.svg)
 
 ## Domains
 

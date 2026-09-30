@@ -20,12 +20,12 @@ Configurable fields: [Timescope Options](/api/timescope-options).
 
 | Key                | Type                                                                                           | Default / contract                                                                                |
 | ------------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `time`             | `TimescopeTimeLike`                                                                            | `null`; initial cursor time                                                                       |
-| `zoom`             | `TimescopeNumberLike`                                                                          | `0`; initial zoom                                                                                 |
+| `time`             | `TimescopeTimeLike`                                                                            | `null`; initial selected time                                                                     |
+| `zoom`             | `TimescopeNumberLike`                                                                          | `0`; initial zoom level                                                                           |
 | `fit`              | `[start, end] \| { range: [start, end], padding?: number \| [left, right] }`                   | Initial fit after sizing; endpoints `TimescopeTimeLike<never>`; incompatible with `time` / `zoom` |
 | `timeRange`        | `[TimescopeTimeLike \| undefined, TimescopeTimeLike \| undefined]`                             | `[undefined, null]`; unbounded past to current clock                                              |
 | `zoomRange`        | `[TimescopeNumberLike \| undefined, TimescopeNumberLike \| undefined]`                         | Both ends unbounded                                                                               |
-| `target`           | `Element \| string \| TimescopeCanvas`                                                         | Mount target; omitted for later `mount()`                                                         |
+| `target`           | `Element \| string \| TimescopeCanvas`                                                         | Backend mount input; omitted for later `mount()`                                                  |
 | `backend`          | `'canvas' \| 'skia-canvas' \| readonly ('canvas' \| 'skia-canvas')[]`                          | First compatible candidate; browser entry provides Canvas; Node.js entry provides Skia Canvas     |
 | `renderThread`     | `'worker' \| 'main'`                                                                           | Automatic; browser Worker when supported, otherwise main                                          |
 | `environment`      | `TimescopeEnvironment`                                                                         | Optional canvas-environment overrides                                                             |
@@ -40,7 +40,7 @@ Configurable fields: [Timescope Options](/api/timescope-options).
 
 #### Fonts
 
-`fonts` controls font-data loading at creation, not the selected drawing font. Use the configurable [`font` option](/api/timescope-options#font-style) to select the global text style, or a local `font` to override it for specific labels or marks. For example, `font: { family: 'MS Gothic' }` selects that family while preserving each location's default size and weight.
+`fonts` controls font-data loading at creation, not the selected drawing font. Use the configurable [`font` option](/api/timescope-options#font-style) to select the global font style, or a local `font` to override it for specific labels or Marks. For example, `font: { family: 'MS Gothic' }` selects that family while preserving each location's default size and weight.
 
 | Input        | Additional loading                                                            |
 | ------------ | ----------------------------------------------------------------------------- |
@@ -75,7 +75,7 @@ These inputs apply to browser backends, which resolve stylesheets before mountin
 | `timeChanging`           | `Decimal \| null`                                                      | Read; time during interaction                                     |
 | `timeAnimating`          | `Decimal \| null`                                                      | Read; time during animation                                       |
 | `timeRange`              | `[Decimal \| null \| undefined, Decimal \| null \| undefined]`         | Read; navigation bounds                                           |
-| `zoom`                   | `number`                                                               | Read/write; selected zoom                                         |
+| `zoom`                   | `number`                                                               | Read/write; selected zoom level                                   |
 | `zoomChanging`           | `number`                                                               | Read; zoom during interaction                                     |
 | `zoomAnimating`          | `number`                                                               | Read; zoom during animation                                       |
 | `zoomRange`              | `[number \| undefined, number \| undefined]`                           | Read; zoom bounds                                                 |
@@ -83,11 +83,12 @@ These inputs apply to browser backends, which resolve stylesheets before mountin
 | `selectionRangeChanging` | `[Decimal, Decimal] \| null`                                           | Read; selection during interaction                                |
 | `size`                   | `{ x: number, y: number, width: number, height: number, dpr: number }` | Read; viewport position, CSS-pixel dimensions, device pixel ratio |
 | `disabled`               | `boolean`                                                              | Read/write; `true` disables interaction; default `false`          |
-| `animating`              | `boolean`                                                              | Read; cursor-time animation active                                |
-| `editing`                | `boolean`                                                              | Read; cursor time being edited                                    |
+| `animating`              | `boolean`                                                              | Read; time animation active                                       |
+| `editing`                | `boolean`                                                              | Read; time being edited                                           |
 | `options`                | `TimescopeOptions`                                                     | Read; configurable options, excluding initial state               |
-| `target`                 | `Element \| TimescopeCanvas \| null`                                   | Read; actual drawing target, `null` when unmounted                |
-| `canvas`                 | `TimescopeCanvas \| null`                                              | Read; drawing canvas                                              |
+| `canvas`                 | `TimescopeCanvas \| null`                                              | Read; created or supplied canvas; `null` when unmounted           |
+
+`target` is a constructor / `mount()` input, not a property. For a container target, `canvas` is created inside it; for a supplied canvas, `canvas` is that same object.
 
 ## Methods
 
@@ -111,18 +112,18 @@ These inputs apply to browser backends, which resolve stylesheets before mountin
 
 ### Configuration
 
-| Signature                                      | Returns            | Contract                                                                      |
-| ---------------------------------------------- | ------------------ | ----------------------------------------------------------------------------- |
-| `setOptions(next: TimescopeOptions)`           | `void`             | Replace configuration; omitted settings use defaults                          |
-| `updateOptions(patch: TimescopeUpdateOptions)` | `void`             | Merge settings; `null` removes a named source, series, track, or domain       |
-| `reload(sources?: string[])`                   | `Promise<boolean>` | Invalidate named sources, or all if omitted; `false` if unavailable or failed |
+| Signature                                      | Returns            | Contract                                                                          |
+| ---------------------------------------------- | ------------------ | --------------------------------------------------------------------------------- |
+| `setOptions(next: TimescopeOptions)`           | `void`             | Replace configuration; omitted settings use defaults                              |
+| `updateOptions(patch: TimescopeUpdateOptions)` | `void`             | Merge settings; `null` removes a named DataSource, Series, Track, or Domain       |
+| `reload(sources?: string[])`                   | `Promise<boolean>` | Invalidate named DataSources, or all if omitted; `false` if unavailable or failed |
 
-| Constraint            | Rule                                                                              |
-| --------------------- | --------------------------------------------------------------------------------- |
-| Current state         | Time and zoom preserved; selection preserved unless explicitly disabled           |
-| Named references      | Every referenced source, track, and named domain must exist                       |
-| DataSource input      | Explicit source configuration replaces that source; a supplied instance is reused |
-| `reload()` completion | Invalidation requested; replacement data and drawing may still be pending         |
+| Constraint            | Rule                                                                                      |
+| --------------------- | ----------------------------------------------------------------------------------------- |
+| Current state         | Time and zoom preserved; selection preserved unless explicitly disabled                   |
+| Named references      | Every referenced DataSource, Track, and named Domain must exist                           |
+| DataSource input      | Explicit DataSource configuration replaces that DataSource; a supplied instance is reused |
+| `reload()` completion | Invalidation requested; replacement data and drawing may still be pending                 |
 
 ### Rendering and lifecycle
 
@@ -173,12 +174,12 @@ Value-event payload: `{ type, value, origin? }`.
 
 | Event                    | `value`                      | Timing                                     |
 | ------------------------ | ---------------------------- | ------------------------------------------ |
-| `timechanging`           | `Decimal \| null`            | Cursor time changing                       |
+| `timechanging`           | `Decimal \| null`            | Time changing                              |
 | `timechanged`            | `Decimal \| null`            | Selected time committed                    |
-| `timeanimating`          | `Decimal \| null`            | Cursor-time animation progressing          |
-| `timeanimated`           | `Decimal \| null`            | Cursor-time animation finished             |
+| `timeanimating`          | `Decimal \| null`            | Time animation progressing                 |
+| `timeanimated`           | `Decimal \| null`            | Time animation finished                    |
 | `zoomchanging`           | `number`                     | Zoom changing                              |
-| `zoomchanged`            | `number`                     | Selected zoom committed                    |
+| `zoomchanged`            | `number`                     | Selected zoom level committed              |
 | `zoomanimating`          | `number`                     | Zoom animation progressing                 |
 | `zoomanimated`           | `number`                     | Zoom animation finished                    |
 | `selectionrangechanging` | `[Decimal, Decimal] \| null` | Selection changing                         |

@@ -2,8 +2,6 @@ import { Timescope } from '@timescope/react';
 import { useState } from 'react';
 import { Decimal, type TimescopeRange } from 'timescope';
 
-const options = { style: { height: '80px' } };
-
 function App() {
   const [time, setTime] = useState<Decimal | null>(null);
   const [timeChanging, setTimeChanging] = useState<Decimal | null>(null);
@@ -13,7 +11,7 @@ function App() {
   return (
     <>
       <Timescope
-        options={options}
+        style={{ height: '80px' }}
         time={time}
         onTimeChanged={setTime}
         onTimeChanging={setTimeChanging}

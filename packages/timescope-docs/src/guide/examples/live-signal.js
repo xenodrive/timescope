@@ -32,7 +32,6 @@ export function mountLiveSignal(target) {
     target,
     time: running ? null : playbackTime,
     zoom: 6,
-    style: { height: '300px' },
     sources: { signal: source },
     series: {
       signal: {

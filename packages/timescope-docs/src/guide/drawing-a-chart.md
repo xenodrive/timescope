@@ -4,16 +4,16 @@ import PresetPreview from '../../.vitepress/theme/components/PresetPreview.vue';
 
 # Drawing a Chart
 
-[Getting Started](/guide/getting-started) creates a Timescope and introduces time navigation. This guide adds data and drawing, using the [Core Concepts](/guide/concepts): a Source supplies rows, a Series selects that Source and a Domain, and a Chart draws the Series in a Track.
+With time navigation and the [Core Concepts](/guide/concepts) in place, add data and drawing to the Timescope from Getting Started.
 
 Start with data already available in your application. Remote acquisition, chunk loading, and live updates are covered in [Loading and Updating Data](/guide/advanced/data).
 
 ## Basic Chart
 
-Keep the target element from Getting Started:
+Give the target element from Getting Started enough height for a Chart:
 
 ```html
-<div id="timescope"></div>
+<div id="timescope" style="height: 200px"></div>
 ```
 
 Give each sample a `time` and a `value`, register the array in `sources`, and select its name with `series.signal.data.source`:
@@ -28,7 +28,6 @@ const samples = [12, 24, 18, 42, 35, 48, 20, 32, 26].map((value, index) => ({
 
 const timescope = new Timescope({
   target: '#timescope',
-  style: { height: '200px' },
   fit: [0, 60],
   sources: { samples },
   series: {
@@ -42,13 +41,13 @@ const timescope = new Timescope({
 
 <ClientOnly><PresetPreview preset="basic-chart" /></ClientOnly>
 
-- **`sources`** registers the data. The key `samples` is how a Series refers to it; it is not a field in each row.
-- **`series`** registers consumers of the data. `signal` is the Series name, independent of the Source name.
+- **`sources`** registers DataSources. The key `samples` is how a Series refers to this array; it is not a field in each row.
+- **`series`** registers Series. `signal` is the Series name, independent of the DataSource name.
 - **`chart: 'lines'`** connects consecutive samples. Without a `chart`, a Series does not draw a Chart.
-- **`style.height`** leaves room for the Chart. The default `36px` canvas is intended for a time axis.
-- **`fit`** chooses the initial time window. Numeric times are seconds by default, so this example spans 60 seconds from the Unix epoch.
+- **Target height** leaves room for the Chart. Without a definite target height, the canvas uses a `36px` fallback intended for a time axis.
+- **`fit`** chooses the initial visible range. Numeric times are seconds by default, so this example spans 60 seconds from the Unix epoch.
 
-The implicit `default` Track provides the drawing region. The Series has an independent, automatically scaled linear Domain; no value axis is shown unless requested. The Tooltip reads `value` at the time cursor by default.
+With `tracks` and `data.domain` omitted, this uses the implicit `default` Track and an independent, automatically scaled linear Domain. No value axis is shown unless requested.
 
 [Basic Chart example](/guide/examples/#basic-chart) · [Edit in Playground](/guide/examples/playground?preset=basic-chart)
 
@@ -66,7 +65,6 @@ const response = Array.from({ length: 16 }, (_, index) => {
 
 const timescope = new Timescope({
   target: '#timescope',
-  style: { height: '200px' },
   fit: [0, 60],
   sources: { response },
   series: {
@@ -85,9 +83,9 @@ const timescope = new Timescope({
 
 <ClientOnly><PresetPreview preset="curve" /></ClientOnly>
 
-The inline **Domain** enables a left value axis and adds `ms` to its labels and the Tooltip. Its range follows the visible data; there is no need to specify bounds. Here, **`relative: true`** labels the horizontal axis as elapsed time from zero rather than calendar time.
+The inline **Domain** enables a left value axis and adds `ms` to its labels and the Tooltip. Its bounds scale automatically. **`relative: true`** labels the time axis as elapsed time from zero rather than calendar time.
 
-The curve changes the connections, not the underlying samples. The Tooltip still reads the latest sample at or before the cursor, rather than interpolating the drawn curve.
+The curve changes only the connections, not the samples or the Series' [instantaneous value](/guide/concepts#instantaneous-value).
 
 [Curve example](/guide/examples/#curve) · [Edit in Playground](/guide/examples/playground?preset=curve)
 
@@ -107,9 +105,9 @@ timescope.updateOptions({
 
 <ClientOnly><PresetPreview preset="log-scale" /></ClientOnly>
 
-`updateOptions()` merges the change, keeping the Source, curve, unit, and value-axis settings. For an initially logarithmic Chart, instead put `scale: 'log'` beside `axis` and `unit` in the previous constructor's inline Domain.
+`updateOptions()` merges the change, keeping the DataSource, curve, unit, and value-axis settings. For an initially logarithmic Chart, instead put `scale: 'log'` beside `axis` and `unit` in the previous constructor's inline Domain.
 
-**Logarithmic Domains draw positive values only.** Zero and negative values cannot be projected on a log scale. If you specify bounds, both must also be positive. Equal vertical distances now represent equal ratios rather than equal differences; time and the row values themselves are unchanged.
+**Logarithmic Domains draw positive values only.** Any specified bounds must also be positive. Equal vertical distances now represent equal ratios rather than equal differences; time and the row values themselves are unchanged.
 
 [Log Scale example](/guide/examples/#log-scale) · [Edit in Playground](/guide/examples/playground?preset=log-scale)
 
@@ -130,7 +128,6 @@ Compose the Chart from Marks and Links rather than using a string preset:
 ```ts
 const timescope = new Timescope({
   target: '#timescope',
-  style: { height: '200px' },
   fit: [0, 60],
   sources: { measurements },
   series: {

@@ -20,7 +20,6 @@ export function createAudioWaveformDemo(target) {
 
   const timescope = new Timescope({
     target,
-    style: { height: '320px' },
     time: 0,
     timeRange: [0, 0],
     zoom: 8,

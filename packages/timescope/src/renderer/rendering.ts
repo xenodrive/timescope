@@ -53,6 +53,9 @@ export function renderTimeRange(
   ctx.fillRect(l, 0, r - l, height);
 }
 
+// Match #00000010 over white, while also distinguishing out-of-range dark backgrounds.
+export const OUTSIDE_TIME_RANGE_COLOR = `rgba(136, 136, 136, ${16 / (255 - 136)})`;
+
 export function renderTimeRangeInverse(
   timescope: TimescopeRenderingContext,
   range: TimescopeRange<Decimal | null | undefined> | null,
@@ -72,6 +75,13 @@ export function renderCursor(timescope: TimescopeRenderingContext) {
   const ctx = timescope.ctx;
   const height = timescope.size.height;
   const x = Math.round(timescope.timeAxis.cursor.p);
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(x - 1, 0, 3, height);
+  ctx.restore();
 
   const cursor = timescope.options.cursor;
   ctx.fillStyle =

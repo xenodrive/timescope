@@ -9,6 +9,6 @@ import Playground from '../playground/Playground.vue';
 
 # Playground
 
-Build tracks, share domains, and combine drawing layers. Start with Timescope's defaults, or load a preset from the gallery to use the same data and view.
+Build Tracks, share Domains, and combine Marks and Links. Start with Timescope's defaults, or load a preset from the [Examples](/guide/examples/) to use the same data and view.
 
 <ClientOnly><Playground /></ClientOnly>

@@ -79,7 +79,7 @@ npm install timescope
 Provide a mount target in the page:
 
 ```html
-<div id="timescope"></div>
+<div id="timescope" style="height: 240px"></div>
 ```
 
 Run either example on the client after the target exists, with a non-zero
@@ -95,7 +95,6 @@ import { Timescope } from 'timescope';
 
 const timescope = new Timescope({
   target: '#timescope',
-  style: { height: '100px' },
   time: new Date('2026-01-01T12:00:00Z'),
 });
 
@@ -131,7 +130,6 @@ import { Timescope } from 'timescope';
 
 const timescope = new Timescope({
   target: '#timescope',
-  style: { height: '240px' },
   fit: [0, 3],
   sources: {
     samples: [

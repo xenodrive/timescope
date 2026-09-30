@@ -6,12 +6,14 @@ import { buildOptions } from '../../../src/guide/playground/options.js';
 
 const props = defineProps({ preset: { type: String, required: true } });
 const target = ref();
+const state = presets.find((preset) => preset.id === props.preset).create();
 let timescope;
 onMounted(() => {
-  const state = presets.find((preset) => preset.id === props.preset).create();
   timescope = new Timescope({ ...buildOptions(state), target: target.value });
 });
 onBeforeUnmount(() => timescope?.dispose());
 </script>
 
-<template><div ref="target"></div></template>
+<template>
+  <div ref="target" :style="{ width: state.width, height: state.height, background: state.background }"></div>
+</template>

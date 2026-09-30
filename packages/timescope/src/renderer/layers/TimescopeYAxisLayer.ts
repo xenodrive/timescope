@@ -31,7 +31,7 @@ export class TimescopeYAxisLayer extends TimescopeLayer {
 
     ctx.save();
     ctx.strokeStyle = axis.color || '#64748b';
-    ctx.fillStyle = axis.color || '#334155';
+    ctx.fillStyle = axis.color || timescope.options.foreground || 'black';
     ctx.lineWidth = 1;
     ctx.font = resolveFont(
       axis.font,

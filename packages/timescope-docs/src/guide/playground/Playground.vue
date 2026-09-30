@@ -45,7 +45,7 @@ const options = computed(() => buildOptions(state));
 const sourceItems = computed(() =>
   [...Object.keys(datasets), ...state.sources].map((id) => ({ id, builtIn: Object.hasOwn(datasets, id) })),
 );
-const code = computed(() => optionsCode(options.value, omitDefaults.value));
+const code = computed(() => optionsCode(options.value, omitDefaults.value, state));
 const alternatives = computed(() =>
   editor.value
     ? (editor.value.collection === 'sources' ? sourceItems.value : state[editor.value.collection]).filter(
@@ -388,7 +388,7 @@ async function copy() {
           </select>
         </div>
       </div>
-      <div ref="target"></div>
+      <div ref="target" :style="{ width: state.width, height: state.height, background: state.background }"></div>
     </div>
     <p v-if="error" role="alert">{{ error }}</p>
     <div class="playground-workspace">
@@ -405,11 +405,9 @@ async function copy() {
         <div v-if="active === 'general'" class="playground-general">
           <h2>Canvas &amp; view</h2>
           <div class="playground-fields">
-            <label>Width <input v-model="state.width" :placeholder="defaultOptions.style.width" /></label>
-            <label
-              >Height <input v-model="state.height" :placeholder="`${defaultOptions.style.height} (Timescope default)`"
-            /></label>
-            <label>Background <ChartColorInput v-model="state.background" label="Background" /></label>
+            <label>Target width <input v-model="state.width" placeholder="100%" /></label>
+            <label>Target height <input v-model="state.height" placeholder="auto (36px fallback)" /></label>
+            <label>Target background <ChartColorInput v-model="state.background" label="Target background" /></label>
             <label><input v-model="state.loadMdiFont" type="checkbox" /> Load MDI font</label>
             <label><input v-model="state.cursorEnabled" type="checkbox" /> Time cursor</label>
             <label v-if="state.cursorEnabled"
@@ -444,7 +442,7 @@ async function copy() {
           </div>
         </div>
         <p v-if="active === 'series'" class="playground-note">
-          Tracks share time. Series choose a track and a domain; several series can share either.
+          Tracks share time. Series choose a Track and a Domain; several Series can share either.
         </p>
         <article
           v-for="(item, index) in active === 'general' ? [] : active === 'sources' ? sourceItems : state[active]"
@@ -614,7 +612,7 @@ async function copy() {
             <div class="playground-fields">
               <label>Name <input v-model="editor.draft.name" /></label>
               <label
-                >Source
+                >DataSource
                 <select v-model="editor.draft.source" @change="changeSource">
                   <option v-for="name in [...new Set([...Object.keys(datasets), ...state.sources])]" :key="name">
                     {{ name }}

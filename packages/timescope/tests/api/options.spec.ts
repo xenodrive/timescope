@@ -8,12 +8,15 @@ describe('option merging', () => {
     }
 
     const source = new Source();
-    const options = mergeOptions({ style: { width: '10px' } }, { style: { height: '20px' }, sources: { source } }) as {
-      style: { width: string; height: string };
+    const options = mergeOptions(
+      { cursor: { color: 'red' } },
+      { cursor: { borderColor: 'blue' }, sources: { source } },
+    ) as {
+      cursor: { color: string; borderColor: string };
       sources: { source: Source };
     };
 
-    expect(options.style).toEqual({ width: '10px', height: '20px' });
+    expect(options.cursor).toEqual({ color: 'red', borderColor: 'blue' });
     expect(options.sources.source).toBe(source);
     expect(options.sources.source.query).toBe(Source.prototype.query);
   });

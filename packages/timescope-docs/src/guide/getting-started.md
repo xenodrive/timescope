@@ -10,7 +10,7 @@ import ExampleSimple from './getting-started-demo.vue'
 npm install timescope
 ```
 
-## Create a basic Timescope
+## Create a time navigator
 
 ```html
 <div id="timescope"></div>
@@ -26,7 +26,7 @@ const timescope = new Timescope({ target: '#timescope' });
 
 ## Accessing the selected time
 
-Read the selected time directly, or subscribe to changes from chart interaction.
+Read the selected time directly, or subscribe to changes:
 
 ```ts
 console.log(timescope.time); // Decimal | null
@@ -52,7 +52,7 @@ new Timescope({ target: '#timescope', fit: [0, 30] });
 
 ### Programmatic control
 
-Time inputs accept numbers (seconds by default), date strings, and `Date` objects. Use `null` to follow the live clock.
+Time inputs accept numbers (seconds by default), date strings, and `Date` objects. Use `null` to follow the wall clock.
 
 ```ts
 timescope.setTime(15);
@@ -69,7 +69,7 @@ timescope.fitTo([0, 30]);
 
 - Learn the [Core Concepts](/guide/concepts)
 - Add data, lines, curves, and points with [Drawing a Chart](/guide/drawing-a-chart)
-- Explore [Examples](/guide/examples/)
 - Connect remote data and application controls with [Advanced guides](/guide/advanced/)
-- Use a [Framework Binding](/guide/advanced/frameworks)
+- Use a [framework binding](/guide/advanced/frameworks)
+- Explore [Examples](/guide/examples/)
 - Look up signatures and options in the [API Reference](/api/timescope)

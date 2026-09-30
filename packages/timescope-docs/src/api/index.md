@@ -1,12 +1,12 @@
 # API Reference
 
-| Reference                                   | Contents                                            |
-| ------------------------------------------- | --------------------------------------------------- |
-| [Timescope](/api/timescope)                 | Constructor, state, methods, prepared views, events |
-| [Timescope Options](/api/timescope-options) | Sources, series, charts, tracks, domains, selection |
-| [Framework Components](/api/frameworks)     | Props, bindings, callbacks, component refs          |
-| [Decimal](/api/decimal)                     | Numeric inputs, arithmetic, rounding, conversion    |
-| [Calendar](/api/calendar)                   | Date components, zones, alignment, format tokens    |
+| Reference                                   | Contents                                                |
+| ------------------------------------------- | ------------------------------------------------------- |
+| [Timescope](/api/timescope)                 | Constructor, state, methods, prepared views, events     |
+| [Timescope Options](/api/timescope-options) | DataSources, Series, Charts, Tracks, Domains, selection |
+| [Framework Components](/api/frameworks)     | Props, bindings, callbacks, component refs              |
+| [Decimal](/api/decimal)                     | Numeric inputs, arithmetic, rounding, conversion        |
+| [Calendar](/api/calendar)                   | Date components, time zones, alignment, format tokens   |
 
 ```ts
 import {

@@ -41,10 +41,10 @@ export type TimescopeDataCacheOptionsWire = {
 };
 
 export type TimescopeRenderEngineOptions = {
+  foreground?: string;
   font?: TimescopeFontStyle;
   showFps?: boolean;
   cursor?: boolean | { color?: string; borderColor?: string };
-  background?: string;
   selection?: TimescopeOptionsSelection;
   selectionReset?: boolean;
   selectionRange?: [Decimal, Decimal] | null;

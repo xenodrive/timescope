@@ -23,7 +23,7 @@ import { TimescopeSeriesChartLayer } from '#src/renderer/layers/TimescopeSeriesC
 import { TimescopeSeriesTooltipLayer } from '#src/renderer/layers/TimescopeSeriesTooltipLayer';
 import { TimescopeTimeAxisLayer } from '#src/renderer/layers/TimescopeTimeAxisLayer';
 import { TimescopeYAxisLayer } from '#src/renderer/layers/TimescopeYAxisLayer';
-import { clipToTrack, renderCursor, renderTimeRangeInverse } from '#src/renderer/rendering';
+import { clipToTrack, OUTSIDE_TIME_RANGE_COLOR, renderCursor, renderTimeRangeInverse } from '#src/renderer/rendering';
 import { TimescopeDataCache, type TimescopeDataCacheOptions } from '#src/renderer/TimescopeDataCache';
 import { TimescopeTrack } from '#src/renderer/TimescopeTrack';
 import { TimescopeViewport } from '#src/renderer/TimescopeViewport';
@@ -843,7 +843,7 @@ export class TimescopeRenderEngine {
 
       // available range
       clipToTrack(renderingContext, null, () => {
-        renderTimeRangeInverse(renderingContext, timeAxis.range.time, '#00000010');
+        renderTimeRangeInverse(renderingContext, timeAxis.range.time, OUTSIDE_TIME_RANGE_COLOR);
       });
 
       // render

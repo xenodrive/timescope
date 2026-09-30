@@ -4,7 +4,7 @@ title: Financial Chart
 
 <template>
   <!-- #region html -->
-  <div id="example-financial-chart"></div>
+  <div id="example-financial-chart" style="height: 280px"></div>
   <p class="financial-source">
     Data:
     <a href="https://www.binance.com/en/trade/BTC_USDT" target="_blank" rel="noopener noreferrer">Binance · BTC/USDT</a>

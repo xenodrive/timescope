@@ -10,7 +10,6 @@ export const defaultOptions = Object.freeze({
   wheelSensitivity: 200,
   fit: Object.freeze({ padding: 0 }),
   options: Object.freeze({
-    style: undefined,
     font: undefined,
     cursor: true,
     showFps: false,
@@ -20,8 +19,7 @@ export const defaultOptions = Object.freeze({
     domains: undefined,
     selection: true,
   }),
-  style: Object.freeze({ width: '100%', height: '36px', background: '#fff' }),
-  cursor: Object.freeze({ color: 'white', borderColor: 'red' }),
+  cursor: Object.freeze({ color: 'transparent', borderColor: 'red' }),
   domain: Object.freeze({
     scale: 'linear' as const,
     animation: true,

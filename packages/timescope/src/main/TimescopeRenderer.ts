@@ -244,6 +244,10 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
     this.call('options:update', { selectionRange: range });
   }
 
+  setForeground(color: string) {
+    this.call('options:update', { foreground: color });
+  }
+
   updateOptions(options: TimescopeUpdateOptions, reset = false) {
     if (this.#disposed) return;
     const { sources, ...otherOptions } = options;
@@ -262,8 +266,6 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
     if ('font' in options) optionsForWorker.font = this.#options.font;
     if ('showFps' in options) optionsForWorker.showFps = options.showFps;
     if ('cursor' in options) optionsForWorker.cursor = this.#options.cursor;
-    if ('style' in options)
-      optionsForWorker.background = this.#options.style?.background ?? defaultOptions.style.background;
     if ('selection' in options) optionsForWorker.selection = options.selection;
     if (reset || ('selection' in options && options.selection === undefined)) optionsForWorker.selectionReset = true;
 

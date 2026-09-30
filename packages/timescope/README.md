@@ -19,7 +19,7 @@ npm i timescope
 ## Quick Start
 
 ```html
-<div id="timescope"></div>
+<div id="timescope" style="height: 160px; background: #f5f5f5"></div>
 ```
 
 ```TypeScript
@@ -27,7 +27,6 @@ import { Timescope } from 'timescope';
 
 new Timescope({
   target: '#timescope',
-  style: { height: '160px', background: '#f5f5f5' },
   time: 0,
   zoom: 4,
 

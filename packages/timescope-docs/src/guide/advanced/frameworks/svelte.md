@@ -10,9 +10,9 @@ Install `timescope` for core helpers and types, and `@timescope/svelte` for the 
 npm install timescope @timescope/svelte
 ```
 
-## Component
+## Bind time and zoom
 
-Use Svelte 5's `bind:` to synchronize time and zoom with `$state`. The component handles mounting and disposal.
+Use Svelte 5's `bind:` to synchronize time and zoom with `$state`:
 
 ```svelte
 <script lang="ts">
@@ -22,7 +22,6 @@ Use Svelte 5's `bind:` to synchronize time and zoom with `$state`. The component
   let time = $state<Decimal | null>(Decimal(15));
   let zoom = $state(3);
   const options = defineTimescopeOptions({
-    style: { height: '240px' },
     sources: {
       values: [
         { time: 0, value: 1 },
@@ -35,26 +34,28 @@ Use Svelte 5's `bind:` to synchronize time and zoom with `$state`. The component
   });
 </script>
 
-<Timescope {options} bind:time bind:zoom />
+<Timescope style="height: 240px" {options} bind:time bind:zoom />
 <button type="button" onclick={() => time = Decimal(15)}>Center at 15</button>
 <output>Time: {time?.toString() ?? 'live'} · Zoom: {zoom.toFixed(2)}</output>
 ```
 
-| Task                               | Svelte syntax                                                  |
-| ---------------------------------- | -------------------------------------------------------------- |
-| Set chart configuration and height | `{options}`; `options.style.height`                            |
-| Update configuration               | Store options in `$state.raw` and assign a new complete object |
-| Bind a selection                   | `bind:selectionRange`; state type `[Decimal, Decimal] \| null` |
-| Follow the clock                   | `time = null`                                                  |
-| Run after the chart has a size     | `on:ready={onReady}`                                           |
-| Read an intermediate time          | `on:timechanging={event => preview = event.detail}`            |
-
 ## Initial fit
 
-For a chart-managed view, omit the time and zoom bindings:
+To fit the data without binding time and zoom:
 
 ```svelte
 <Timescope {options} initialFit={{ range: [0, 30], padding: 24 }} />
 ```
 
-[Props, events, and ref methods](/api/frameworks) · [Options](/api/timescope-options) · [Data updates](/guide/advanced/data)
+## Options and events
+
+| Task                            | Svelte syntax                                                                        |
+| ------------------------------- | ------------------------------------------------------------------------------------ |
+| Style the host element          | `style="height: 240px; background: white"` or `class`                                |
+| Update options                  | Declare options with `$state.raw` and assign a new complete object                   |
+| Bind a selection                | `bind:selectionRange`                                                                |
+| Follow the clock                | `time = null`                                                                        |
+| Handle readiness                | `on:ready={onReady}`                                                                 |
+| Preview time during interaction | `on:timechanging={event => preview = event.detail}`; events carry values in `detail` |
+
+[Shared component behavior](/guide/advanced/frameworks#configuration-and-state) · [Props, events, and ref methods](/api/frameworks) · [Data updates](/guide/advanced/data)

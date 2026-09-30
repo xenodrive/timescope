@@ -17,7 +17,6 @@ import { clipToTrack } from '#src/renderer/rendering';
 import type {
   TimescopeProjectedChartMark,
   TimescopePath2DConstructor,
-  TimescopeRenderEngineOptions,
   TimescopeRenderingContext,
   TimescopeSeriesChartData,
 } from '#src/renderer/types';
@@ -188,7 +187,13 @@ type MarkOp = {
     BoxStyle &
     OffsetStyle &
     DefaultColorStyle &
-    FlagsStyle & { fillStyle?: string; strokeStyle?: string; postFillStyle?: string; floating?: number };
+    FlagsStyle & {
+      fillStyle?: string;
+      strokeStyle?: string;
+      postFillStyle?: string;
+      floating?: number;
+      clearFill?: boolean;
+    };
 };
 
 type LinkOp = {
@@ -229,64 +234,8 @@ export function createFillStyle(style: FillStyle & DefaultColorStyle) {
   return `rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${a})`;
 }
 
-const flattenedColorCache = new Map<string, { r: number; g: number; b: number; a: number }>();
-let colorContext: OffscreenCanvasRenderingContext2D | null | undefined;
-
-export function createMarkFillStyle(style: FillStyle & DefaultColorStyle, background: string) {
-  if (style.fillColor !== undefined) return createFillStyle(style);
-
-  const color = style.color ?? 'black';
-  const colorOpacity = defaultOptions.series.fillAlpha;
-  const fillOpacity = Math.max(0, Math.min(1, style.fillOpacity ?? defaultOptions.chartStyle.fillOpacity));
-  const cacheKey = `${color}\0${colorOpacity}\0${background}`;
-  let rgba = flattenedColorCache.get(cacheKey);
-  if (!rgba) {
-    rgba = flattenColor(color, background, colorOpacity) ?? undefined;
-    if (rgba) flattenedColorCache.set(cacheKey, rgba);
-  }
-  if (!rgba) return opacity(opacity(color, colorOpacity, background), fillOpacity);
-
-  const a = rgba.a * fillOpacity;
-  return `rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${a})`;
-}
-
-function flattenColor(color: string, background: string, colorOpacity: number) {
-  const foreground = parseColorToRgba(color);
-  const backdrop = parseColorToRgba(background);
-  if (foreground && backdrop) {
-    return compositeColors({ ...foreground, a: foreground.a * colorOpacity }, backdrop);
-  }
-
-  if (colorContext === undefined) {
-    colorContext = typeof OffscreenCanvas === 'undefined' ? null : new OffscreenCanvas(1, 1).getContext('2d');
-  }
-  if (!colorContext) return null;
-
-  colorContext.clearRect(0, 0, 1, 1);
-  colorContext.globalAlpha = 1;
-  colorContext.fillStyle = background;
-  colorContext.fillRect(0, 0, 1, 1);
-  colorContext.globalAlpha = colorOpacity;
-  colorContext.fillStyle = color;
-  colorContext.fillRect(0, 0, 1, 1);
-  colorContext.globalAlpha = 1;
-  const [r, g, b, a] = colorContext.getImageData(0, 0, 1, 1).data;
-  return { r, g, b, a: a / 255 };
-}
-
-function compositeColors(
-  foreground: { r: number; g: number; b: number; a: number },
-  background: { r: number; g: number; b: number; a: number },
-) {
-  const a = foreground.a + background.a * (1 - foreground.a);
-  if (a === 0) return { r: 0, g: 0, b: 0, a: 0 };
-  const backgroundWeight = background.a * (1 - foreground.a);
-  return {
-    r: Math.round((foreground.r * foreground.a + background.r * backgroundWeight) / a),
-    g: Math.round((foreground.g * foreground.a + background.g * backgroundWeight) / a),
-    b: Math.round((foreground.b * foreground.a + background.b * backgroundWeight) / a),
-    a,
-  };
+export function createMarkFillStyle(style: FillStyle & DefaultColorStyle) {
+  return createFillStyle(style);
 }
 
 function createPathMarks<
@@ -725,16 +674,6 @@ const pathCreators: Record<
 };
 
 export class TimescopeSeriesChartLayer extends TimescopeLayer {
-  #background = '#fff';
-
-  updateOptions(options: TimescopeRenderEngineOptions): void {
-    super.updateOptions(options);
-    if ('background' in options && options.background !== this.#background) {
-      this.#background = options.background ?? defaultOptions.style.background;
-      this.#plotData = {};
-    }
-  }
-
   #plotData: Record<
     string,
     {
@@ -838,7 +777,8 @@ export class TimescopeSeriesChartLayer extends TimescopeLayer {
               style: {
                 ...style,
                 strokeStyle,
-                fillStyle: createMarkFillStyle(style, this.#background),
+                fillStyle: createMarkFillStyle(style),
+                clearFill: true,
                 postFillStyle,
                 ...flags,
                 floating,
@@ -973,7 +913,7 @@ function createFadeoutStyle(
   return style;
 }
 
-function renderPath(
+export function renderPath(
   timescope: TimescopeRenderingContext,
   strokePath: Path2D | undefined,
   fillPath: Path2D | undefined,
@@ -984,10 +924,21 @@ function renderPath(
 ) {
   const ctx = timescope.ctx;
 
-  if (style.fill && !style.fillPost && style.fillStyle && fillPath) {
+  const fill = () => {
+    if (!style.fill || !style.fillStyle || !fillPath) return;
+    if (style.clearFill) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#000';
+      ctx.fill(fillPath);
+      ctx.restore();
+    }
     ctx.fillStyle = resolveFadeoutStyle(style.fillStyle, floating, style.baseline);
     ctx.fill(fillPath);
-  }
+  };
+
+  if (!style.fillPost) fill();
 
   if (style.stroke && style.strokeStyle && (style.lineWidth ?? defaultOptions.chartStyle.lineWidth) > 0 && strokePath) {
     ctx.lineCap = 'round';
@@ -1001,10 +952,7 @@ function renderPath(
     ctx.stroke(strokePath);
   }
 
-  if (style.fill && style.fillPost && style.fillStyle && fillPath) {
-    ctx.fillStyle = resolveFadeoutStyle(style.fillStyle, floating, style.baseline);
-    ctx.fill(fillPath);
-  }
+  if (style.fillPost) fill();
 }
 
 function renderTextAt(

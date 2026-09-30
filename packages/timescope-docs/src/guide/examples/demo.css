@@ -1,5 +1,5 @@
 .demo {
-  color: #263449;
+  color: var(--vp-c-text-1, #263449);
   font:
     13px/1.5 system-ui,
     sans-serif;
@@ -14,11 +14,11 @@
 .demo button,
 .demo select,
 .demo input[type='number'] {
-  border: 1px solid #dce2ea;
+  border: 1px solid var(--vp-c-divider, #dce2ea);
   border-radius: 8px;
   padding: 6px 12px;
-  background: white;
-  color: #334155;
+  background: var(--vp-c-bg-alt, white);
+  color: var(--vp-c-text-1, #334155);
   font: inherit;
   cursor: pointer;
 }
@@ -46,13 +46,13 @@
   accent-color: #0f766e;
 }
 .demo-note {
-  color: #64748b;
+  color: var(--vp-c-text-2, #64748b);
   font-size: 12px;
 }
 .demo-config {
   overflow: auto;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--vp-c-bg-soft, #f1f5f9);
+  color: var(--vp-c-text-2, #475569);
   border-radius: 8px;
   padding: 10px 14px;
   font: 11px/1.6 monospace;

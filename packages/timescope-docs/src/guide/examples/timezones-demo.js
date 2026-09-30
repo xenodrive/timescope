@@ -4,7 +4,6 @@ export function createTimezonesDemo(target) {
   // #region example
   const timescope = new Timescope({
     target,
-    style: { height: '320px' },
     zoom: -5,
     tracks: {
       utc: { height: 80, timeAxis: { timeZone: 'utc' } },

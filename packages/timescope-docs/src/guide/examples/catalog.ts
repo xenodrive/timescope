@@ -12,6 +12,7 @@ export const examples = [
   { name: 'decimation', title: 'Decimation', tag: 'Data' },
   { name: 'dynamic-loader', title: 'Dynamic Loader', tag: 'Data' },
   { name: 'live-stream', title: 'Live Stream', tag: 'Data' },
+  { name: 'styling', title: 'Styling', tag: 'Drawing' },
   { name: 'financial-chart', title: 'Financial Chart', tag: 'Applications' },
   { name: 'audio-waveform', title: 'Audio Waveform', tag: 'Applications' },
 ];

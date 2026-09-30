@@ -5,7 +5,6 @@
       v-model:time="time"
       v-model:zoom="zoom"
       v-model:selection-range="selectionRange"
-      :options="options"
       :initial-fit="[0, 30]"
       :zoom-range="[-13, 8]" />
   </div>
@@ -25,8 +24,6 @@ ts.selectionRange: {{ ts?.selectionRange?.join(',') }}
 <script lang="ts" setup>
 import { Timescope } from '@timescope/vue';
 import { ref, useTemplateRef } from 'vue';
-
-const options = { style: { width: '100%' } };
 
 const time = ref();
 const zoom = ref();

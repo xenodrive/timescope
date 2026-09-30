@@ -1,8 +1,7 @@
-import { defaultOptions } from '#src/core/defaults';
+import { watchCanvasColor } from '#src/main/canvasColor';
 import type { TimescopeFont } from '#src/main/font';
 import type { InteractionInfo } from '#src/main/interaction';
 import { InteractionManager } from '#src/main/InteractionManager';
-import type { TimescopeOptions } from '#src/main/options';
 import type { TimescopeCanvas, TimescopeEnvironment } from '#src/main/TimescopeRenderer';
 
 export type TimescopeBackendTarget = Element | string | TimescopeCanvas;
@@ -15,13 +14,13 @@ export type TimescopeBackendMount = {
   environment?: TimescopeEnvironment;
   renderThread?: TimescopeRenderThread;
   autoSize?: boolean;
-  setStyle?(style: TimescopeOptions['style']): void;
   setDisabled?(disabled: boolean): void;
   dispose(): void;
 };
 
 export type TimescopeBackendHost = {
   fontsChanged(fonts: TimescopeFont[]): Promise<void>;
+  colorChanged?(color: string): void;
   sizeChanged(size: { width: number; height: number; dpr: number; x?: number; y?: number }): void;
   pointer(info: InteractionInfo): void;
   wheel(deltaY: number): void;
@@ -35,7 +34,6 @@ export type TimescopeBackendOptions = {
   target?: TimescopeBackendTarget;
   renderThread?: TimescopeRenderThread;
   environment?: TimescopeEnvironment;
-  style?: TimescopeOptions['style'];
 };
 
 export type TimescopeBackend = {
@@ -73,7 +71,6 @@ export function canUseCanvasWorker({ container, direct }: CanvasTarget): boolean
 export function mountCanvas(
   target: TimescopeBackendTarget | undefined,
   host: TimescopeBackendHost,
-  style?: TimescopeOptions['style'],
   renderThread?: TimescopeRenderThread,
 ): TimescopeBackendMount {
   const resolved = resolveCanvasTarget(target);
@@ -84,10 +81,10 @@ export function mountCanvas(
   let observer: ResizeObserver | undefined;
   let interaction: InteractionManager | undefined;
   let onWheel: ((event: WheelEvent) => void) | undefined;
-  let canvasStyle = style;
-  let updateSize: (() => void) | undefined;
+  let stopWatchingColor: (() => void) | undefined;
   const dispose = () => {
     observer?.disconnect();
+    stopWatchingColor?.();
     interaction?.detach();
     if (element && onWheel) element.removeEventListener('wheel', onWheel);
     if (!direct) element?.remove();
@@ -98,13 +95,15 @@ export function mountCanvas(
       element.style.all = 'unset';
       element.style.display = 'block';
       element.style.touchAction = 'none';
-      element.style.width = canvasStyle?.width ?? defaultOptions.style.width;
-      element.style.height = canvasStyle?.height ?? defaultOptions.style.height;
-      element.style.background = canvasStyle?.background ?? defaultOptions.style.background;
+      // Keep bitmap dimensions (including DPR) out of intrinsic layout sizing.
+      element.style.contain = 'size';
+      element.style.containIntrinsicBlockSize = '36px';
+      element.style.width = '100%';
+      element.style.height = '100%';
+      element.style.transformOrigin = '0 0';
       if ('appendChild' in container) container.appendChild(element);
-      updateSize = () => {
-        element.style.width = canvasStyle?.width ?? defaultOptions.style.width;
-        element.style.height = canvasStyle?.height ?? defaultOptions.style.height;
+      const updateSize = () => {
+        element.style.transform = 'none';
         element.style.position = 'relative';
         element.style.left = '0px';
         element.style.top = '0px';
@@ -114,8 +113,8 @@ export function mountCanvas(
         const height = Math.round(rect.height * dpr) / dpr;
         const left = (Math.round(rect.x * dpr) - rect.x * dpr) / dpr;
         const top = (Math.round(rect.y * dpr) - rect.y * dpr) / dpr;
-        element.style.width = `${width}px`;
-        element.style.height = `${height}px`;
+        // Snap the displayed surface without fixing its intrinsic layout size.
+        element.style.transform = `scale(${rect.width ? width / rect.width : 1}, ${rect.height ? height / rect.height : 1})`;
         element.style.left = `${left}px`;
         element.style.top = `${top}px`;
         host.sizeChanged({
@@ -131,6 +130,7 @@ export function mountCanvas(
     }
 
     if (element && typeof window !== 'undefined') {
+      if (host.colorChanged) stopWatchingColor = watchCanvasColor(element, host.colorChanged);
       interaction = new InteractionManager({
         element,
         transform: (point) => {
@@ -165,14 +165,6 @@ export function mountCanvas(
     fonts: [],
     renderThread,
     autoSize: !direct,
-    setStyle:
-      !direct && element
-        ? (value) => {
-            canvasStyle = value;
-            element.style.background = value?.background ?? defaultOptions.style.background;
-            updateSize?.();
-          }
-        : undefined,
     setDisabled: (disabled) => {
       if (interaction) interaction.disabled = disabled;
     },

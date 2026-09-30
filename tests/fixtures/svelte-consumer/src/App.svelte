@@ -2,7 +2,7 @@
   import { Timescope } from '@timescope/svelte';
   import type { Decimal } from 'timescope';
 
-  const options = { style: { height: '80px' }, showFps: false };
+   const options = { showFps: false };
   let time = $state<Decimal | null | undefined>(undefined);
   let zoom = $state<number | undefined>(undefined);
 
@@ -10,4 +10,4 @@
   const componentIsTyped: IsAny<typeof Timescope> = false;
 </script>
 
-<Timescope {options} bind:time bind:zoom initialFit={[0, 30]} renderThread="main" />
+<Timescope style="height: 80px" {options} bind:time bind:zoom initialFit={[0, 30]} renderThread="main" />

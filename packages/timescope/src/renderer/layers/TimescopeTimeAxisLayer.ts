@@ -5,6 +5,9 @@ import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
 import { forEachTrack } from '#src/renderer/rendering';
 import type { TimescopeRenderingContext, TimescopeTimeAxisData } from '#src/renderer/types';
 
+// Match #3333 over white while keeping axis lines visible on dark backgrounds.
+const DEFAULT_AXIS_COLOR = `rgba(136, 136, 136, ${((255 - 51) * 0.2) / (255 - 136)})`;
+
 export class TimescopeTimeAxisLayer extends TimescopeLayer {
   render(timescope: TimescopeRenderingContext): void {
     super.render(timescope);
@@ -35,24 +38,25 @@ export class TimescopeTimeAxisLayer extends TimescopeLayer {
     if (!cache) return;
     const data = cache?.data ?? [];
 
+    const axisColor = (typeof opts.axis === 'object' ? opts.axis.color : undefined) || DEFAULT_AXIS_COLOR;
+    const tickColor = (typeof opts.ticks === 'object' ? opts.ticks.color : undefined) || DEFAULT_AXIS_COLOR;
     ctx.beginPath();
-
     if (opts.axis !== false) {
-      ctx.strokeStyle = (typeof opts.axis === 'object' ? opts.axis.color : undefined) || '#3333';
+      ctx.strokeStyle = axisColor;
       ctx.moveTo(0, axisY);
       ctx.lineTo(width, axisY);
+      if (opts.ticks === false || axisColor !== tickColor) ctx.stroke();
     }
 
-    ctx.strokeStyle =
-      (opts.ticks !== false && typeof opts.ticks === 'object' ? opts.ticks.color : undefined) || '#3333';
+    if (opts.ticks === false) return;
+    if (axisColor !== tickColor) ctx.beginPath();
+    ctx.strokeStyle = tickColor;
 
     data.forEach((tick) => {
       if (!tick.tick) return;
       const x = timescope.timeAxis.p(tick.time.time);
-      if (opts.ticks !== false) {
-        ctx.moveTo(x, axisY - (tick.major ? 10 : 5));
-        ctx.lineTo(x, axisY + (tick.major ? 10 : 5));
-      }
+      ctx.moveTo(x, axisY - (tick.major ? 10 : 5));
+      ctx.lineTo(x, axisY + (tick.major ? 10 : 5));
     });
 
     ctx.stroke();
@@ -88,7 +92,8 @@ export class TimescopeTimeAxisLayer extends TimescopeLayer {
 
     if (opts.labels === false) return;
 
-    ctx.fillStyle = (typeof opts.labels === 'object' ? opts.labels.color : undefined) ?? 'black'; // for labels
+    ctx.fillStyle =
+      (typeof opts.labels === 'object' ? opts.labels.color : undefined) ?? timescope.options.foreground ?? 'black';
     ctx.font = resolveFont(
       typeof opts.labels === 'object' ? opts.labels.font : undefined,
       { weight: 'normal', size: 12, family: DEFAULT_FONT_FAMILY },
@@ -96,7 +101,7 @@ export class TimescopeTimeAxisLayer extends TimescopeLayer {
     );
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.strokeStyle = timescope.options.background ?? 'white';
+    ctx.strokeStyle = '#000';
     ctx.lineWidth = 3;
 
     const labels = data.filter((tick) => tick.text);
@@ -113,7 +118,11 @@ export class TimescopeTimeAxisLayer extends TimescopeLayer {
       const x = positions[i];
       if (x + widths[i] / 2 < -4 || x - widths[i] / 2 > timescope.size.width + 4) continue;
       if (tick.labelIndex !== undefined && tick.labelIndex % BigInt(stride) !== 0n) continue;
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.globalAlpha = 1;
       ctx.strokeText(tick.text!, x, labelY);
+      ctx.restore();
       ctx.fillText(tick.text!, x, labelY);
     }
   }

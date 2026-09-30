@@ -71,7 +71,6 @@ export function mountTerrain(target) {
 
   const options = {
     target,
-    style: { height: '350px' },
     time: 512,
     zoom: -1,
     zoomRange: [-6, 12],

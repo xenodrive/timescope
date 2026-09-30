@@ -1,5 +1,5 @@
 import type { Decimal } from '@kikuchan/decimal';
-import type { ForwardedRef } from 'react';
+import type { CSSProperties, ForwardedRef } from 'react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
   Timescope,
@@ -16,6 +16,8 @@ type TimescopeProps<
   Track extends string,
 > = {
   options?: TimescopeOptions<Sources, Series, Track>;
+  style?: CSSProperties;
+  className?: string;
   time?: Decimal | number | null | string | Date;
   timeRange?: [
     Decimal | number | null | string | Date | undefined,
@@ -258,7 +260,7 @@ const TimescopeComponent = forwardRef(function TimescopeComponent<
     setContainerEl(element);
   }, []);
 
-  return <div ref={containerRef} />;
+  return <div ref={containerRef} style={props.style} className={props.className} />;
 });
 
 export default TimescopeComponent;

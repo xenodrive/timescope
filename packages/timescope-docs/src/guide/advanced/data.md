@@ -4,18 +4,28 @@ title: Loading and Updating Data
 
 # Loading and Updating Data
 
-After [Drawing a Chart](/guide/drawing-a-chart), connect the same Sources and Series to data from your application or a remote service. A [DataLoader](/guide/concepts#dataloader-and-datasource) acquires rows; a DataSource answers requests for ranges and resolutions.
+Extend [Drawing a Chart](/guide/drawing-a-chart) with remote loading and live updates, using the [DataSource and DataLoader model](/guide/concepts#dataloader-and-datasource).
 
-- **Snapshot loading** acquires the complete dataset and retains it until invalidation.
-- **Chunk loading** divides display requests into time chunks at a chosen resolution. A Source can answer those requests from a loaded snapshot or acquire the requested rows remotely.
+The examples use a target sized with CSS:
 
-For remote chunk loading, the acquisition interface is called a **range loader** in the API. It accepts arbitrary ranges: callers are not required to align requests to chunk boundaries.
+```html
+<div id="chart" style="height: 240px"></div>
+```
+
+Choose acquisition based on what your application can supply:
+
+| Available data         | Input                                             |
+| ---------------------- | ------------------------------------------------- |
+| Complete dataset       | Inline rows, a snapshot URL, or a snapshot loader |
+| Requested history only | A templated URL or a range loader                 |
+
+Both can serve the display's chunk queries: snapshot loading and chunk loading are not mutually exclusive.
 
 ## Snapshot Loading
 
 ### Load inline data
 
-For data already available in your application, pass a row array as a source. Each series selects its source by name.
+Snapshots remain loaded until invalidation. Drawing a Chart passes an array directly; use `createDataSource()` when you need an instance for invalidation or reuse, then register it in `sources`:
 
 ```ts
 import { createDataSource, Timescope } from 'timescope';
@@ -28,7 +38,6 @@ const measurements = createDataSource([
 
 const timescope = new Timescope({
   target: '#chart',
-  style: { height: '240px' },
   fit: [0, 30],
   sources: { measurements },
   series: { temperature: { data: { source: 'measurements' }, chart: 'lines' } },
@@ -37,15 +46,15 @@ const timescope = new Timescope({
 
 ### Load from a URL
 
-A URL without placeholders loads a complete snapshot. The response can be a JSON array of rows in the same format as the inline data above.
+A URL without placeholders loads a complete snapshot. It can return a JSON array in the same row format:
 
 ```ts
 const measurements = createDataSource({ url: '/samples.json' });
 ```
 
-### Load with a snapshot callback
+### Load with a snapshot loader
 
-Use a `loader` callback when acquisition needs application logic, such as authentication or an SDK call. Set `chunked: false` for a callback that returns the complete dataset; it takes no range arguments:
+Use a `loader` callback for application logic such as authentication or an SDK call. A **snapshot loader** takes no arguments and returns the complete dataset; set `chunked: false`:
 
 ```ts
 const measurements = createDataSource({
@@ -60,7 +69,7 @@ const measurements = createDataSource({
 
 ### Convert a response to rows
 
-If an endpoint returns a different structure, use `decoder` to convert its response to rows. For field-path mapping without a callback, use [`mappings`](/api/timescope-options#mappings). Both transforms also work with chunk loading; the expected rows have the same format.
+If an endpoint returns a different structure, use `decoder` to convert its response to rows. For field-path mapping without a callback, use [`mappings`](/api/timescope-options#mappings). These transforms also apply to range loading.
 
 ```ts
 const measurements = createDataSource({
@@ -78,13 +87,13 @@ const measurements = createDataSource({
 
 ## Chunk Loading
 
-For a Series, the display resolution and the DataSource's resolution hints guide the requested [data resolution](/api/timescope-options#resolution), which may differ from the display resolution.
+The Series' `data.resolution` and the DataSource's resolution hints select the [data resolution](/api/timescope-options#resolution). By default, the preferred interval is the display resolution from [Core Concepts](/guide/concepts#time-and-zoom).
 
-At that resolution, the timeline is divided into chunks of width **`chunkSize × resolution`**, anchored to **`chunkOrigin`**. The visible range selects the chunks to request. Each selected chunk is queried from the DataSource using its full time range and the chosen resolution. These display requests share cached results for the same DataSource, even across several Series.
+Each display query covers a chunk of width **`chunkSize × data resolution`**, anchored to **`chunkOrigin`**. Chunks overlapping the visible range are queried with their full ranges. Results are cached per DataSource and shared across Series using that instance.
 
 ![Chunks aligned to chunkOrigin; the visible range selects full chunks to query at the chosen resolution](../assets/chunk-loading.svg)
 
-`chunkSize` defaults to `256`, and `chunkOrigin` defaults to `0`. A loaded snapshot can answer these queries locally. To acquire only the requested history from a remote service, use a templated URL or a range-loader callback instead.
+`chunkSize` defaults to `256`, and `chunkOrigin` to `0`. Snapshots answer locally; the following range-loading inputs acquire only the requested history.
 
 ### Load from a templated URL
 
@@ -100,9 +109,9 @@ Timescope substitutes the placeholders as the user pans and zooms. The endpoint 
 
 [URL placeholders](/api/timescope-options#url-placeholders)
 
-### Load with a range-loader callback
+### Load with a range loader
 
-A range-loader callback receives the requested time range and resolution. Function loaders use this mode by default (`chunked: true`):
+A **range loader** receives the requested range and data resolution. Function loaders use this mode by default (`chunked: true`):
 
 ```ts
 import { createDataSource } from 'timescope';
@@ -123,39 +132,39 @@ const history = createDataSource({
 
 ### Return rows for a range
 
-Both a templated URL and a range-loader callback must return complete rows intersecting the request. Include neighboring points where available so lines and curves can continue across the view's edges.
+Templated URLs and range loaders use the same response contract. Return complete rows intersecting the request, with neighboring points where available to continue Links across chunk boundaries.
 
 ![Return complete rows intersecting the range, plus neighboring rows for links](../assets/query-context.svg)
 
-| Endpoint contract               | Value                                                                    |
-| ------------------------------- | ------------------------------------------------------------------------ |
-| Request                         | Arbitrary finite `[start, end)` and positive `resolution`, all `Decimal` |
-| Chunk boundaries                | No alignment requirement; the same loader can serve direct range queries |
-| Points                          | `start <= time < end`                                                    |
-| Intervals                       | All intersecting rows, without trimming their times                      |
-| Link neighbors, where available | One on each side for lines/steps; two for curves, including empty ranges |
+| Request / response         | Contract                                                                        |
+| -------------------------- | ------------------------------------------------------------------------------- |
+| Request                    | Finite `[start, end)` with `start <= end`, positive `resolution`; all `Decimal` |
+| Chunk boundaries           | No alignment requirement; the same loader can serve direct range queries        |
+| Points                     | `start <= time < end`                                                           |
+| Intervals                  | All intersecting rows, without trimming their times                             |
+| Recommended Link neighbors | One on each side for lines/steps; two for curves, including empty ranges        |
 
 [Loading options](/api/timescope-options#source-options) · [Resolution](/api/timescope-options#resolution) · [Dynamic Loader example](/guide/examples/#dynamic-loader)
 
 ## Refresh changed data
 
-Invalidate a source when previously loaded data has changed. Use a range to identify corrected history or newly available samples at the live tail.
+Invalidate a DataSource when previously loaded data has changed. Use a range for corrected history or newly available samples at the live tail; replacement data is loaded on demand.
 
 | Change              | Call                                       |
 | ------------------- | ------------------------------------------ |
 | Complete snapshot   | `measurements.invalidate()`                |
 | Historical interval | `history.invalidate([120, 180])`           |
 | Live tail           | `history.invalidate([180, undefined])`     |
-| All chart sources   | `await timescope.reload()`                 |
-| Named chart sources | `await timescope.reload(['measurements'])` |
+| All DataSources     | `await timescope.reload()`                 |
+| Named DataSources   | `await timescope.reload(['measurements'])` |
 
-Include late-arriving samples in the invalidated range. Snapshot invalidation always replaces the whole snapshot.
+Include late-arriving samples in the invalidated range. A snapshot is reacquired as a whole, even if you pass a range. Input-array mutations are not observed until invalidation.
 
-For completed pixels after a refresh: [Wait for data and drawing](/guide/advanced/views#wait-for-data-and-drawing).
+Neither `invalidate()` nor `await reload()` waits for replacement data and drawing. Before export, [wait for data and drawing](/guide/advanced/views#wait-for-data-and-drawing).
 
 ## Append live points
 
-To add live samples, create a data source with `type: 'point-aggregate'` and call `append()` as points arrive in time order. Advance the playback clock separately when the chart should follow the latest sample.
+For an ordered live stream, use `type: 'point-aggregate'` and call `append()` as points arrive. Appending does not move the view; advance the [playback clock](/guide/advanced/views#follow-a-live-or-playback-clock) separately to follow the latest sample.
 
 ```ts
 import { createDataSource, Timescope } from 'timescope';
@@ -167,7 +176,6 @@ const signal = createDataSource({
 
 const timescope = new Timescope({
   target: '#chart',
-  style: { height: '240px' },
   time: null,
   zoom: 5,
   sources: { signal },
@@ -183,25 +191,24 @@ await signal.append([
 timescope.setPlaybackTime(2);
 ```
 
-| Requirement          | Rule                                                           |
-| -------------------- | -------------------------------------------------------------- |
-| Input                | Points in nondecreasing time order; equal times allowed        |
-| Chart refresh        | Automatic after `append()`                                     |
-| Promise completion   | Data updated; drawing may still be pending                     |
-| Snapshot replacement | `invalidate()` discards appends absent from the original input |
+| Requirement          | Rule                                                                        |
+| -------------------- | --------------------------------------------------------------------------- |
+| Input                | Nondecreasing times across initial and appended points; equal times allowed |
+| Chart refresh        | Automatic after `append()`                                                  |
+| Promise completion   | Data updated; drawing may still be pending                                  |
+| Snapshot replacement | `invalidate()` discards appends absent from the original input              |
 
 [Appending Points](/api/timescope-options#appending-points) · [Live Stream example](/guide/examples/#live-stream)
 
-## Reuse a source
+## Reuse a DataSource {#reuse-a-source}
 
-Keep the same DataSource instance when changing chart appearance so the chart can reuse its loaded data. In a framework component, create the source outside the options updates that change presentation settings.
+When replacing configuration, keep the same DataSource instance to retain loaded data. This also applies to [framework `options` updates](/guide/advanced/frameworks#configuration-and-state): do not recreate the DataSource for an appearance-only change.
 
 ```ts
 timescope.setOptions({
-  style: { height: '320px' },
   sources: { measurements },
   series: { temperature: { data: { source: 'measurements' }, chart: 'lines:filled' } },
 });
 ```
 
-[Source lifecycle](/api/timescope-options#invalidation-and-caching) · [Reusable DataLoader](/api/timescope-options#reusable-dataloader)
+[DataSource lifecycle](/api/timescope-options#invalidation-and-caching) · [Reusable DataLoader](/api/timescope-options#reusable-dataloader)

@@ -11,8 +11,6 @@ import type { TimescopeOptionsSources, TimescopeSourceInput } from '#src/main/Ti
 import type { TimescopeDomainOptions } from '#src/main/TimescopeDomain';
 import type { TimescopeEnvironment } from '#src/main/TimescopeRenderer';
 
-type TimescopeStyle = { width?: string; height?: string; background?: string };
-
 export type TimescopeOptionsDomains = { [name: string]: TimescopeDomainOptions };
 export type TimescopeOptionsTracks<Track extends string> = {
   [K in Track]: { height?: number; symmetric?: boolean; timeAxis?: TimescopeTimeAxisOptions | boolean };
@@ -29,7 +27,6 @@ export type TimescopeOptions<
   Series extends Record<string, TimescopeSeriesInput> = Record<string, TimescopeSeriesInput>,
   Track extends string = string,
 > = {
-  style?: TimescopeStyle;
   font?: TimescopeFontStyle;
   showFps?: boolean;
   cursor?: boolean | { color?: string; borderColor?: string };

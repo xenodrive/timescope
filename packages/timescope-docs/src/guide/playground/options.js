@@ -78,7 +78,9 @@ export function initialState() {
     fitPadding: defaults.fit.padding,
     time: defaults.time,
     zoom: defaults.zoom,
-    ...defaults.style,
+    width: '100%',
+    height: '',
+    background: '',
     loadMdiFont: false,
     cursorEnabled: defaults.options.cursor,
     cursorColor: defaults.cursor.color,
@@ -98,11 +100,6 @@ export function buildOptions(state) {
     ...(state.viewMode === 'fit'
       ? { fit: state.fitPadding ? { range: state.range, padding: state.fitPadding } : state.range }
       : { time: state.time, zoom: state.zoom }),
-    style: {
-      width: state.width || defaults.style.width,
-      height: state.height || defaults.style.height,
-      background: state.background,
-    },
     cursor: state.cursorEnabled ? { color: state.cursorColor, borderColor: state.cursorBorderColor } : false,
     sources: Object.fromEntries(
       [...new Set([...state.series.map((series) => series.source), ...state.sources])].map((name) => [
@@ -249,7 +246,7 @@ function compactLayer(layer, kind, color) {
   if (layer.style) {
     const style = withoutDefaults(layer.style, { ...defaults.chartStyle, size: defaultSize(layer.draw) });
     // Stroke and text inherit the series color unchanged. Fill does not: omitting
-    // fillColor adds 25% alpha (and blends marks with the background).
+    // An inherited fill color adds 25% alpha.
     for (const key of ['lineColor', 'textColor', 'iconColor']) {
       if (color && style[key] === color) delete style[key];
     }
@@ -296,7 +293,6 @@ function compactSeries(series, firstTrack) {
 // default-valued track can be implicit.
 export function compactOptions(options) {
   const result = withoutDefaults(options, { ...defaults.options, time: defaults.time, zoom: defaults.zoom });
-  if (options.style) setNonempty(result, 'style', withoutDefaults(options.style, defaults.style));
   if (options.cursor && typeof options.cursor === 'object')
     setNonempty(result, 'cursor', withoutDefaults(options.cursor, defaults.cursor));
   if (options.domains) {
@@ -328,8 +324,15 @@ export function compactOptions(options) {
   return result;
 }
 
-export function optionsCode(options, omitDefaults = true) {
-  return javascript(omitDefaults ? compactOptions(options) : options, 0, true, options.sources);
+export function optionsCode(options, omitDefaults = true, layout) {
+  const css = layout
+    ? ['width', 'height', 'background']
+        .filter((key) => layout[key])
+        .map((key) => `${key}: ${layout[key]};`)
+        .join(' ')
+    : '';
+  const prefix = css ? `// Target element CSS: ${css.replaceAll('\n', ' ')}\n` : '';
+  return prefix + javascript(omitDefaults ? compactOptions(options) : options, 0, true, options.sources);
 }
 
 // Serialize JavaScript, preserving undefined bounds instead of turning them into null.

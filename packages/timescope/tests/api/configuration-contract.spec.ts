@@ -13,7 +13,7 @@ describe('Timescope configuration contract', () => {
       selection: { color: 'red', range: [1, 3] },
       tracks: { default: {} },
     });
-    expect(scope.options).toEqual({ style: undefined, selection: { color: 'red' }, tracks: { default: {} } });
+    expect(scope.options).toEqual({ selection: { color: 'red' }, tracks: { default: {} } });
     expect(scope.selectionRange?.map(String)).toEqual(['1', '3']);
     scope.setSelectionRange([4, 6]);
     expect(scope.options.selection).toEqual({ color: 'red' });

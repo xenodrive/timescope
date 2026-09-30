@@ -13,8 +13,8 @@ export const canvasMainBackend: TimescopeBackend = {
   },
   async mount(options, host) {
     const fonts = [defaultBrowserFont(), ...(await resolveBrowserFonts(options.fonts))];
-    const { target, style, environment } = options;
-    const mounted = mountCanvas(target, host, style);
+    const { target, environment } = options;
+    const mounted = mountCanvas(target, host);
     const stopWatchingFonts = options.fonts ? undefined : watchDocumentFonts(host.fontsChanged);
     return {
       ...mounted,

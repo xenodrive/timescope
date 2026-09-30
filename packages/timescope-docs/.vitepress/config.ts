@@ -32,7 +32,7 @@ export default defineConfig({
   srcDir: './src',
   outDir: './dist',
   base: '/timescope/',
-  appearance: false,
+  appearance: true,
   cleanUrls: true,
   lastUpdated: false,
   markdown: {
@@ -71,6 +71,7 @@ export default defineConfig({
                 { text: 'Loading and Updating Data', link: '/guide/advanced/data' },
                 { text: 'Controlling Views', link: '/guide/advanced/views' },
                 { text: 'Rendering Backends', link: '/guide/advanced/backends' },
+                { text: 'Styling', link: '/guide/advanced/styling' },
               ],
             },
             {

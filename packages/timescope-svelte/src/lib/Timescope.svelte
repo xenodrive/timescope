@@ -12,6 +12,8 @@
 
   export type TimescopeProps = {
     options?: TimescopeOptions;
+    style?: string;
+    class?: string;
     time?: Decimal | number | null | string | Date;
     timeRange?: [
       Decimal | number | null | string | Date | undefined,
@@ -58,6 +60,8 @@
 
   let {
     options,
+    style,
+    class: className,
     time = $bindable<Decimal | number | null | string | Date | undefined>(undefined),
     timeRange,
     zoom = $bindable<number | undefined>(undefined),
@@ -204,4 +208,4 @@
   }
 </script>
 
-<div bind:this={container}></div>
+<div bind:this={container} {style} class={className}></div>

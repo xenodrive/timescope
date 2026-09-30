@@ -73,7 +73,7 @@ describe('canvas targets', () => {
     try {
       timescope.mount(new Canvas(20, 10));
       await expect(timescope.nextFrame()).rejects.toThrow('skia-canvas does not support Worker rendering');
-      expect(timescope.target).toBeNull();
+      expect(timescope.canvas).toBeNull();
     } finally {
       timescope.dispose();
     }
@@ -89,7 +89,7 @@ describe('canvas targets', () => {
     const timescope = new Timescope({ target: canvas, backend: ['canvas', 'skia-canvas'], fonts: [] });
     try {
       await timescope.redraw();
-      expect(timescope.target).toBe(canvas);
+      expect(timescope.canvas).toBe(canvas);
     } finally {
       timescope.dispose();
     }
@@ -146,7 +146,7 @@ describe('canvas targets', () => {
       finishMount({ canvas, fonts: [], dispose });
       await vi.waitFor(() => expect(dispose).toHaveBeenCalledOnce());
       expect(getContext).not.toHaveBeenCalled();
-      expect(timescope.target).toBeNull();
+      expect(timescope.canvas).toBeNull();
     } finally {
       timescope.dispose();
       mount.mockRestore();
@@ -175,8 +175,10 @@ describe('canvas targets', () => {
       expect(mounted).toHaveBeenCalledOnce();
       expect(ready).toHaveBeenCalledOnce();
       timescope.unmount();
+      expect(timescope.canvas).toBeNull();
       timescope.mount(canvas);
       await timescope.nextFrame();
+      expect(timescope.canvas).toBe(canvas);
       expect(mounted).toHaveBeenCalledTimes(2);
       expect(ready).toHaveBeenCalledOnce();
     } finally {
@@ -290,7 +292,7 @@ describe('canvas targets', () => {
     });
     try {
       await timescope.nextFrame();
-      expect(timescope.target).toBe(canvas);
+      expect(timescope.canvas).toBe(canvas);
       await vi.waitFor(async () => {
         await timescope.redraw();
         const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
@@ -303,7 +305,7 @@ describe('canvas targets', () => {
     } finally {
       timescope.dispose();
     }
-    expect(timescope.target).toBeNull();
+    expect(timescope.canvas).toBeNull();
   });
 
   it('acknowledges redraw after drawing, not when the frame is scheduled', async () => {

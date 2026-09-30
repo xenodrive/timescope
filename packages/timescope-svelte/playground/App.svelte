@@ -6,11 +6,10 @@
   let timeChanging: Decimal | null = null;
   let timeAnimating: Decimal | null = null;
   let selectionRangeChanging: TimescopeRange<Decimal> | null = null;
-  const options = { style: { height: '80px' } };
 </script>
 
 <Timescope
-  {options}
+  style="height: 80px"
   bind:time
   on:timechanging={(e) => (timeChanging = e.detail)}
   on:timeanimating={(e) => (timeAnimating = e.detail)}

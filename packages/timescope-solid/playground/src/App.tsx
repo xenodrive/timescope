@@ -2,8 +2,6 @@ import { createSignal } from 'solid-js';
 import { Decimal, type TimescopeRange } from 'timescope';
 import { Timescope } from '../../src';
 
-const options = { style: { height: '80px' } };
-
 export function App() {
   const [time, setTime] = createSignal<Decimal | null>(null);
   const [zoom] = createSignal<number>(-22);
@@ -15,7 +13,7 @@ export function App() {
   return (
     <>
       <Timescope
-        options={options}
+        style={{ height: '80px' }}
         time={time()}
         zoom={zoom()}
         selectionRange={selectionRange()}

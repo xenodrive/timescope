@@ -109,7 +109,6 @@ export function createFinancialChartDemo(target) {
   const refresh = setInterval(() => market.invalidate([Date.now() / 1000 - 60, undefined]), 5000);
   const timescope = new Timescope({
     target,
-    style: { height: '280px' },
     time: now - (365 * DAY) / 2,
     timeRange: ['2017-08-17T00:00:00Z', null],
     zoom: -15,

@@ -15,7 +15,7 @@ onBeforeUnmount(() => cleanup?.());
       <button id="live-toggle">Start</button>
       <button id="live-follow">Follow live</button>
     </div>
-    <div id="example-live-stream"></div>
+    <div id="example-live-stream" style="height: 300px"></div>
   </div>
   <!-- #endregion html -->
 </template>

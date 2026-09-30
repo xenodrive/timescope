@@ -2,8 +2,6 @@ import { createSignal, render, Show } from '@luna_ui/luna';
 import { Timescope } from '@timescope/luna';
 import { type Decimal, type TimescopeRange } from 'timescope';
 
-const options = { style: { height: '80px' } };
-
 function App() {
   const [time, setTime] = createSignal<Decimal | null>(null);
   const [zoom, setZoom] = createSignal<number>(-22);
@@ -20,7 +18,7 @@ function App() {
       <Show when={v}>
         {() => (
           <Timescope
-            options={options}
+            style="height: 80px"
             time={time}
             zoom={zoom}
             selectionRange={selectionRange}

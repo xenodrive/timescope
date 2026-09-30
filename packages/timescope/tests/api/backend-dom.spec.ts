@@ -7,7 +7,7 @@ class CanvasElement {
   width = 0;
   height = 0;
   style: Record<string, string> = {};
-  layout = { x: 10, y: 20, width: 200 };
+  layout = { x: 10, y: 20, width: 200, height: 36 };
   removed = false;
   listeners = new Map<string, Set<(event: any) => void>>();
 
@@ -16,11 +16,16 @@ class CanvasElement {
   }
 
   getBoundingClientRect() {
+    const scale = this.style.transform?.match(/^scale\(([^,]+), ([^)]+)\)$/);
     return {
       x: this.layout.x + Number.parseFloat(this.style.left || '0'),
       y: this.layout.y + Number.parseFloat(this.style.top || '0'),
-      width: this.style.width === '100%' ? this.layout.width : Number.parseFloat(this.style.width),
-      height: Number.parseFloat(this.style.height),
+      width:
+        (this.style.width === '100%' ? this.layout.width : Number.parseFloat(this.style.width)) *
+        Number(scale?.[1] ?? 1),
+      height:
+        (this.style.height === '100%' ? this.layout.height : Number.parseFloat(this.style.height)) *
+        Number(scale?.[2] ?? 1),
     };
   }
 
@@ -76,11 +81,11 @@ it('lets the Canvas backend own DOM layout, input, and cleanup', () => {
     isDisabled: () => disabled,
   };
 
-  const mounted = mountCanvas({ appendChild } as unknown as Element, host, { height: '90px' });
+  canvas.layout.height = 90;
+  const mounted = mountCanvas({ appendChild } as unknown as Element, host);
   expect(mounted.canvas).toBe(canvas);
   expect(mounted.autoSize).toBe(true);
   expect(appendChild).toHaveBeenCalledWith(canvas);
-  expect(canvas.style.height).toBe('90px');
   resized();
   expect(sizeChanged).toHaveBeenCalledWith({ width: 200, height: 90, dpr: 2, x: 10, y: 20 });
 
@@ -98,8 +103,9 @@ it('lets the Canvas backend own DOM layout, input, and cleanup', () => {
   canvas.dispatch('wheel', { deltaY: 2, deltaMode: 1, preventDefault });
   expect(wheel).toHaveBeenCalledOnce();
 
-  mounted.setStyle?.({ height: '120px' });
-  expect(canvas.style.height).toBe('120px');
+  canvas.layout.height = 120;
+  resized();
+  expect(canvas.getBoundingClientRect().height).toBe(120);
   mounted.dispose();
   expect(disconnect).toHaveBeenCalledOnce();
   expect(canvas.removed).toBe(true);
@@ -108,7 +114,7 @@ it('lets the Canvas backend own DOM layout, input, and cleanup', () => {
 
 it('matches canvas bitmap size and position to device pixels as its container resizes', () => {
   const canvas = new CanvasElement();
-  canvas.layout = { x: 485.1875, y: 20.3125, width: 686.8125 };
+  canvas.layout = { x: 485.1875, y: 20.3125, width: 686.8125, height: 320 };
   const container = { appendChild: vi.fn() } as unknown as Element;
   let resized!: () => void;
   const observe = vi.fn();
@@ -127,18 +133,14 @@ it('matches canvas bitmap size and position to device pixels as its container re
   );
 
   const sizeChanged = vi.fn();
-  const mounted = mountCanvas(
-    container,
-    {
-      fontsChanged: async () => {},
-      sizeChanged,
-      pointer: () => {},
-      wheel: () => {},
-      pointerStyle: async () => undefined,
-      isDisabled: () => false,
-    },
-    { height: '320px' },
-  );
+  const mounted = mountCanvas(container, {
+    fontsChanged: async () => {},
+    sizeChanged,
+    pointer: () => {},
+    wheel: () => {},
+    pointerStyle: async () => undefined,
+    isDisabled: () => false,
+  });
   expect(observe).toHaveBeenCalledWith(container);
   resized();
   expect(sizeChanged).toHaveBeenLastCalledWith({ width: 687, height: 320, dpr: 2, x: 485, y: 20.5 });

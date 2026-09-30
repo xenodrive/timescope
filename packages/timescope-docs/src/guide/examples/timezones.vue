@@ -11,7 +11,7 @@ title: Time Zones
       <span>Asia/Tokyo</span>
       <span>America/New_York</span>
     </div>
-    <div id="example-timezones"></div>
+    <div id="example-timezones" style="height: 320px"></div>
   </div>
   <!-- #endregion html -->
 </template>

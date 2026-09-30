@@ -17,6 +17,8 @@ type TimescopeProps<
   Track extends string,
 > = {
   options?: MaybeAccessor<TimescopeOptions<Sources, Series, Track> | undefined>;
+  style?: MaybeAccessor<string | undefined>;
+  class?: MaybeAccessor<string | undefined>;
   time?: MaybeAccessor<Decimal | number | null | string | Date | undefined>;
   timeRange?: MaybeAccessor<
     | [Decimal | number | null | string | Date | undefined, Decimal | number | null | string | Date | undefined]
@@ -154,6 +156,8 @@ function TimescopeComponent<
   return (
     <div
       id="timescope"
+      style={() => readProp(props.style) ?? ''}
+      class={() => readProp(props.class) ?? ''}
       ref={(e) => {
         timescope.unmount();
         if (e) timescope.mount(e);

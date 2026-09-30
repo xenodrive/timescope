@@ -17,6 +17,7 @@ export default {
     const examples = [
       ['events', 'events-demo', '#example-intermediate-values'],
       ['timezones', 'timezones-demo', '#example-timezones'],
+      ['styling', 'styling-demo', '#example-styling'],
       ['live-stream', 'live-signal', '#example-live-stream'],
       ['dynamic-loader', 'dynamic-terrain', '#example-dynamic-loader'],
       ['decimation', 'decimation-demo', '#example-decimation'],

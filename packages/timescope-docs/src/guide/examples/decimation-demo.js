@@ -6,7 +6,6 @@ export function mountDecimation(target) {
   const sampleRate = 4096;
   const timescope = new Timescope({
     target,
-    style: { height: '320px' },
     time: 6,
     zoom: 6,
     sources: { recording: { type: 'point-aggregate', data: vibrationSamples() } },

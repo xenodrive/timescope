@@ -10,7 +10,7 @@ onBeforeUnmount(() => cleanup?.());
 
 <template>
   <!-- #region html -->
-  <div id="example-dynamic-loader"></div>
+  <div id="example-dynamic-loader" style="height: 350px"></div>
   <!-- #endregion html -->
   <p class="demo-note">Pan and zoom to load terrain. Boxes show the ranges returned by the loader.</p>
 </template>

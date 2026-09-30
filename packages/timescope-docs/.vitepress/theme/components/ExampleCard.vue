@@ -26,12 +26,13 @@ const file = ref<'javascript' | 'html'>('javascript');
 const copied = ref(false);
 const wheelEnabled = ref(false);
 const contentType = computed(() => (props.preset ? 'Options' : 'Code'));
-const presetOptions = computed(() => {
+const presetState = computed(() => {
   const preset = presets.find((preset) => preset.id === props.preset);
-  return preset ? buildOptions(preset.create()) : undefined;
+  return preset?.create();
 });
+const presetOptions = computed(() => (presetState.value ? buildOptions(presetState.value) : undefined));
 const displayedCode = computed(() =>
-  presetOptions.value ? optionsCode(presetOptions.value) : (code.value?.[file.value] ?? ''),
+  presetOptions.value ? optionsCode(presetOptions.value, true, presetState.value) : (code.value?.[file.value] ?? ''),
 );
 const highlightedCode = ref('');
 let copyTimer: ReturnType<typeof setTimeout> | undefined;
