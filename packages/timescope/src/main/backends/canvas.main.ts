@@ -1,4 +1,6 @@
 import { mountCanvas, resolveCanvasTarget, type TimescopeBackend } from '#src/main/backend';
+import { defaultBrowserFont } from '#src/main/defaultFont.browser';
+import { resolveBrowserFonts, watchDocumentFonts } from '#src/main/font';
 
 export const canvasMainBackend: TimescopeBackend = {
   probe({ backend, target, renderThread, environment }) {
@@ -9,7 +11,19 @@ export const canvasMainBackend: TimescopeBackend = {
     if (!environment?.Path2D && typeof globalThis.Path2D === 'undefined')
       return 'Canvas rendering requires a Path2D constructor on the current thread';
   },
-  mount({ target, style, environment }, host) {
-    return { ...mountCanvas(target, host, style), environment };
+  async mount(options, host) {
+    const fonts = [defaultBrowserFont(), ...(await resolveBrowserFonts(options.fonts))];
+    const { target, style, environment } = options;
+    const mounted = mountCanvas(target, host, style);
+    const stopWatchingFonts = options.fonts ? undefined : watchDocumentFonts(host.fontsChanged);
+    return {
+      ...mounted,
+      environment,
+      fonts,
+      dispose() {
+        stopWatchingFonts?.();
+        mounted.dispose();
+      },
+    };
   },
 };

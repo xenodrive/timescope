@@ -1,12 +1,6 @@
 import { registerBackends } from '#src/main/backendRegistry';
-import { canvasMainBackend } from '#src/main/backends/canvas.main';
-import { canvasWorkerBackend } from '#src/main/backends/canvas.worker';
 import { skiaCanvasBackend } from '#src/main/backends/skia-canvas';
 
-registerBackends([
-  ['skia-canvas', skiaCanvasBackend],
-  ['canvas', canvasWorkerBackend],
-  ['canvas', canvasMainBackend],
-]);
+registerBackends([['skia-canvas', skiaCanvasBackend]]);
 
 export * from './index.ts';

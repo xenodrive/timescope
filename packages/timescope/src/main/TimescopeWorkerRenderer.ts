@@ -22,9 +22,7 @@ export class TimescopeWorkerRenderer extends TimescopeRenderer {
         throw error;
       }
     });
-    this.ready = ready.then(({ connection }) => connection.ready);
-    void this.ready.catch(() => {});
-    this.attach(
+    const fontsReady = this.attach(
       {
         call: (command, payload) => ready.then(({ connection }) => connection.call(command, payload)) as never,
         notify: (command, payload) => ready.then(({ connection }) => connection.notify(command, payload)),
@@ -41,5 +39,7 @@ export class TimescopeWorkerRenderer extends TimescopeRenderer {
       },
       options.fonts,
     );
+    this.ready = Promise.all([ready.then(({ connection }) => connection.ready), fontsReady]).then(() => {});
+    void this.ready.catch(() => {});
   }
 }

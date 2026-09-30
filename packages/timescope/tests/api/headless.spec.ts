@@ -1,15 +1,57 @@
 import { Timescope } from '#src/index.node';
-import { resolveBackends } from '#src/main/backendRegistry';
+import type { TimescopeBackendMount } from '#src/main/backend';
+import { registerBackends, resolveBackends } from '#src/main/backendRegistry';
+import { canvasMainBackend } from '#src/main/backends/canvas.main';
+import { canvasWorkerBackend } from '#src/main/backends/canvas.worker';
 import { skiaCanvasBackend } from '#src/main/backends/skia-canvas';
 import { TimescopeRenderEngine } from '#src/renderer/TimescopeRenderEngine';
 import { TimescopeViewport } from '#src/renderer/TimescopeViewport';
-import { Canvas, Path2D } from 'skia-canvas';
-import { describe, expect, it, vi } from 'vitest';
+import { fileURLToPath } from 'node:url';
+import { Canvas, FontLibrary, Path2D } from 'skia-canvas';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+afterEach(() => registerBackends([['skia-canvas', skiaCanvasBackend]]));
 
 describe('canvas targets', () => {
+  it('registers only Skia in the Node entry point', () => {
+    expect(resolveBackends()).toEqual([skiaCanvasBackend]);
+    expect(() => resolveBackends('canvas')).toThrow('Unknown backend: canvas');
+  });
+  it('registers the bundled Skia font without reading input fonts or calling FontFace, including on remount', async () => {
+    const use = vi.spyOn(FontLibrary, 'use');
+    const fontFace = vi.fn(() => {
+      throw new Error('FontFace must not be called');
+    });
+    vi.stubGlobal('FontFace', fontFace);
+    const input = {
+      family: 'ignored',
+      get source(): string {
+        throw new Error('Input fonts must not be read');
+      },
+    };
+    const timescope = new Timescope({
+      target: new Canvas(80, 40),
+      backend: 'skia-canvas',
+      fonts: ['invalid stylesheet', input],
+    });
+    try {
+      await timescope.nextFrame();
+      expect(use).toHaveBeenCalledWith('Timescope', [fileURLToPath(import.meta.resolve('timescope/Timescope.woff2'))]);
+      expect(FontLibrary.has('Timescope')).toBe(true);
+      timescope.unmount();
+      timescope.mount(new Canvas(80, 40));
+      await timescope.nextFrame();
+      expect(fontFace).not.toHaveBeenCalled();
+    } finally {
+      timescope.dispose();
+      use.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('resolves canvas to Worker then main-thread candidates without silently downgrading explicit Worker requests', () => {
     const canvas = { width: 20, height: 10, getContext: () => ({}), transferControlToOffscreen: () => ({}) };
-    const [worker, main] = resolveBackends('canvas');
+    const [worker, main] = [canvasWorkerBackend, canvasMainBackend];
     try {
       vi.stubGlobal('Worker', class {});
       vi.stubGlobal('Path2D', Path2D);
@@ -38,6 +80,11 @@ describe('canvas targets', () => {
   });
 
   it('tries predefined backends in order', async () => {
+    registerBackends([
+      ['canvas', canvasWorkerBackend],
+      ['canvas', canvasMainBackend],
+      ['skia-canvas', skiaCanvasBackend],
+    ]);
     const canvas = new Canvas(20, 10);
     const timescope = new Timescope({ target: canvas, backend: ['canvas', 'skia-canvas'], fonts: [] });
     try {
@@ -49,6 +96,11 @@ describe('canvas targets', () => {
   });
 
   it('waits for a predefined backend probe without falling back after its mount fails', async () => {
+    registerBackends([
+      ['skia-canvas', skiaCanvasBackend],
+      ['canvas', canvasWorkerBackend],
+      ['canvas', canvasMainBackend],
+    ]);
     let finishProbe!: (reason: string | undefined) => void;
     const probe = vi
       .spyOn(skiaCanvasBackend, 'probe')
@@ -70,6 +122,35 @@ describe('canvas targets', () => {
       probe.mockRestore();
       mount.mockRestore();
       fallback.mockRestore();
+    }
+  });
+
+  it('disposes an asynchronous mount that finishes after unmount without creating a renderer', async () => {
+    let finishMount!: (mounted: TimescopeBackendMount) => void;
+    const mount = vi.spyOn(skiaCanvasBackend, 'mount').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishMount = resolve;
+        }),
+    );
+    const dispose = vi.fn();
+    const canvas = new Canvas(20, 10);
+    const getContext = vi.spyOn(canvas, 'getContext');
+    const timescope = new Timescope({ target: canvas, backend: 'skia-canvas' });
+    try {
+      const pending = timescope.nextFrame();
+      const rejected = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+      await vi.waitFor(() => expect(mount).toHaveBeenCalledOnce());
+      timescope.unmount();
+      await rejected;
+      finishMount({ canvas, fonts: [], dispose });
+      await vi.waitFor(() => expect(dispose).toHaveBeenCalledOnce());
+      expect(getContext).not.toHaveBeenCalled();
+      expect(timescope.target).toBeNull();
+    } finally {
+      timescope.dispose();
+      mount.mockRestore();
+      getContext.mockRestore();
     }
   });
 

@@ -1,5 +1,6 @@
 import type { TimescopeBackend } from '#src/main/backend';
 import type { TimescopeCanvas, TimescopeEnvironment } from '#src/main/TimescopeRenderer';
+import { fileURLToPath } from 'node:url';
 
 type SkiaCanvasModule = typeof import('skia-canvas');
 let skiaCanvas: SkiaCanvasModule | undefined;
@@ -23,10 +24,12 @@ export const skiaCanvasBackend: TimescopeBackend = {
   mount({ target }) {
     if (!skiaCanvas || !target || !(target instanceof skiaCanvas.Canvas))
       throw new Error('skia-canvas was not prepared');
+    skiaCanvas.FontLibrary.use('Timescope', [fileURLToPath(import.meta.resolve('timescope/Timescope.woff2'))]);
     const canvas = target as TimescopeCanvas;
     const environment: TimescopeEnvironment = { Path2D: skiaCanvas.Path2D as TimescopeEnvironment['Path2D'] };
     return {
       canvas,
+      fonts: [],
       environment,
       dispose() {},
     };

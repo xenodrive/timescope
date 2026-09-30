@@ -12,8 +12,6 @@ import type { RenderCall, RenderNotify } from '#src/bridge/rpc';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
 import { resolutionFor } from '#src/core/zoom';
-import { bundledFont } from '#src/main/bundledFont';
-import { resolveDocumentFonts, resolveFonts } from '#src/main/font';
 import type { TimescopeFont } from '#src/main/font';
 import type { InteractionInfo } from '#src/main/interaction';
 import type { TimescopeLayerData, TimescopeLayerDataClass } from '#src/main/layers/TimescopeLayerData';
@@ -65,7 +63,7 @@ const defaultRendererOptions: TimescopeOptions = {
 
 export type TimescopeRendererOptions = {
   canvas: TimescopeCanvas;
-  fonts?: (string | TimescopeFont)[];
+  fonts: TimescopeFont[];
   environment?: TimescopeEnvironment | Promise<TimescopeEnvironment>;
 };
 
@@ -115,9 +113,6 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
   #connection?: TimescopeRendererConnection;
   #disposed = false;
   protected readonly callbacks: RendererCommands;
-  protected get documentFontsAreLocal(): boolean {
-    return false;
-  }
 
   protected call: RenderCall<RenderEngineCommands> = (command, payload) => {
     if (!this.#connection || this.#disposed) return Promise.reject(new DOMException('Renderer disposed', 'AbortError'));
@@ -138,16 +133,13 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
     return result;
   };
 
-  protected attach(connection: TimescopeRendererConnection, fonts?: (string | TimescopeFont)[]) {
+  protected attach(connection: TimescopeRendererConnection, fonts: TimescopeFont[]) {
     this.#connection = connection;
-    if (typeof document !== 'undefined' && typeof FontFace !== 'undefined') {
-      void this.call('fonts', [bundledFont()]).catch((error) => {
-        if (!this.#disposed) console.error('Failed to initialize bundled font', error);
-      });
-    }
-    void this.setFonts(fonts).catch((error) => {
+    const ready = this.setFonts(fonts);
+    void ready.catch((error) => {
       if (!this.#disposed) console.error('Failed to initialize fonts', error);
     });
+    return ready;
   }
 
   #sources: Record<string, TimescopeDataSource<any>> = {};
@@ -156,11 +148,6 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
   #views = new TimescopeViewRegistry();
   #domainsByName: Record<string, TimescopeDomain> = {};
   #domainsBySeries: Record<string, TimescopeDomain> = {};
-
-  #useDocumentFonts = false;
-  #documentFontCleanup: (() => void)[] = [];
-  #documentFontWatchersActive = false;
-  #documentFontsRefreshHandle: ReturnType<typeof setTimeout> | null = null;
 
   #colorIdx = 0;
   #preparingFrame = false;
@@ -218,19 +205,9 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
     };
   }
 
-  async setFonts(fonts?: (string | TimescopeFont)[]) {
+  async setFonts(fonts: TimescopeFont[]) {
     if (this.#disposed) return;
-    if (fonts) {
-      this.#useDocumentFonts = false;
-      this.#disableDocumentFontWatchers();
-      const resolved = await resolveFonts(fonts);
-      if (!this.#disposed) await this.call('fonts', resolved);
-      return;
-    }
-
-    this.#useDocumentFonts = true;
-    this.#enableDocumentFontWatchers();
-    await this.#refreshDocumentFonts();
+    await this.call('fonts', fonts);
   }
 
   [Symbol.dispose]() {
@@ -240,7 +217,6 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
   dispose() {
     if (this.#disposed) return;
     this.#disposed = true;
-    this.#disableDocumentFontWatchers();
     for (const data of new Set(Object.values(this.#layerData))) data.dispose?.();
     for (const series of Object.values(this.#series)) series.dispose();
     for (const source of new Set(Object.values(this.#sources))) releaseSource(source);
@@ -583,102 +559,6 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
     this.call('frame:abort', undefined);
   }
 
-  #enableDocumentFontWatchers() {
-    if (!this.#useDocumentFonts || this.#documentFontWatchersActive) return;
-    if (typeof document === 'undefined') return;
-
-    this.#documentFontWatchersActive = true;
-    const cleanups: (() => void)[] = [];
-
-    const fonts = (document as any).fonts as FontFaceSet | undefined;
-    if (fonts && typeof fonts.addEventListener === 'function') {
-      const onFontEvent = () => this.#scheduleDocumentFontsRefresh();
-      fonts.addEventListener('loadingdone', onFontEvent);
-      fonts.addEventListener('loadingerror', onFontEvent);
-      fonts.addEventListener('loading', onFontEvent);
-      cleanups.push(() => {
-        fonts.removeEventListener('loadingdone', onFontEvent);
-        fonts.removeEventListener('loadingerror', onFontEvent);
-        fonts.removeEventListener('loading', onFontEvent);
-      });
-    }
-
-    if (typeof MutationObserver !== 'undefined') {
-      const observer = new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-          if (mutation.type === 'childList') {
-            const nodes = [...Array.from(mutation.addedNodes ?? []), ...Array.from(mutation.removedNodes ?? [])];
-            if (nodes.some((node) => isStyleSheetNode(node))) {
-              this.#scheduleDocumentFontsRefresh();
-              return;
-            }
-          }
-
-          if (mutation.type === 'attributes' && isStyleSheetNode(mutation.target)) {
-            this.#scheduleDocumentFontsRefresh();
-            return;
-          }
-        }
-      });
-
-      try {
-        const target = document.head ?? document.documentElement ?? document;
-        observer.observe(target, {
-          childList: true,
-          subtree: true,
-          attributes: true,
-          attributeFilter: ['rel', 'href'],
-        });
-        cleanups.push(() => observer.disconnect());
-      } catch {
-        observer.disconnect();
-      }
-    }
-
-    this.#documentFontCleanup = cleanups;
-  }
-
-  #disableDocumentFontWatchers() {
-    if (!this.#documentFontWatchersActive) return;
-    this.#documentFontWatchersActive = false;
-    for (const dispose of this.#documentFontCleanup) {
-      try {
-        dispose();
-      } catch {
-        // ignore
-      }
-    }
-    this.#documentFontCleanup = [];
-    if (this.#documentFontsRefreshHandle != null) {
-      clearTimeout(this.#documentFontsRefreshHandle);
-      this.#documentFontsRefreshHandle = null;
-    }
-  }
-
-  #scheduleDocumentFontsRefresh() {
-    if (!this.#useDocumentFonts) return;
-    if (this.#documentFontsRefreshHandle != null) return;
-    this.#documentFontsRefreshHandle = setTimeout(() => {
-      this.#documentFontsRefreshHandle = null;
-      void this.#refreshDocumentFonts();
-    }, 0);
-  }
-
-  async #refreshDocumentFonts() {
-    if (!this.#useDocumentFonts || this.#disposed) return;
-    try {
-      if (this.documentFontsAreLocal) {
-        await this.call('fonts', undefined);
-        return;
-      }
-      const resolvedFonts = await resolveDocumentFonts();
-      if (!this.#disposed && this.#useDocumentFonts)
-        await this.call('fonts', resolvedFonts.length ? resolvedFonts : undefined);
-    } catch (error) {
-      if (!this.#disposed) console.error('Failed to resolve document fonts', error);
-    }
-  }
-
   invalidateSources(sources?: string[]) {
     if (!sources) sources = Object.keys(this.#sources);
     for (const source of sources) {
@@ -687,12 +567,4 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
 
     return this.call('reload', undefined);
   }
-}
-
-function isStyleSheetNode(node: Node): boolean {
-  if (typeof HTMLStyleElement !== 'undefined' && node instanceof HTMLStyleElement) return true;
-  if (typeof HTMLLinkElement !== 'undefined' && node instanceof HTMLLinkElement) {
-    return node.rel?.toLowerCase() === 'stylesheet';
-  }
-  return false;
 }

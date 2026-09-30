@@ -26,7 +26,7 @@ Configurable fields: [Timescope Options](/api/timescope-options).
 | `timeRange`        | `[TimescopeTimeLike \| undefined, TimescopeTimeLike \| undefined]`                             | `[undefined, null]`; unbounded past to current clock                                              |
 | `zoomRange`        | `[TimescopeNumberLike \| undefined, TimescopeNumberLike \| undefined]`                         | Both ends unbounded                                                                               |
 | `target`           | `Element \| string \| TimescopeCanvas`                                                         | Mount target; omitted for later `mount()`                                                         |
-| `backend`          | `'canvas' \| 'skia-canvas' \| readonly ('canvas' \| 'skia-canvas')[]`                          | First compatible candidate; browser default Canvas; Node.js default Skia then Canvas              |
+| `backend`          | `'canvas' \| 'skia-canvas' \| readonly ('canvas' \| 'skia-canvas')[]`                          | First compatible candidate; browser entry provides Canvas; Node.js entry provides Skia Canvas     |
 | `renderThread`     | `'worker' \| 'main'`                                                                           | Automatic; browser Worker when supported, otherwise main                                          |
 | `environment`      | `TimescopeEnvironment`                                                                         | Optional canvas-environment overrides                                                             |
 | `fonts`            | `(string \| { family: string, source: string \| BufferSource, desc?: FontFaceDescriptors })[]` | [Font inputs](#fonts)                                                                             |
@@ -49,10 +49,12 @@ Configurable fields: [Timescope Options](/api/timescope-options).
 | String entry | CSS stylesheet URL                                                            |
 | Object entry | `family`, CSS font `source` or `BufferSource`, optional `FontFaceDescriptors` |
 
-| Environment | Bundled `Timescope` font     |
-| ----------- | ---------------------------- |
-| Browser     | Always loaded                |
-| Skia Canvas | Not automatically registered |
+These inputs apply to browser backends, which resolve stylesheets before mounting the renderer. Skia Canvas ignores `fonts`; register custom fonts with Skia Canvas's `FontLibrary` instead.
+
+| Environment | Bundled `Timescope` font                    |
+| ----------- | ------------------------------------------- |
+| Browser     | Always loaded                               |
+| Skia Canvas | Automatically registered with `FontLibrary` |
 
 ### Input types
 

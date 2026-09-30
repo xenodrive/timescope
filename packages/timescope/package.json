@@ -21,7 +21,8 @@
       "types": "./src/index.ts",
       "node": "./src/index.node.ts",
       "default": "./src/index.browser.ts"
-    }
+    },
+    "./Timescope.woff2": "./src/assets/fonts/Timescope.woff2"
   },
   "imports": {
     "#src/*": "./src/*.ts"

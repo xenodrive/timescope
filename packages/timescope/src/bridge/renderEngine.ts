@@ -44,6 +44,7 @@ export function connectWorkerRenderer(port: WorkerMessagePort, callbacks: Render
   const call: RenderCall<RenderEngineCommands> = (command, payload) => {
     if (command === 'init') return Promise.reject(new Error('Render engine already initialized'));
     // Dispatch immediately to preserve message order and snapshot ownership.
+    // Font buffers are cloned, not transferred: inputs and bundled fonts must remain reusable on remount.
     const result = rpc(command, payload as never, { rpc: true });
     return Promise.all([initialized, result]).then(([, value]) => value) as never;
   };

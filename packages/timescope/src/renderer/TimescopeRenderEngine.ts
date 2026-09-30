@@ -572,9 +572,10 @@ export class TimescopeRenderEngine {
         ctx = canvas.getContext('2d') as TimescopeRenderingContext['ctx'] | null;
       },
 
-      fonts: async (fonts?: TimescopeFont[]) => {
+      // Backends using a different font API must send []; only nonempty inputs use FontFace.
+      fonts: async (fonts: TimescopeFont[]) => {
         await Promise.all(
-          (fonts ?? []).map(async (font) => {
+          fonts.map(async (font) => {
             if (disposed) return;
             const key = typeof font.source === 'string' ? JSON.stringify(font) : undefined;
             if (key && loadedFonts.has(key)) return;

@@ -18,7 +18,7 @@ titleTemplate: Timescope API
 | `style`     | `{ width?: string, height?: string, background?: string }` | CSS dimensions and background; browser defaults `100%`, `36px`, `#fff` |
 | `cursor`    | `boolean \| { color?: string, borderColor?: string }`      | `true`; colors `white` / `red`                                         |
 | `showFps`   | `boolean`                                                  | `false`                                                                |
-| `font`      | `TimescopeFontStyle`                                        | Global text font; [font style](#font-style)                              |
+| `font`      | `TimescopeFontStyle`                                       | Global text font; [font style](#font-style)                            |
 | `sources`   | `Record<string, TimescopeSourceInput>`                     | [Data sources](#sources)                                               |
 | `domains`   | `Record<string, TimescopeDomainOptions>`                   | [Shared value domains](#domains)                                       |
 | `series`    | `Record<string, TimescopeSeriesInput>`                     | [Series](#series)                                                      |

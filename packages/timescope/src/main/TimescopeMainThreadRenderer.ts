@@ -8,9 +8,6 @@ import { TimescopeRenderEngine } from '#src/renderer/TimescopeRenderEngine';
 
 export class TimescopeMainThreadRenderer extends TimescopeRenderer {
   readonly ready: Promise<void>;
-  protected override get documentFontsAreLocal(): boolean {
-    return true;
-  }
 
   constructor(options: TimescopeRendererOptions) {
     super();
@@ -32,9 +29,7 @@ export class TimescopeMainThreadRenderer extends TimescopeRenderer {
         ? options.environment.then(createEngine)
         : Promise.resolve(createEngine(options.environment ?? {}));
     void ready.catch(() => {});
-    this.ready = ready.then(() => {});
-    void this.ready.catch(() => {});
-    this.attach(
+    this.ready = this.attach(
       {
         call: (command, payload) =>
           command === 'init'
@@ -49,5 +44,6 @@ export class TimescopeMainThreadRenderer extends TimescopeRenderer {
       },
       options.fonts,
     );
+    void this.ready.catch(() => {});
   }
 }

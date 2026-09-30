@@ -1,3 +1,4 @@
+import type { TimescopeFont } from '#src/main/font';
 import type { InteractionInfo } from '#src/main/interaction';
 import { InteractionManager } from '#src/main/InteractionManager';
 import type { TimescopeOptions } from '#src/main/options';
@@ -8,6 +9,8 @@ export type TimescopeRenderThread = 'main' | 'worker';
 
 export type TimescopeBackendMount = {
   canvas: TimescopeCanvas;
+  /** Resolved fonts to load with FontFace in the rendering thread. Use [] for other font APIs. */
+  fonts: TimescopeFont[];
   environment?: TimescopeEnvironment;
   renderThread?: TimescopeRenderThread;
   autoSize?: boolean;
@@ -17,6 +20,7 @@ export type TimescopeBackendMount = {
 };
 
 export type TimescopeBackendHost = {
+  fontsChanged(fonts: TimescopeFont[]): Promise<void>;
   sizeChanged(size: { width: number; height: number; dpr: number; x?: number; y?: number }): void;
   pointer(info: InteractionInfo): void;
   wheel(deltaY: number): void;
@@ -25,6 +29,7 @@ export type TimescopeBackendHost = {
 };
 
 export type TimescopeBackendOptions = {
+  fonts?: (string | TimescopeFont)[];
   backend?: string;
   target?: TimescopeBackendTarget;
   renderThread?: TimescopeRenderThread;
@@ -34,7 +39,10 @@ export type TimescopeBackendOptions = {
 
 export type TimescopeBackend = {
   probe(options: TimescopeBackendOptions): string | undefined | Promise<string | undefined>;
-  mount(options: TimescopeBackendOptions, host: TimescopeBackendHost): TimescopeBackendMount;
+  mount(
+    options: TimescopeBackendOptions,
+    host: TimescopeBackendHost,
+  ): TimescopeBackendMount | Promise<TimescopeBackendMount>;
 };
 
 export type TimescopeBackendChoice = 'canvas' | 'skia-canvas';
@@ -153,6 +161,7 @@ export function mountCanvas(
 
   return {
     canvas,
+    fonts: [],
     renderThread,
     autoSize: !direct,
     setStyle:

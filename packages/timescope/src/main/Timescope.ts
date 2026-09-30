@@ -667,7 +667,11 @@ export class Timescope<
           continue;
         }
         const generation = this.#mountGeneration;
-        const mounted = candidate.mount(options, {
+        const mounted = await candidate.mount(options, {
+          fontsChanged: async (fonts) => {
+            if (generation !== this.#mountGeneration || controller.signal.aborted) return;
+            await this.#renderer?.setFonts(fonts);
+          },
           sizeChanged: (size) => {
             if (generation !== this.#mountGeneration || controller.signal.aborted) return;
             if (!this.#renderer) this.#pendingSize = size;
@@ -737,16 +741,13 @@ export class Timescope<
     return this;
   }
 
-  #finishMount(
-    mounted: TimescopeBackendMount,
-    options: { fonts?: (string | TimescopeFont)[]; environment?: TimescopeEnvironment },
-  ) {
+  #finishMount(mounted: TimescopeBackendMount, options: { environment?: TimescopeEnvironment }) {
     const renderer =
       mounted.renderThread === 'worker'
-        ? new TimescopeWorkerRenderer({ canvas: mounted.canvas, fonts: options.fonts })
+        ? new TimescopeWorkerRenderer({ canvas: mounted.canvas, fonts: mounted.fonts })
         : new TimescopeMainThreadRenderer({
             canvas: mounted.canvas,
-            fonts: options.fonts,
+            fonts: mounted.fonts,
             environment: mounted.environment ?? options.environment,
           });
     this.#canvas = mounted.canvas;

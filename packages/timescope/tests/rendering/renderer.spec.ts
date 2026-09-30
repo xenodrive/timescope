@@ -1,6 +1,8 @@
 import type { RendererCommands } from '#src/bridge/protocol';
 import type { RenderCall } from '#src/bridge/rpc';
 import { Decimal } from '#src/core/decimal';
+import { defaultBrowserFont } from '#src/main/defaultFont.browser';
+import { resolveBrowserFonts } from '#src/main/font';
 import type { TimescopeOptions } from '#src/main/options';
 import { SimpleDataSource } from '#src/main/sources/SimpleDataSource';
 import { TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
@@ -112,7 +114,7 @@ describe('renderer integration', () => {
     expect(drawnFonts.get('inherited')).toBe('normal 14px Timescope, sans-serif');
   });
 
-  it('registers the bundled font alongside explicitly selected fonts, including an empty list', async () => {
+  it('loads backend-resolved fonts without adding fonts to an empty input', async () => {
     const added = new Set<FontFace>();
     const loaded: { family: string; source: string | BufferSource }[] = [];
     class TestFontFace {
@@ -133,15 +135,28 @@ describe('renderer integration', () => {
 
     const renderer = new TimescopeMainThreadRenderer({ canvas: canvas(), fonts: [] });
     cleanups.push(() => renderer.dispose());
-    await vi.waitFor(() => expect(loaded.map((font) => font.family)).toContain('Timescope'));
+    await renderer.ready;
+    expect(loaded).toEqual([]);
+    renderer.dispose();
+
+    const browser = new TimescopeMainThreadRenderer({
+      canvas: canvas(),
+      fonts: [defaultBrowserFont(), ...(await resolveBrowserFonts([]))],
+    });
+    cleanups.push(() => browser.dispose());
+    await browser.ready;
+    expect(loaded.map((font) => font.family)).toEqual(['Timescope']);
     expect((loaded[0].source as Uint8Array).subarray(0, 4)).toEqual(new TextEncoder().encode('wOF2'));
     expect(added.size).toBe(1);
-    renderer.dispose();
+    browser.dispose();
     expect(added.size).toBe(0);
 
     const custom = new TimescopeMainThreadRenderer({
       canvas: canvas(),
-      fonts: [{ family: 'custom', source: new Uint8Array([1]) }],
+      fonts: [
+        defaultBrowserFont(),
+        ...(await resolveBrowserFonts([{ family: 'custom', source: new Uint8Array([1]) }])),
+      ],
     });
     cleanups.push(() => custom.dispose());
     await vi.waitFor(() => expect([...added].length).toBe(2));

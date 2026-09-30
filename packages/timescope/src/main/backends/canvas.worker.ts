@@ -1,4 +1,6 @@
 import { canUseCanvasWorker, mountCanvas, resolveCanvasTarget, type TimescopeBackend } from '#src/main/backend';
+import { defaultBrowserFont } from '#src/main/defaultFont.browser';
+import { resolveBrowserFonts, watchDocumentFonts } from '#src/main/font';
 
 export const canvasWorkerBackend: TimescopeBackend = {
   probe({ backend, target, renderThread, environment }) {
@@ -9,7 +11,18 @@ export const canvasWorkerBackend: TimescopeBackend = {
     if (!canUseCanvasWorker(resolved)) return 'Worker rendering is unavailable for this canvas';
     if (environment) return 'A main-thread environment cannot be used with Worker rendering';
   },
-  mount({ target, style }, host) {
-    return mountCanvas(target, host, style, 'worker');
+  async mount(options, host) {
+    const fonts = [defaultBrowserFont(), ...(await resolveBrowserFonts(options.fonts))];
+    const { target, style } = options;
+    const mounted = mountCanvas(target, host, style, 'worker');
+    const stopWatchingFonts = options.fonts ? undefined : watchDocumentFonts(host.fontsChanged);
+    return {
+      ...mounted,
+      fonts,
+      dispose() {
+        stopWatchingFonts?.();
+        mounted.dispose();
+      },
+    };
   },
 };

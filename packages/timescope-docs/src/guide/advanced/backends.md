@@ -123,6 +123,6 @@ Change `font` later with `setOptions()` or `updateOptions()`. `fonts` is constru
 | `[]`                   | None                                      |
 | URL / definition array | Specified stylesheets or font definitions |
 
-The bundled `Timescope` font is always available in browser charts. Node.js uses fonts registered with Skia Canvas.
+The bundled `Timescope` font is automatically loaded in browser charts and registered with Skia Canvas in Node.js. The Skia Canvas backend ignores the `fonts` option; register additional fonts with `FontLibrary.use()` before drawing. The bundled font file is also exported as `timescope/Timescope.woff2`.
 
 [Font inputs](/api/timescope#fonts) · [Font styles](/api/timescope-options#font-style) · [Framework components](/guide/advanced/frameworks)

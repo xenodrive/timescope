@@ -4,6 +4,78 @@ export type TimescopeFont = {
   desc?: FontFaceDescriptors;
 };
 
+/** Resolve explicit inputs, or document fonts when inputs are omitted. Defaults belong to the backend. */
+export async function resolveBrowserFonts(fonts?: (string | TimescopeFont)[]): Promise<TimescopeFont[]> {
+  return fonts ? resolveFonts(fonts) : resolveDocumentFonts();
+}
+
+/** Watch document-derived fonts. The caller owns the initial font load and invokes the returned cleanup. */
+export function watchDocumentFonts(onFonts: (fonts: TimescopeFont[]) => Promise<void>): () => void {
+  if (typeof document === 'undefined') return () => {};
+  let disposed = false;
+  let refreshHandle: ReturnType<typeof setTimeout> | undefined;
+  async function refresh() {
+    try {
+      // Resending the bundled binary source would reload it on every font event.
+      const fonts = await resolveDocumentFonts();
+      if (!disposed) await onFonts(fonts);
+    } catch (error) {
+      if (!disposed) console.error('Failed to resolve document fonts', error);
+    }
+  }
+  function scheduleRefresh() {
+    if (disposed || refreshHandle !== undefined) return;
+    refreshHandle = setTimeout(() => {
+      refreshHandle = undefined;
+      void refresh();
+    }, 0);
+  }
+  const fontFaceSet = document.fonts;
+  const events = ['loading', 'loadingdone', 'loadingerror'] as const;
+  for (const event of events) fontFaceSet?.addEventListener(event, scheduleRefresh);
+  const observer =
+    typeof MutationObserver === 'undefined'
+      ? undefined
+      : new MutationObserver((mutations) => {
+          for (const mutation of mutations) {
+            if (
+              (mutation.type === 'attributes' && isStyleSheetNode(mutation.target)) ||
+              (mutation.type === 'childList' &&
+                [...mutation.addedNodes, ...mutation.removedNodes].some(isStyleSheetNode))
+            ) {
+              scheduleRefresh();
+              return;
+            }
+          }
+        });
+  try {
+    observer?.observe(document.head ?? document.documentElement ?? document, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['rel', 'href'],
+    });
+  } catch {
+    observer?.disconnect();
+  }
+  return () => {
+    if (disposed) return;
+    disposed = true;
+    if (refreshHandle !== undefined) clearTimeout(refreshHandle);
+    for (const event of events) fontFaceSet?.removeEventListener(event, scheduleRefresh);
+    observer?.disconnect();
+  };
+}
+
+function isStyleSheetNode(node: Node): boolean {
+  if (typeof HTMLStyleElement !== 'undefined' && node instanceof HTMLStyleElement) return true;
+  return (
+    typeof HTMLLinkElement !== 'undefined' &&
+    node instanceof HTMLLinkElement &&
+    node.rel?.toLowerCase() === 'stylesheet'
+  );
+}
+
 type FontExtractionContext = {
   visited: Set<string>;
 };
@@ -160,15 +232,15 @@ export async function resolveFonts(fonts: (string | TimescopeFont)[]): Promise<T
   const ctx = createContext();
   const result: TimescopeFont[] = [];
 
-  for (const font of fonts) {
+  for (let font of fonts) {
     if (typeof font === 'string') {
       const extracted = await extractFontsFromUrl(font, ctx);
       result.push(...extracted);
       continue;
     } else {
       if (typeof font.source === 'string') {
-        const source = normalizeSrc(font.source, location.href);
-        font.source = source;
+        const baseUrl = resolveDocumentBase();
+        if (baseUrl) font = { ...font, source: normalizeSrc(font.source, baseUrl) };
       }
     }
 

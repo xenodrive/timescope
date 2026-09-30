@@ -68,6 +68,7 @@ it('lets the Canvas backend own DOM layout, input, and cleanup', () => {
   const wheel = vi.fn();
   let disabled = false;
   const host: TimescopeBackendHost = {
+    fontsChanged: async () => {},
     sizeChanged,
     pointer,
     wheel,
@@ -129,6 +130,7 @@ it('matches canvas bitmap size and position to device pixels as its container re
   const mounted = mountCanvas(
     container,
     {
+      fontsChanged: async () => {},
       sizeChanged,
       pointer: () => {},
       wheel: () => {},

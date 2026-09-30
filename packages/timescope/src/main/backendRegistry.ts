@@ -1,11 +1,6 @@
 import type { TimescopeBackend, TimescopeBackendChoice } from '#src/main/backend';
-import { canvasMainBackend } from '#src/main/backends/canvas.main';
-import { canvasWorkerBackend } from '#src/main/backends/canvas.worker';
 
-let registeredBackends: ReadonlyArray<[name: string, backend: TimescopeBackend]> = [
-  ['canvas', canvasWorkerBackend],
-  ['canvas', canvasMainBackend],
-];
+let registeredBackends: ReadonlyArray<[name: string, backend: TimescopeBackend]> = [];
 
 export function registerBackends(backends: ReadonlyArray<[name: string, backend: TimescopeBackend]>) {
   registeredBackends = backends;

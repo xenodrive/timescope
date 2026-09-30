@@ -15,5 +15,5 @@
     "sortSideEffects": false
   },
   "sortPackageJson": false,
-  "ignorePatterns": ["node_modules", "dist", "src/mdi.ts", "src/mdi.json", "tests/artifacts"]
+  "ignorePatterns": ["node_modules", "dist", "src/mdi.ts", "src/mdi.json", "tests/artifacts", "*.json"]
 }

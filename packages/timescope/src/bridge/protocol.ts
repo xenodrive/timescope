@@ -51,7 +51,7 @@ export type RendererCommands = {
 /** Controller -> engine requests. Initialization supplies the canvas out of band locally. */
 export type RenderEngineCommands = {
   readonly init: (opts: RendererInitOptions) => void;
-  readonly fonts: (fonts?: TimescopeFont[]) => Promise<void> | void;
+  readonly fonts: (fonts: TimescopeFont[]) => Promise<void> | void;
   readonly 'options:update': (options: TimescopeRenderEngineOptions) => void;
   readonly resize: (opts: RendererResizeOptions) => Promise<void> | void;
   readonly pointer: (info: InteractionInfoWire) => Promise<boolean | void> | boolean | void;

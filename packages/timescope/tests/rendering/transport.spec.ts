@@ -198,6 +198,48 @@ describe('worker buffer ownership', () => {
 });
 
 describe('worker render notifications', () => {
+  it('clones font buffer views without detaching reusable inputs', async () => {
+    const channel = new MessageChannel();
+    channel.port1.start();
+    channel.port2.start();
+    const lifetime = new AbortController();
+    const received: Uint8Array[] = [];
+    listenCalls<Pick<RenderEngineCommandsWire, 'init' | 'fonts'>>(
+      channel.port1 as unknown as WorkerMessagePort,
+      {
+        init: () => {},
+        fonts: (fonts) => {
+          received.push(fonts[0].source as Uint8Array);
+        },
+      },
+      undefined,
+      lifetime.signal,
+    );
+    const connection = connectWorkerRenderer(
+      channel.port2 as unknown as WorkerMessagePort,
+      {} as RendererCommands,
+      new ArrayBuffer(1) as unknown as OffscreenCanvas,
+    );
+    const buffer = new Uint8Array([0, 1, 2, 3, 0]);
+    const source = buffer.subarray(1, 4);
+    try {
+      await connection.call('fonts', [{ family: 'Custom', source }]);
+      await connection.call('fonts', [{ family: 'Custom', source }]);
+      expect([...buffer]).toEqual([0, 1, 2, 3, 0]);
+      expect(received.map((view) => [...view])).toEqual([
+        [1, 2, 3],
+        [1, 2, 3],
+      ]);
+      expect(received[0].buffer).not.toBe(buffer.buffer);
+      expect(received[0].buffer).not.toBe(received[1].buffer);
+    } finally {
+      connection.dispose();
+      lifetime.abort();
+      channel.port1.close();
+      channel.port2.close();
+    }
+  });
+
   it('delivers data changes without an acknowledgement while other commands still wait for one', async () => {
     const channel = new MessageChannel();
     channel.port1.start();

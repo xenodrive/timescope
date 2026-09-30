@@ -31,6 +31,7 @@ export default defineConfig([
     },
     onSuccess() {
       fs.copyFileSync('./README.md', path.join(outDir, 'README.md'));
+      fs.copyFileSync(path.join(root, 'src/assets/fonts/Timescope.woff2'), path.join(outDir, 'Timescope.woff2'));
       writePackageJson({
         config: { root, outDir, ...config },
         exports: {
@@ -40,6 +41,7 @@ export default defineConfig([
             default: './index.js',
           },
           './browser.js': './browser.js',
+          './Timescope.woff2': './Timescope.woff2',
         },
       });
     },
