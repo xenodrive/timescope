@@ -3,7 +3,7 @@
 Timescope is a time-series visualizer with time navigation controls.
 
 - **Infinite by design** — unlimited range and precision with [Decimal](/api/decimal).
-- **Chunk loading** — loads data efficiently.
+- **Shared time** — keeps overlaid Charts and separate Tracks temporally aligned.
 - **Independent marks and links** — composable shapes and connections.
 
 ## Time, Zoom, and Resolution {#time-and-zoom}
@@ -30,17 +30,11 @@ A **DataSource** provides rows for an arbitrary time range and positive resoluti
 
 ### DataLoader and DataSource
 
-A **DataLoader** acquires input and converts it into a common row format. It can load a complete snapshot or acquire requested ranges. A DataSource can use a DataLoader for acquisition while controlling how it produces the requested rows.
+A **DataLoader** acquires input and converts it into a common row format. A DataSource can use a DataLoader for acquisition while controlling how it produces the requested rows. Simple inline data is enough to start drawing; the acquisition strategy does not change how a Chart selects row fields.
 
 ![A DataLoader acquires canonical rows; a DataSource answers Series requests by range and resolution](./assets/data-pipeline.svg)
 
-#### Range Loader
-
-A [range-based loader](/api/timescope-options#range-loader) accepts an arbitrary time range and positive resolution. It returns complete rows intersecting the range.
-
-The loader **SHOULD** return **extra rows** needed for connections — one on each side for a straight line, two for a curve, as available — even when the range contains no points. For example, a very narrow request can return only the surrounding rows.
-
-![A loader returns rows intersecting the requested range together with extra rows needed for connections](./assets/query-context.svg)
+For snapshot loading, chunk loading, and range-loader response requirements, see [Loading and Updating Data](/guide/advanced/data).
 
 ### Canonical Rows
 
@@ -55,14 +49,6 @@ In an input row, equal times describe a point; different times describe the inte
 A **Series** brings together data from a DataSource, a value Domain, and shared attributes such as its name and color. **Charts** and **Tooltips**, for example, are consumers of this information. Several Series can share a DataSource while using different Domains or presentation attributes.
 
 ![Example Series consumers: Charts use series data and Tooltips use instantaneous values](./assets/series-consumers.svg)
-
-### Chunk Loading
-
-For a Series, the display resolution and the DataSource's resolution hints guide the requested [data resolution](/api/timescope-options#resolution), which may differ from the display resolution.
-
-At that resolution, the timeline is divided into chunks of width **`chunkSize × resolution`**, anchored to **`chunkOrigin`**. The visible range selects the chunks to request. Each selected chunk is queried from the DataSource using its full time range and the chosen resolution. These display requests share cached results for the same DataSource.
-
-![Chunks aligned to chunkOrigin; the visible range selects full chunks to query at the chosen resolution](./assets/chunk-loading.svg)
 
 ### Instantaneous Value
 
@@ -122,4 +108,4 @@ A Domain can follow visible data. Unspecified bounds adjust automatically; [**`e
 
 ## Next steps
 
-See these concepts in action in the [Examples](/guide/examples/).
+Follow [Drawing a Chart](/guide/drawing-a-chart) to turn these concepts into code, then explore more combinations in the [Examples](/guide/examples/).

@@ -1,4 +1,5 @@
 import type { Decimal } from '#src/core/decimal';
+import { defaultOptions } from '#src/core/defaults';
 import type { TimescopeRange } from '#src/core/range';
 import type { TimescopeTrack } from '#src/renderer/TimescopeTrack';
 import type { TimescopeRenderingContext } from '#src/renderer/types';
@@ -73,8 +74,12 @@ export function renderCursor(timescope: TimescopeRenderingContext) {
   const x = Math.round(timescope.timeAxis.cursor.p);
 
   const cursor = timescope.options.cursor;
-  ctx.fillStyle = typeof cursor === 'object' ? (cursor.color ?? 'white') : 'white';
-  ctx.strokeStyle = typeof cursor === 'object' ? (cursor.borderColor ?? 'red') : 'red';
+  ctx.fillStyle =
+    typeof cursor === 'object' ? (cursor.color ?? defaultOptions.cursor.color) : defaultOptions.cursor.color;
+  ctx.strokeStyle =
+    typeof cursor === 'object'
+      ? (cursor.borderColor ?? defaultOptions.cursor.borderColor)
+      : defaultOptions.cursor.borderColor;
   ctx.lineWidth = 1;
   ctx.fillRect(x - 1, 0, 3, height);
 

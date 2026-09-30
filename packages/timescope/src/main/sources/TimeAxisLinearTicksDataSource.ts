@@ -1,5 +1,6 @@
 import { DEFAULT_CHUNK_SIZE } from '#src/core/chunk';
 import { Decimal, pow10 } from '#src/core/decimal';
+import { defaultOptions } from '#src/core/defaults';
 import { TimescopeObservable, type TimescopeEvent } from '#src/core/event';
 import type { TimeAxisTick, TimescopeTimeAxisOptions } from '#src/main/timeAxis';
 import type { TimescopeDataSourceInvalidation, TimescopeDataSourceQuery } from '#src/main/TimescopeDataSource';
@@ -46,7 +47,13 @@ export class TimeAxisLinearTicksDataSource extends TimescopeObservable<
         labelIndex: major ? index.divFloor(Decimal(divisor)).integer() : undefined,
         tick: true,
         format: major
-          ? { time, unit: this.options.timeUnit ?? 's', level: 'relative', digits, stride: undefined }
+          ? {
+              time,
+              unit: this.options.timeUnit ?? defaultOptions.timeAxis.timeUnit,
+              level: 'relative',
+              digits,
+              stride: undefined,
+            }
           : undefined,
       });
     }

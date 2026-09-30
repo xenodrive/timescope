@@ -1,5 +1,6 @@
 import type { TimescopeAnimationInput } from '#src/core/animation';
 import { Decimal } from '#src/core/decimal';
+import { defaultOptions } from '#src/core/defaults';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
 import { mergeOptions } from '#src/core/options';
 import type { TimescopeRange } from '#src/core/range';
@@ -298,7 +299,10 @@ export class Timescope<
   }
 
   fitTo(range: TimescopeRange<TimeLike<never>>, opts?: TimescopeFitOptions) {
-    const [left, right] = typeof opts?.padding === 'number' ? [opts.padding, opts.padding] : (opts?.padding ?? [0, 0]);
+    const [left, right] =
+      typeof opts?.padding === 'number'
+        ? [opts.padding, opts.padding]
+        : (opts?.padding ?? [defaultOptions.fit.padding, defaultOptions.fit.padding]);
     const padding = left + right;
     if (!Number.isFinite(left) || !Number.isFinite(right) || left < 0 || right < 0 || !Number.isFinite(padding))
       return false;
@@ -599,7 +603,7 @@ export class Timescope<
     this.#backends = resolveBackends(_backend);
     this.#renderThread = _renderThread;
 
-    this.#wheelSensitivity = _opts.wheelSensitivity ?? 200;
+    this.#wheelSensitivity = _opts.wheelSensitivity ?? defaultOptions.wheelSensitivity;
 
     if (_opts.target) {
       this.#pendingAutoMount = true;

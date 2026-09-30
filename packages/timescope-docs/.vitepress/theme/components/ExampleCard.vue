@@ -6,6 +6,8 @@ import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch, 
 import { data as examplesCode } from './gallery-code.data';
 import { highlight } from './gallery-highlight';
 import { withBase } from 'vitepress';
+import { presets } from '../../../src/guide/playground/presets.js';
+import { buildOptions, optionsCode } from '../../../src/guide/playground/options.js';
 import PresetPreview from './PresetPreview.vue';
 
 const props = defineProps<{
@@ -23,12 +25,19 @@ const code = computed(() => examplesCode[props.name]);
 const file = ref<'javascript' | 'html'>('javascript');
 const copied = ref(false);
 const wheelEnabled = ref(false);
-const displayedCode = computed(() => code.value?.[file.value] ?? '');
+const contentType = computed(() => (props.preset ? 'Options' : 'Code'));
+const presetOptions = computed(() => {
+  const preset = presets.find((preset) => preset.id === props.preset);
+  return preset ? buildOptions(preset.create()) : undefined;
+});
+const displayedCode = computed(() =>
+  presetOptions.value ? optionsCode(presetOptions.value) : (code.value?.[file.value] ?? ''),
+);
 const highlightedCode = ref('');
 let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
 watch(
-  () => (props.active ? { code: displayedCode.value, lang: file.value } : null),
+  () => (props.active ? { code: displayedCode.value, lang: props.preset ? 'javascript' : file.value } : null),
   async (source, _, onCleanup) => {
     let cancelled = false;
     onCleanup(() => {
@@ -44,12 +53,11 @@ watch(
     }
   },
 );
-watch(
-  () => props.active,
-  () => {
-    wheelEnabled.value = false;
-  },
-);
+watch([() => props.active, displayedCode], () => {
+  wheelEnabled.value = false;
+  copied.value = false;
+  clearTimeout(copyTimer);
+});
 onBeforeUnmount(() => clearTimeout(copyTimer));
 
 function pointerDown(event: PointerEvent) {
@@ -101,13 +109,18 @@ async function copy() {
         <span class="example-tag">{{ tag }}</span>
         <h2>{{ title }}</h2>
       </div>
-      <a v-if="preset" class="example-code-button" :href="withBase(`/guide/examples/playground?preset=${preset}`)"
-        >→ Playground</a
-      >
-      <button v-else class="example-code-button" :aria-label="`View code for ${title}`" @click="$emit('open')">
-        <Icon :icon="codeTags" aria-hidden="true" />
-        Code
-      </button>
+      <div class="example-panel-actions">
+        <a v-if="preset" class="example-code-button" :href="withBase(`/guide/examples/playground?preset=${preset}`)"
+          >→ Playground</a
+        >
+        <button
+          class="example-code-button"
+          :aria-label="`View ${contentType.toLowerCase()} for ${title}`"
+          @click="$emit('open')">
+          <Icon :icon="codeTags" aria-hidden="true" />
+          {{ contentType }}
+        </button>
+      </div>
     </header>
     <div class="example-stage">
       <PresetPreview v-if="ready && preset" :preset="preset" />
@@ -115,16 +128,26 @@ async function copy() {
     </div>
     <Teleport to="body">
       <div v-if="active" class="example-code-overlay" @click.self="$emit('close')">
-        <section class="example-code-dialog" role="dialog" aria-modal="true" :aria-label="`Code for ${title}`">
+        <section
+          class="example-code-dialog"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="`${contentType} for ${title}`">
           <header class="example-code-header">
             <div>
               <span class="example-tag">{{ tag }}</span>
-              <h2>{{ title }} · Code</h2>
+              <h2 :id="`example-${name}-code-title`">{{ title }} · {{ contentType }}</h2>
             </div>
-            <button class="example-code-close" aria-label="Close code" @click="$emit('close')">✕</button>
+            <button
+              class="example-code-close"
+              :aria-label="`Close ${contentType.toLowerCase()}`"
+              @click="$emit('close')">
+              ✕
+            </button>
           </header>
           <div class="example-code-tools">
-            <div class="example-code-tabs" role="tablist" aria-label="Source file" @keydown="tabKeydown">
+            <span v-if="preset">JavaScript options</span>
+            <div v-else class="example-code-tabs" role="tablist" aria-label="Source file" @keydown="tabKeydown">
               <button
                 :id="`example-${name}-javascript-tab`"
                 role="tab"
@@ -152,8 +175,8 @@ async function copy() {
           <div
             :id="`example-${name}-code`"
             class="example-code-content"
-            role="tabpanel"
-            :aria-labelledby="`example-${name}-${file}-tab`"
+            :role="preset ? 'region' : 'tabpanel'"
+            :aria-labelledby="preset ? `example-${name}-code-title` : `example-${name}-${file}-tab`"
             tabindex="0">
             <div v-if="highlightedCode" class="example-highlight" v-html="highlightedCode"></div>
             <pre v-else tabindex="0"><code>{{ displayedCode }}</code></pre>
@@ -175,10 +198,17 @@ async function copy() {
 }
 .example-panel-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 20px;
   padding: 22px 28px;
+}
+.example-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 .example-panel-header h2,
 .example-code-header h2 {

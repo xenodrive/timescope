@@ -8,6 +8,6 @@ These guides cover application workflows that need more than a chart configurati
 
 | Topic                                                           | Guide                                             |
 | --------------------------------------------------------------- | ------------------------------------------------- |
-| Snapshot URLs, range loaders, refreshes, and live appends       | [Loading and Updating Data](/guide/advanced/data) |
+| Snapshot loading, chunk loading, refreshes, and live appends    | [Loading and Updating Data](/guide/advanced/data) |
 | Playback clocks, runtime configuration, and prepared views      | [Controlling Views](/guide/advanced/views)        |
 | Rendering environments, Node.js image exports, and custom fonts | [Rendering Backends](/guide/advanced/backends)    |

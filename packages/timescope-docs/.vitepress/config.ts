@@ -63,6 +63,7 @@ export default defineConfig({
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Core Concepts', link: '/guide/concepts' },
+            { text: 'Drawing a Chart', link: '/guide/drawing-a-chart' },
             {
               text: 'Advanced',
               link: '/guide/advanced/',

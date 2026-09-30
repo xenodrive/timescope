@@ -9,6 +9,7 @@ import type {
   TimescopeViewportChangedMessage,
 } from '#src/bridge/protocol';
 import type { RenderCall, RenderNotify } from '#src/bridge/rpc';
+import { defaultOptions } from '#src/core/defaults';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
 import { resolutionFor } from '#src/core/zoom';
@@ -45,21 +46,6 @@ function releaseSource(source: TimescopeDataSource<any>) {
     source.dispose?.();
   }
 }
-
-const colorPresets = ['#080', '#800', '#008', '#880', '#088', '#808'];
-
-const defaultRendererOptions: TimescopeOptions = {
-  style: undefined,
-  font: undefined,
-  cursor: true,
-  showFps: false,
-
-  sources: undefined,
-  series: undefined,
-  tracks: undefined,
-  domains: undefined,
-  selection: true,
-};
 
 export type TimescopeRendererOptions = {
   canvas: TimescopeCanvas;
@@ -230,7 +216,7 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
 
   setOptions(options: TimescopeOptions) {
     this.#options = {};
-    this.updateOptions({ ...defaultRendererOptions, ...options }, true);
+    this.updateOptions({ ...defaultOptions.options, ...options }, true);
   }
 
   #options: TimescopeOptions = {};
@@ -276,7 +262,8 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
     if ('font' in options) optionsForWorker.font = this.#options.font;
     if ('showFps' in options) optionsForWorker.showFps = options.showFps;
     if ('cursor' in options) optionsForWorker.cursor = this.#options.cursor;
-    if ('style' in options) optionsForWorker.background = this.#options.style?.background ?? '#fff';
+    if ('style' in options)
+      optionsForWorker.background = this.#options.style?.background ?? defaultOptions.style.background;
     if ('selection' in options) optionsForWorker.selection = options.selection;
     if (reset || ('selection' in options && options.selection === undefined)) optionsForWorker.selectionReset = true;
 
@@ -338,8 +325,8 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
             Object.hasOwn(options.series ?? {}, seriesKey)
           ) {
             if (!opts.data.color) {
-              opts.data.color = colorPresets[this.#colorIdx++];
-              this.#colorIdx = this.#colorIdx % colorPresets.length;
+              opts.data.color = defaultOptions.series.colors[this.#colorIdx++];
+              this.#colorIdx = this.#colorIdx % defaultOptions.series.colors.length;
             }
             changed = true;
             const ds = createDataSeries({

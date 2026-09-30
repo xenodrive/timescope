@@ -1,12 +1,24 @@
 import { initialState, newDomain, newLayer, newSeries, newTrack } from './options.js';
 import { examples } from '../examples/catalog.ts';
 
-function responseState(scale) {
+// Sample-specific settings belong here, not in the editor's defaults.
+function chartState(height = 200) {
   const state = initialState();
-  state.domains = [{ ...newDomain('response'), scale, unit: 'ms' }];
+  state.viewMode = 'fit';
+  state.height = `${height}px`;
+  state.tracks = [{ ...newTrack('main'), relative: true }];
+  state.domains = [newDomain('amplitude')];
+  state.series = [{ ...newSeries('signal', 'main', 'amplitude'), color: '#0d9488', layers: [newLayer('link')] }];
+  return state;
+}
+
+function responseState(scale) {
+  const state = chartState();
+  state.domains = [{ ...newDomain('response'), scale, axis: 'left', unit: 'ms' }];
   const series = newSeries('response', 'main', 'response');
   series.source = 'response';
-  series.layers[0].draw = 'curve';
+  series.color = '#0d9488';
+  series.layers = [{ ...newLayer('link'), draw: 'curve' }];
   state.series = [series];
   return state;
 }
@@ -17,9 +29,8 @@ const definitions = [
     name: 'Basic Chart',
     description: 'A sparse line chart with nine samples.',
     create() {
-      const state = initialState();
+      const state = chartState();
       state.series[0].source = 'basicChart';
-      state.domains[0].axis = 'none';
       state.tracks[0].relative = false;
       return state;
     },
@@ -34,14 +45,14 @@ const definitions = [
   },
   {
     id: 'ribbon-points',
-    name: 'Ribbon & points',
+    name: 'Marks & Links',
     description: 'A min/max ribbon with a line and individual sample markers.',
     create() {
-      const state = initialState();
+      const state = chartState();
       state.series[0].layers = [
         { ...newLayer('link'), draw: 'area', from: 'min', to: 'max' },
         newLayer('link'),
-        { ...newLayer('mark'), size: 4, opacity: 1 },
+        { ...newLayer('mark'), size: 4, color: state.series[0].color },
       ];
       return state;
     },
@@ -59,10 +70,11 @@ const definitions = [
     name: 'Multiple tracks',
     description: 'A smooth signal and spiking latency on separate tracks with independent linear scales.',
     create() {
-      const state = initialState();
+      const state = chartState(400);
       state.tracks[0].timeAxis = false;
-      state.tracks.push(newTrack('latency'));
-      state.domains.push({ ...newDomain('latency'), lower: 0, unit: 'ms' });
+      state.tracks.push({ ...newTrack('latency'), relative: true });
+      state.domains[0].axis = 'left';
+      state.domains.push({ ...newDomain('latency'), lower: 0, axis: 'left', unit: 'ms' });
       const series = newSeries('latency', 'latency', 'latency');
       series.name = 'Latency';
       series.source = 'signal';
@@ -78,10 +90,12 @@ const definitions = [
     description:
       'Wide-ranging signals share an automatic left scale; a changing activity curve uses an independent linear right axis. Zoom and pan to explore quiet, impact, and positive/negative sections.',
     create() {
-      const state = initialState();
-      state.tracks = [{ ...newTrack('main'), height: 320 }];
+      const state = chartState(320);
       state.range = [0, 500];
-      state.domains = [newDomain('sharedAmplitude'), { ...newDomain('activity'), axis: 'right' }];
+      state.domains = [
+        { ...newDomain('sharedAmplitude'), axis: 'left' },
+        { ...newDomain('activity'), axis: 'right' },
+      ];
       state.series = ['value', 'comparison'].map((field, index) => {
         const series = newSeries(field, 'main', 'sharedAmplitude');
         series.name = index === 0 ? 'Signal · shared scale' : 'Comparison · shared scale';
@@ -117,9 +131,8 @@ const definitions = [
     name: 'Intervals',
     description: 'Pipeline intervals with labels anchored at their midpoint.',
     create() {
-      const state = initialState();
+      const state = chartState(300);
       state.range = [-0.5, 10.5];
-      state.tracks[0].height = 300;
       state.domains = [{ ...newDomain('lanes'), lower: 0, upper: 5, shrink: false, axis: 'none' }];
       const series = newSeries('pipeline', 'main', 'lanes');
       series.source = 'tasks';
@@ -148,10 +161,10 @@ const definitions = [
     name: 'Annotations',
     description: 'A signal and its event labels on a shared latency domain.',
     create() {
-      const state = initialState();
+      const state = chartState(340);
       state.range = [0, 65];
-      state.tracks[0].height = 340;
-      state.domains = [{ ...newDomain('latency'), lower: 0, upper: 110, shrink: false, unit: 'ms' }];
+      state.loadMdiFont = true;
+      state.domains = [{ ...newDomain('latency'), lower: 0, upper: 110, shrink: false, axis: 'left', unit: 'ms' }];
       const signal = newSeries('signal', 'main', 'latency');
       signal.source = 'signal';
       signal.layers = [{ ...newLayer('link'), color: '#64748b' }];
@@ -169,7 +182,13 @@ const definitions = [
           colorField: 'color',
           stroke: 'dashed',
         },
-        { ...newLayer('mark'), draw: 'path', size: 8, opacity: 1, colorField: 'color' },
+        {
+          ...newLayer('mark'),
+          draw: 'path',
+          path: 'M0 -1 C-.55 -1 -1 -.55 -1 0 C-1 .6 0 1.1 0 1.1 S1 .6 1 0 C1 -.55 .55 -1 0 -1 Z',
+          size: 8,
+          colorField: 'color',
+        },
         {
           ...newLayer('mark'),
           draw: 'icon',

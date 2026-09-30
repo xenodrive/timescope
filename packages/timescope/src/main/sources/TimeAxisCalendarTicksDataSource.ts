@@ -1,5 +1,6 @@
 import { DEFAULT_CHUNK_SIZE } from '#src/core/chunk';
 import { Decimal, pow10 } from '#src/core/decimal';
+import { defaultOptions } from '#src/core/defaults';
 import { TimescopeObservable, type TimescopeEvent } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
 import {
@@ -478,14 +479,17 @@ function* createCalendarTicks(
 ): Generator<TimeAxisTick> {
   if (!range[0] || !range[1]) return;
 
-  const unit = options.timeUnit ?? 's';
+  const unit = options.timeUnit ?? defaultOptions.timeAxis.timeUnit;
 
   const start = scaleTimeUnit(range[0], unit, 's');
   const end = scaleTimeUnit(range[1], unit, 's');
   if (end.le(start)) return;
   resolution = scaleTimeUnit(resolution, unit, 's');
 
-  const context: CalendarContext | null = forgeCalendarContext(resolution, options.timeZone ?? 'local');
+  const context: CalendarContext | null = forgeCalendarContext(
+    resolution,
+    options.timeZone ?? defaultOptions.timeAxis.timeZone,
+  );
   if (!context) return;
 
   let majorTime: Decimal | null = context.major.align(start);

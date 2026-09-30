@@ -1,5 +1,6 @@
 import { DEFAULT_CHUNK_SIZE, resolveChunkSize, type TimescopeChunkSize } from '#src/core/chunk';
 import { Decimal } from '#src/core/decimal';
+import { defaultOptions } from '#src/core/defaults';
 import { TimescopeEvent, TimescopeObservable } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
 import { parseTimeLike, type TimeLike } from '#src/core/time';
@@ -30,12 +31,12 @@ export abstract class TimescopeDataSourceBase<Row = TimescopeDataRowInput>
     super();
     this.chunkSize = options.chunkSize ?? DEFAULT_CHUNK_SIZE;
     if (typeof this.chunkSize !== 'function') resolveChunkSize(this.chunkSize, Decimal(1));
-    this.chunkOrigin = Decimal(options.chunkOrigin ?? 0);
+    this.chunkOrigin = Decimal(options.chunkOrigin ?? defaultOptions.source.chunkOrigin);
     this.loaderResolutions =
       options.resolutions?.map((value) => Decimal(value)) ?? options.zoomLevels?.map(resolutionFor);
     if (this.loaderResolutions?.some((value) => value.le(0))) throw new RangeError('Resolutions must be positive');
-    this.immediate = options.immediate ?? true;
-    this.cacheSize = options.cacheSize ?? 1000;
+    this.immediate = options.immediate ?? defaultOptions.source.immediate;
+    this.cacheSize = options.cacheSize ?? defaultOptions.source.cacheSize;
     if (!Number.isSafeInteger(this.cacheSize) || this.cacheSize < 0)
       throw new RangeError('cacheSize must be a nonnegative integer');
   }

@@ -1,8 +1,9 @@
 import { Decimal } from '#src/core/decimal';
+import { defaultOptions } from '#src/core/defaults';
 import type { TimescopeRange } from '#src/core/range';
 import { zoomFor } from '#src/core/zoom';
 
-export const DEFAULT_CHUNK_SIZE = 256;
+export const DEFAULT_CHUNK_SIZE = defaultOptions.source.chunkSize;
 export type TimescopeChunkSize = number | ((resolution: Decimal) => number);
 
 export function resolveChunkSize(chunkSize: TimescopeChunkSize, resolution: Decimal): number {

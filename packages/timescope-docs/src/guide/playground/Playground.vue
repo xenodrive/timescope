@@ -1,17 +1,19 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
-import { Timescope } from 'timescope';
+import { Timescope, defaultOptions } from 'timescope';
 import { useRoute } from 'vitepress';
 import { highlight } from '../../../.vitepress/theme/components/gallery-highlight';
+import ChartColorInput from '../../../.vitepress/theme/components/ChartColorInput.vue';
 import {
   buildOptions,
+  defaultSize,
+  defaultUsing,
   initialState,
-  javascript,
-  mdiStylesheet,
   newDomain,
   newLayer,
   newSeries,
   newTrack,
+  optionsCode,
   remove,
   rename,
 } from './options.js';
@@ -26,20 +28,24 @@ const form = ref();
 const editor = ref();
 const error = ref('');
 const copied = ref(false);
+const omitDefaults = ref(true);
 const highlighted = ref('');
 const sourceFields = computed(() => fieldsFor(editor.value?.draft.source ?? 'measurements'));
 const dataFields = computed(() => Object.keys(rowsFor(editor.value?.draft.source ?? 'measurements')[0]?.data ?? {}));
 const fields = computed(() => [...sourceFields.value, '#zero', '#top', '#bottom']);
+const seriesAutoColor = computed(() => {
+  const index = state.series.findIndex((series) => series.id === editor.value?.original);
+  const preceding = state.series.slice(0, Math.max(0, index)).filter((series) => !series.color).length;
+  const colors = defaultOptions.series.colors;
+  return colors[preceding % colors.length];
+});
 const collections = ['general', 'sources', 'tracks', 'series', 'domains'];
 const active = ref('general');
-const options = computed(() => {
-  const { fonts, ...configuration } = buildOptions(state);
-  return state.loadMdiFont ? { ...configuration, fonts: [mdiStylesheet] } : configuration;
-});
+const options = computed(() => buildOptions(state));
 const sourceItems = computed(() =>
   [...Object.keys(datasets), ...state.sources].map((id) => ({ id, builtIn: Object.hasOwn(datasets, id) })),
 );
-const code = computed(() => javascript(options.value, 0, true, options.value.sources));
+const code = computed(() => optionsCode(options.value, omitDefaults.value));
 const alternatives = computed(() =>
   editor.value
     ? (editor.value.collection === 'sources' ? sourceItems.value : state[editor.value.collection]).filter(
@@ -59,6 +65,8 @@ let copyTimer;
 watch(
   code,
   async (value, _, onCleanup) => {
+    copied.value = false;
+    highlighted.value = '';
     let cancelled = false;
     onCleanup(() => {
       cancelled = true;
@@ -134,7 +142,7 @@ function add(collection) {
       ? newTrack(id)
       : collection === 'domains'
         ? newDomain(id)
-        : newSeries(id, state.tracks[0].id, state.domains[0].id);
+        : newSeries(id, state.tracks[0].id);
   if (collection === 'series') item.source = Object.keys(options.value.sources)[0] ?? 'measurements';
   state[collection].push(item);
 }
@@ -174,11 +182,12 @@ function editSource(id, deleting = false) {
 
 async function loadPreset(event) {
   const preset = presets.find((preset) => preset.id === event.target.value);
-  Object.assign(state, preset.create());
+  Object.assign(state, preset ? preset.create() : initialState());
   copied.value = false;
   event.target.value = '';
   const url = new URL(location.href);
-  url.searchParams.set('preset', preset.id);
+  if (preset) url.searchParams.set('preset', preset.id);
+  else url.searchParams.delete('preset');
   history.replaceState(history.state, '', url);
   await nextTick();
   applyView();
@@ -187,7 +196,7 @@ async function loadPreset(event) {
 async function readPresetUrl() {
   const id = new URL(location.href).searchParams.get('preset');
   const preset = presets.find((preset) => preset.id === id);
-  Object.assign(state, (preset ?? presets[0]).create());
+  Object.assign(state, preset ? preset.create() : initialState());
   await nextTick();
   applyView();
 }
@@ -206,11 +215,20 @@ function changeViewMode(event) {
     state.zoom = timescope?.zoom ?? state.zoom;
   } else if (timescope?.size.width) {
     const span = timescope.size.width * 2 ** -timescope.zoom;
-    const center = timescope.time?.number() ?? state.time;
+    const center = timescope.time?.number() ?? state.time ?? Date.now() / 1000;
     state.range = [center - span / 2, center + span / 2];
     state.fitPadding = 0;
   }
   state.viewMode = event.target.value;
+}
+
+function followClock(event) {
+  state.time = event.target.checked ? null : Date.now() / 1000;
+}
+
+function changeLayerFont(layer, family) {
+  if (family) layer.font = { ...layer.font, family };
+  else delete layer.font;
 }
 
 function rowsFor(name) {
@@ -328,7 +346,7 @@ function apply() {
         return;
       }
     }
-    if (collection === 'tracks' && draft.timeAxis && !draft.relative) {
+    if (collection === 'tracks' && draft.timeAxis && !draft.relative && !['local', 'utc'].includes(draft.timeZone)) {
       try {
         new Intl.DateTimeFormat('en', { timeZone: draft.timeZone });
       } catch {
@@ -365,6 +383,7 @@ async function copy() {
         <div class="playground-actions">
           <select aria-label="Load preset" value="" @change="loadPreset">
             <option value="" disabled>Load preset</option>
+            <option value="defaults">Timescope defaults</option>
             <option v-for="preset in presets" :key="preset.id" :value="preset.id">{{ preset.name }}</option>
           </select>
         </div>
@@ -386,14 +405,18 @@ async function copy() {
         <div v-if="active === 'general'" class="playground-general">
           <h2>Canvas &amp; view</h2>
           <div class="playground-fields">
-            <label>Width <input v-model="state.width" placeholder="100%" /></label>
-            <label>Height <input v-model="state.height" placeholder="Auto from tracks" /></label>
-            <label>Background <input v-model="state.background" type="color" /></label>
+            <label>Width <input v-model="state.width" :placeholder="defaultOptions.style.width" /></label>
+            <label
+              >Height <input v-model="state.height" :placeholder="`${defaultOptions.style.height} (Timescope default)`"
+            /></label>
+            <label>Background <ChartColorInput v-model="state.background" label="Background" /></label>
             <label><input v-model="state.loadMdiFont" type="checkbox" /> Load MDI font</label>
             <label><input v-model="state.cursorEnabled" type="checkbox" /> Time cursor</label>
-            <label v-if="state.cursorEnabled">Cursor color <input v-model="state.cursorColor" type="color" /></label>
             <label v-if="state.cursorEnabled"
-              >Cursor border color <input v-model="state.cursorBorderColor" type="color"
+              >Cursor color <ChartColorInput v-model="state.cursorColor" label="Cursor color"
+            /></label>
+            <label v-if="state.cursorEnabled"
+              >Cursor border color <ChartColorInput v-model="state.cursorBorderColor" label="Cursor border color"
             /></label>
             <label
               >Initial view
@@ -410,7 +433,12 @@ async function copy() {
               /></label>
             </template>
             <template v-else>
-              <label>Time <input v-model.number="state.time" type="number" step="any" /></label>
+              <label
+                ><input :checked="state.time === null" type="checkbox" @change="followClock" /> Follow live clock</label
+              >
+              <label v-if="state.time !== null"
+                >Time <input v-model.number="state.time" type="number" step="any"
+              /></label>
               <label>Zoom <input v-model.number="state.zoom" type="number" step="any" /></label>
             </template>
           </div>
@@ -443,13 +471,14 @@ async function copy() {
             <label
               >Domain
               <select v-model="item.domain">
+                <option value="">Auto (independent)</option>
                 <option v-for="domain in state.domains" :key="domain.id">{{ domain.id }}</option>
               </select></label
             >
             <p class="playground-note">{{ item.layers.length }} drawing layers · {{ item.name }}</p>
           </template>
           <p v-else-if="active === 'tracks'" class="playground-note">
-            {{ item.height }}px ·
+            {{ item.height === '' ? 'Auto height' : `${item.height}px` }} ·
             {{ item.timeAxis ? (item.relative ? 'Relative time' : item.timeZone) : 'No time axis' }}
           </p>
           <p v-else-if="active === 'domains'" class="playground-note">
@@ -468,7 +497,14 @@ async function copy() {
               </button>
             </template>
             <button
-              :disabled="active === 'sources' ? item.builtIn : active !== 'series' && state[active].length === 1"
+              :disabled="
+                active === 'sources'
+                  ? item.builtIn
+                  : (active === 'tracks' && state.tracks.length === 1) ||
+                    (active === 'domains' &&
+                      state.domains.length === 1 &&
+                      state.series.some((series) => series.domain === item.id))
+              "
               @click="active === 'sources' ? editSource(item.id, true) : edit(active, item, true)">
               Delete…
             </button>
@@ -480,7 +516,11 @@ async function copy() {
       </section>
       <section class="playground-output" aria-label="Generated options">
         <div class="playground-toolbar">
-          <strong>options</strong><button @click="copy">{{ copied ? 'Copied' : 'Copy options' }}</button>
+          <strong>options</strong>
+          <div class="playground-actions">
+            <label><input v-model="omitDefaults" type="checkbox" /> Omit defaults</label>
+            <button @click="copy">{{ copied ? 'Copied' : 'Copy options' }}</button>
+          </div>
         </div>
         <div v-if="highlighted" class="playground-code" v-html="highlighted"></div>
         <pre v-else class="playground-code"><code>{{ code }}</code></pre>
@@ -523,7 +563,8 @@ async function copy() {
           </div>
           <div v-if="editor.collection === 'tracks'" class="playground-fields">
             <label
-              >Height (px) <input v-model.number="editor.draft.height" type="number" min="60" max="1200" required
+              >Height (px)
+              <input v-model.number="editor.draft.height" type="number" min="0" max="1200" placeholder="Auto"
             /></label>
             <label><input v-model="editor.draft.timeAxis" type="checkbox" /> Show time axis</label>
             <label
@@ -534,6 +575,7 @@ async function copy() {
               >Time zone <input v-model="editor.draft.timeZone" required list="playground-timezones"
             /></label>
             <datalist id="playground-timezones">
+              <option>local</option>
               <option>utc</option>
               <option>Asia/Tokyo</option>
               <option>America/New_York</option>
@@ -579,7 +621,9 @@ async function copy() {
                   </option>
                 </select></label
               >
-              <label>Color <input v-model="editor.draft.color" type="color" /></label>
+              <label
+                >Color <ChartColorInput v-model="editor.draft.color" label="Series color" :auto-color="seriesAutoColor"
+              /></label>
               <label
                 >Track
                 <select v-model="editor.draft.track">
@@ -589,6 +633,7 @@ async function copy() {
               <label
                 >Domain
                 <select v-model="editor.draft.domain">
+                  <option value="">Auto (independent)</option>
                   <option v-for="item in state.domains" :key="item.id">{{ item.id }}</option>
                 </select></label
               >
@@ -619,20 +664,28 @@ async function copy() {
                 <label
                   >Using
                   <select v-model="layer.from">
+                    <option value="">Auto ({{ defaultUsing(layer.kind, layer.draw)[0] }})</option>
                     <option v-for="field in fields" :key="field">{{ field }}</option>
                   </select></label
                 >
                 <label v-if="layer.draw.includes('area') || ['bar', 'section'].includes(layer.draw)"
                   >To
                   <select v-model="layer.to">
+                    <option value="">Auto ({{ defaultUsing(layer.kind, layer.draw)[1] }})</option>
                     <option v-for="field in fields" :key="field">{{ field }}</option>
                   </select></label
                 >
-                <label>Color <input v-model="layer.color" type="color" /></label>
-                <label
+                <label>
+                  Color
+                  <ChartColorInput
+                    v-model="layer.color"
+                    label="Layer color"
+                    :auto-color="editor.draft.color || seriesAutoColor" />
+                </label>
+                <label v-if="!['text', 'icon'].includes(layer.draw)"
                   >Line width <input v-model.number="layer.width" type="number" min="0" max="20" step="0.5" required
                 /></label>
-                <label
+                <label v-if="!['text', 'icon'].includes(layer.draw)"
                   >Stroke
                   <select v-model="layer.stroke">
                     <option>solid</option>
@@ -641,15 +694,25 @@ async function copy() {
                   </select></label
                 >
                 <label v-if="layer.kind === 'mark'"
-                  >Size <input v-model.number="layer.size" type="number" min="1" max="80" required
+                  >Size
+                  <input
+                    v-model.number="layer.size"
+                    type="number"
+                    min="1"
+                    max="80"
+                    :placeholder="`Auto (${defaultSize(layer.draw)})`"
                 /></label>
-                <label v-if="layer.kind === 'mark' || layer.draw.includes('area')"
+                <label
+                  v-if="
+                    layer.draw.includes('area') ||
+                    (layer.kind === 'mark' && !['text', 'icon', 'section'].includes(layer.draw))
+                  "
                   >Fill opacity <input v-model.number="layer.opacity" type="number" min="0" max="1" step="any" required
                 /></label>
                 <label
                   >Color from data
                   <select v-model="layer.colorField">
-                    <option value="">Fixed color</option>
+                    <option value="">Series / custom color</option>
                     <option v-if="dataFields.includes('color')" value="color">data.color</option>
                   </select></label
                 >
@@ -671,6 +734,13 @@ async function copy() {
                   >
                   <label v-if="!layer.textField">Text <input v-model="layer.text" /></label>
                 </template>
+                <label v-if="layer.draw === 'icon'">
+                  Font family
+                  <input
+                    :value="layer.font?.family ?? ''"
+                    placeholder="icons"
+                    @input="changeLayerFont(layer, $event.target.value)" />
+                </label>
                 <template v-if="layer.draw === 'text'">
                   <label>Horizontal offset <input v-model.number="layer.offsetX" type="number" required /></label>
                   <label

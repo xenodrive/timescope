@@ -9,6 +9,14 @@
 | [Calendar](/api/calendar)                   | Date components, zones, alignment, format tokens    |
 
 ```ts
-import { Timescope, createDataSource, createDataLoader, defineTimescopeOptions, Decimal, Calendar } from 'timescope';
+import {
+  Timescope,
+  createDataSource,
+  createDataLoader,
+  defineTimescopeOptions,
+  defaultOptions,
+  Decimal,
+  Calendar,
+} from 'timescope';
 import type { TimescopeOptions, TimescopeUpdateOptions, TimescopeTimeLike, TimescopeNumberLike } from 'timescope';
 ```

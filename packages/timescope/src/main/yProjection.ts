@@ -1,4 +1,5 @@
 import { Decimal, log10Ratio } from '#src/core/decimal';
+import { defaultOptions } from '#src/core/defaults';
 
 export type YProjectionMode =
   | 'zero-inclusive'
@@ -68,10 +69,10 @@ function emptyProjection(scale: Exclude<YProjectionScale, undefined>, gap: numbe
 export function createYProjection(
   effectiveExtent: [Decimal, Decimal] | null,
   scale: YProjectionScale,
-  gap = 20,
+  gap: number = defaultOptions.domain.floatingGap,
   previousBasis?: YProjectionBasis | null,
 ): YProjection {
-  const resolvedScale = scale ?? 'linear';
+  const resolvedScale = scale ?? defaultOptions.domain.scale;
   if (!effectiveExtent) return emptyProjection(resolvedScale, gap);
 
   const [lower, upper] = effectiveExtent;

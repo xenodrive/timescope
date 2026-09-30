@@ -1,4 +1,5 @@
 import { Decimal, isDecimal } from '#src/core/decimal';
+import { defaultOptions } from '#src/core/defaults';
 import type { TimescopeRange } from '#src/core/range';
 import { setUid } from '#src/core/uid';
 import type { TimescopeChartLink, TimescopeChartMark, TimescopeChartType, Using } from '#src/main/chart';
@@ -151,14 +152,17 @@ export function resolveChartLinks(
 }
 
 function linkUsing(link: TimescopeChartLink<false>): Using {
-  return link.using ?? (link.draw.includes('area') ? ['value@time', '#zero@time'] : 'value@time');
+  return (
+    link.using ?? (link.draw.includes('area') ? [...defaultOptions.chartUsing.area] : defaultOptions.chartUsing.point)
+  );
 }
 
 function markUsing(mark: TimescopeChartMark<false>): Using {
   if (mark.using) return mark.using;
-  if (mark.draw === 'line' || mark.draw === 'bar' || mark.draw === 'section') return ['min', 'max'];
-  if (mark.draw === 'region') return ['#bottom@_minTime', '#top@_maxTime'];
-  return 'value@time';
+  if (mark.draw === 'line' || mark.draw === 'bar' || mark.draw === 'section')
+    return [...defaultOptions.chartUsing.range];
+  if (mark.draw === 'region') return [...defaultOptions.chartUsing.region];
+  return defaultOptions.chartUsing.point;
 }
 
 function resolveChartMark(mark: TimescopeChartMark<false>): ResolvedChartMark {

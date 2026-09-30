@@ -1,5 +1,6 @@
 import { resolveChunkSize, type TimescopeChunk } from '#src/core/chunk';
 import { Decimal } from '#src/core/decimal';
+import { defaultOptions } from '#src/core/defaults';
 import type { TimescopeRange } from '#src/core/range';
 import { resolutionFor } from '#src/core/zoom';
 import { parseUsing, unwrapFn } from '#src/main/layers/options';
@@ -17,14 +18,14 @@ type TimescopeDataSeriesInput = NonNullable<TimescopeOptions['series']>[string];
 function parseInstantaneous(instantaneous: TimescopeDataSeriesInput['data']['instantaneous']) {
   if (!instantaneous) {
     return {
-      using: 'value',
+      using: defaultOptions.series.instantaneous.using,
       zoom: undefined,
       resolution: undefined,
     };
   }
 
   return {
-    using: instantaneous.using ?? 'value',
+    using: instantaneous.using ?? defaultOptions.series.instantaneous.using,
     zoom: instantaneous.zoom,
     resolution: instantaneous.resolution,
   };
@@ -64,7 +65,9 @@ export class TimescopeSeriesTooltip<O extends TimescopeSeriesLayerDataOptions> e
   O
 > {
   static isEnabled(series: TimescopeDataSeries) {
-    return series.options.tooltip !== false && series.options.data.instantaneous !== false;
+    return (
+      (series.options.tooltip ?? defaultOptions.series.tooltip) !== false && series.options.data.instantaneous !== false
+    );
   }
 
   #instantaneous;

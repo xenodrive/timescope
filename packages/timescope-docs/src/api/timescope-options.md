@@ -4,12 +4,13 @@ titleTemplate: Timescope API
 
 # Timescope Options
 
-| Type / helper                     | Accepted by / result                                                             |
-| --------------------------------- | -------------------------------------------------------------------------------- |
-| `TimescopeOptions`                | `setOptions()` and framework `options` props                                     |
-| `TimescopeOptionsInitial`         | Constructor; adds [initial-only fields](/api/timescope#options-constructor-only) |
-| `TimescopeUpdateOptions`          | `updateOptions()`; partial settings, `null` to delete named entries              |
-| `defineTimescopeOptions(options)` | Typed options with inferred source, series, and track names                      |
+| Type / helper                     | Accepted by / result                                                               |
+| --------------------------------- | ---------------------------------------------------------------------------------- |
+| `TimescopeOptions`                | `setOptions()` and framework `options` props                                       |
+| `TimescopeOptionsInitial`         | Constructor; adds [initial-only fields](/api/timescope#options-constructor-only)   |
+| `TimescopeUpdateOptions`          | `updateOptions()`; partial settings, `null` to delete named entries                |
+| `defineTimescopeOptions(options)` | Typed options with inferred source, series, and track names                        |
+| `defaultOptions`                  | Read-only effective defaults, grouped by option; [using defaults](#default-values) |
 
 ## Options
 
@@ -25,7 +26,38 @@ titleTemplate: Timescope API
 | `tracks`    | `Record<string, { height?, symmetric?, timeAxis? }>`       | [Track layout](#tracks)                                                |
 | `selection` | `boolean \| { resizable?, color?, invert? }`               | `true`; [selection options](#selection)                                |
 
+### Default Values
+
+Import `defaultOptions` to inspect or reuse the fallback values used by Timescope itself.
+
+```ts
+import { defineTimescopeOptions, defaultOptions } from 'timescope';
+
+const options = defineTimescopeOptions({
+  domains: {
+    amplitude: { ...defaultOptions.domain, axis: 'left' },
+  },
+});
+```
+
+| Group                                     | Contents                                                                                       |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `time`, `zoom`, `wheelSensitivity`, `fit` | Initial navigation values and fit padding                                                      |
+| `options`                                 | Top-level fallback flags and unset named collections                                           |
+| `style`, `cursor`                         | Canvas dimensions/background and cursor colors                                                 |
+| `domain`, `domainRange`                   | Value scale, labels, axis, automatic bounds, and range behavior                                |
+| `track`, `timeAxis`                       | Automatic Track height, time-axis visibility, calendar/relative mode, time zone, and time unit |
+| `series`                                  | Tooltip and instantaneous-value defaults, automatic color palette, and inherited-fill alpha    |
+| `chartStyle`, `chartSize`, `chartUsing`   | Primitive style defaults, per-kind sizes, and field selectors                                  |
+| `source`                                  | Chunk size/origin, immediate loading, and inactive query-cache size                            |
+
+The export is **not a complete constructor configuration**: its groups describe effective defaults, not named Sources, Series, Domains, or Tracks. Reuse individual values or spread an appropriate group as above; do not spread the entire export into `new Timescope()`.
+
+Every group and array is frozen. Omitted settings can also be contextual: Track heights share the available canvas, a Series uses the first Track, and unspecified primitive colors inherit the Series color. An inherited fill uses `series.fillAlpha`; an explicit `fillColor` does not apply that extra alpha. These rules are not equivalent to filling every optional field with a static value.
+
 ## Sources
+
+**Snapshot loading** acquires a complete dataset. **Chunk loading** queries a Source in time chunks at a selected resolution; a Source can answer from a snapshot or acquire the requested rows with a **range loader**. The API's `TimescopeRangeLoader` name describes that acquisition interface, not a requirement that requests align to chunk boundaries. See [Loading and Updating Data](/guide/advanced/data) for both workflows.
 
 ### Input Types
 

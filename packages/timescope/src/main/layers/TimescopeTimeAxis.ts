@@ -1,4 +1,5 @@
 import type { Decimal } from '#src/core/decimal';
+import { defaultOptions } from '#src/core/defaults';
 import { normalizeOptions } from '#src/core/options';
 import type { TimescopeRange } from '#src/core/range';
 import { formatTick } from '#src/main/layers/timeAxisFormat';
@@ -29,15 +30,16 @@ export class TimescopeTimeAxis extends TimescopeLayerDataBase<
   { timeAxis: TimescopeTimeAxisOptions }
 > {
   static isEnabled(options: TimescopeTimeAxisOptions | boolean | undefined) {
-    return options !== false;
+    return (options ?? defaultOptions.track.timeAxis) !== false;
   }
   #view: TimescopeView<TimeAxisTick>;
   constructor(opts: TimescopeTimeAxisDataOptions) {
-    super({ timeAxis: normalizeOptions(opts.timeAxis, { timeUnit: 's' })! });
+    super({ timeAxis: normalizeOptions(opts.timeAxis, { timeUnit: defaultOptions.timeAxis.timeUnit })! });
     if (!opts.viewContext) throw new Error('Time axis requires a view context');
-    const source = this.options.timeAxis.relative
-      ? new TimeAxisLinearTicksDataSource(this.options.timeAxis)
-      : new TimeAxisCalendarTicksDataSource(this.options.timeAxis);
+    const source =
+      (this.options.timeAxis.relative ?? defaultOptions.timeAxis.relative)
+        ? new TimeAxisLinearTicksDataSource(this.options.timeAxis)
+        : new TimeAxisCalendarTicksDataSource(this.options.timeAxis);
     const store = new TimescopeChunkStore<TimeAxisTick>(source);
     this.#view = new TimescopeView(store, opts.viewContext, source, { strategy: 'candidate-with-current' });
     this.onDispose(this.#view.on('change', () => this.changed()));

@@ -1,5 +1,6 @@
 import type { TimescopeAnimationInput } from '#src/core/animation';
 import { Decimal } from '#src/core/decimal';
+import { defaultOptions } from '#src/core/defaults';
 import type { TimescopeRange } from '#src/core/range';
 import { parseTimeDomainLike, parseTimeLike, type TimeLike } from '#src/core/time';
 import { TimescopeCommittable } from '#src/core/TimescopeCommittable';
@@ -49,12 +50,12 @@ export class TimescopeState extends TimescopeObservable<
   constructor(opts: TimescopeStateOptions) {
     super();
     this.time = new TimescopeCommittable<null>({
-      initialValue: parseTimeLike(opts.time ?? null),
+      initialValue: parseTimeLike(opts.time ?? defaultOptions.time),
       domain: parseTimeDomainLike(opts.timeRange ?? [undefined, null]),
       onNull: () => Date.now() / 1000,
     });
     this.zoom = new TimescopeCommittable<never>({
-      initialValue: opts.zoom ?? 0,
+      initialValue: opts.zoom ?? defaultOptions.zoom,
       domain: opts.zoomRange,
     });
 

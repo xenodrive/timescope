@@ -1,3 +1,4 @@
+import { defaultOptions } from '#src/core/defaults';
 import type { TimescopeFont } from '#src/main/font';
 import type { InteractionInfo } from '#src/main/interaction';
 import { InteractionManager } from '#src/main/InteractionManager';
@@ -97,13 +98,13 @@ export function mountCanvas(
       element.style.all = 'unset';
       element.style.display = 'block';
       element.style.touchAction = 'none';
-      element.style.width = canvasStyle?.width ?? '100%';
-      element.style.height = canvasStyle?.height ?? '36px';
-      element.style.background = canvasStyle?.background ?? '#fff';
+      element.style.width = canvasStyle?.width ?? defaultOptions.style.width;
+      element.style.height = canvasStyle?.height ?? defaultOptions.style.height;
+      element.style.background = canvasStyle?.background ?? defaultOptions.style.background;
       if ('appendChild' in container) container.appendChild(element);
       updateSize = () => {
-        element.style.width = canvasStyle?.width ?? '100%';
-        element.style.height = canvasStyle?.height ?? '36px';
+        element.style.width = canvasStyle?.width ?? defaultOptions.style.width;
+        element.style.height = canvasStyle?.height ?? defaultOptions.style.height;
         element.style.position = 'relative';
         element.style.left = '0px';
         element.style.top = '0px';
@@ -168,7 +169,7 @@ export function mountCanvas(
       !direct && element
         ? (value) => {
             canvasStyle = value;
-            element.style.background = value?.background ?? '#fff';
+            element.style.background = value?.background ?? defaultOptions.style.background;
             updateSize?.();
           }
         : undefined,

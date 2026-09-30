@@ -4,7 +4,7 @@ export const examples = [
   { name: 'basic-chart', title: 'Basic Chart', tag: 'Drawing', preset: 'basic-chart' },
   { name: 'curve', title: 'Curve', tag: 'Drawing', preset: 'curve' },
   { name: 'log-scale', title: 'Log Scale', tag: 'Data', preset: 'log-scale' },
-  { name: 'ribbon-points', title: 'Ribbon & Points', tag: 'Drawing', preset: 'ribbon-points' },
+  { name: 'ribbon-points', title: 'Marks & Links', tag: 'Drawing', preset: 'ribbon-points' },
   { name: 'annotations', title: 'Annotations', tag: 'Drawing', preset: 'annotations' },
   { name: 'intervals', title: 'Intervals', tag: 'Drawing', preset: 'intervals' },
   { name: 'multiple-charts', title: 'Multiple Charts', tag: 'Data', preset: 'multiple-charts' },

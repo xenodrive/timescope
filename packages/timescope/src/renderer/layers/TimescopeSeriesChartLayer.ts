@@ -1,4 +1,5 @@
 import { Decimal } from '#src/core/decimal';
+import { defaultOptions } from '#src/core/defaults';
 import { PathCommand, type TimescopePathCommands } from '#src/core/path';
 import type {
   AngleStyle,
@@ -220,8 +221,8 @@ function createStrokeStyle(style: StrokeStyle & DefaultColorStyle) {
 
 export function createFillStyle(style: FillStyle & DefaultColorStyle) {
   const color = style.fillColor ?? style.color ?? 'black';
-  const colorOpacity = style.fillColor === undefined ? 0.25 : 1;
-  const fillOpacity = Math.max(0, Math.min(1, style.fillOpacity ?? 1));
+  const colorOpacity = style.fillColor === undefined ? defaultOptions.series.fillAlpha : 1;
+  const fillOpacity = Math.max(0, Math.min(1, style.fillOpacity ?? defaultOptions.chartStyle.fillOpacity));
   const rgba = parseColorToRgba(color);
   if (!rgba) return opacity(color, colorOpacity * fillOpacity);
   const a = rgba.a * colorOpacity * fillOpacity;
@@ -235,8 +236,8 @@ export function createMarkFillStyle(style: FillStyle & DefaultColorStyle, backgr
   if (style.fillColor !== undefined) return createFillStyle(style);
 
   const color = style.color ?? 'black';
-  const colorOpacity = 0.25;
-  const fillOpacity = Math.max(0, Math.min(1, style.fillOpacity ?? 1));
+  const colorOpacity = defaultOptions.series.fillAlpha;
+  const fillOpacity = Math.max(0, Math.min(1, style.fillOpacity ?? defaultOptions.chartStyle.fillOpacity));
   const cacheKey = `${color}\0${colorOpacity}\0${background}`;
   let rgba = flattenedColorCache.get(cacheKey);
   if (!rgba) {
@@ -312,8 +313,8 @@ function createPathMarks<
       const l = Math.hypot(dx, dy);
       const direction = directed ? Math.atan2(dy, dx) : 0;
       const angle = direction + ((style.angle ?? 0) * Math.PI) / 180;
-      const offsetX = style.offset?.[0] ?? 0;
-      const offsetY = style.offset?.[1] ?? 0;
+      const offsetX = style.offset?.[0] ?? defaultOptions.chartStyle.offset[0];
+      const offsetY = style.offset?.[1] ?? defaultOptions.chartStyle.offset[1];
 
       const markPath = new context.Path2D();
       callback(markPath, { style, dx, dy, l }, context);
@@ -369,8 +370,8 @@ export function createUnitPathMarks<
       const angleSin = Math.sin(angle);
       const directionCos = Math.cos(direction);
       const directionSin = Math.sin(direction);
-      const offsetX = style.offset?.[0] ?? 0;
-      const offsetY = style.offset?.[1] ?? 0;
+      const offsetX = style.offset?.[0] ?? defaultOptions.chartStyle.offset[0];
+      const offsetY = style.offset?.[1] ?? defaultOptions.chartStyle.offset[1];
       scaleFor(style, dx, dy, l, scale);
 
       transform.a = angleCos * scale.x;
@@ -508,7 +509,7 @@ const pathCreators: Record<
         path.arc(0, 0, 0.5, 0, Math.PI * 2);
       },
       (style, _dx, _dy, _l, scale) => {
-        scale.x = scale.y = style.size ?? 5;
+        scale.x = scale.y = style.size ?? defaultOptions.chartSize.mark;
       },
     ),
     { stroke: true, fill: true },
@@ -521,7 +522,7 @@ const pathCreators: Record<
         path.lineTo(0.5, 0);
       },
       (style, _dx, _dy, _l, scale) => {
-        scale.x = scale.y = style.size ?? 5;
+        scale.x = scale.y = style.size ?? defaultOptions.chartSize.mark;
       },
     ),
     { stroke: true, fill: false },
@@ -537,7 +538,7 @@ const pathCreators: Record<
         path.closePath();
       },
       (style, _dx, _dy, _l, scale) => {
-        scale.x = scale.y = style.size ?? 5;
+        scale.x = scale.y = style.size ?? defaultOptions.chartSize.mark;
       },
     ),
     { stroke: true, fill: true },
@@ -550,7 +551,7 @@ const pathCreators: Record<
         path.rect(-size / 2, -size / 2, size, size);
       },
       (style, _dx, _dy, _l, scale) => {
-        scale.x = scale.y = style.size ?? 5;
+        scale.x = scale.y = style.size ?? defaultOptions.chartSize.mark;
       },
     ),
     { stroke: true, fill: true },
@@ -566,7 +567,7 @@ const pathCreators: Record<
         path.closePath();
       },
       (style, _dx, _dy, _l, scale) => {
-        scale.x = scale.y = style.size ?? 5;
+        scale.x = scale.y = style.size ?? defaultOptions.chartSize.mark;
       },
     ),
     { stroke: true, fill: true },
@@ -592,7 +593,7 @@ const pathCreators: Record<
         path.closePath();
       },
       (style, _dx, _dy, _l, scale) => {
-        scale.x = scale.y = style.size ?? 5;
+        scale.x = scale.y = style.size ?? defaultOptions.chartSize.mark;
       },
     ),
     { stroke: true, fill: true },
@@ -607,7 +608,7 @@ const pathCreators: Record<
         path.lineTo(0, 0.5);
       },
       (style, _dx, _dy, _l, scale) => {
-        scale.x = scale.y = style.size ?? 5;
+        scale.x = scale.y = style.size ?? defaultOptions.chartSize.mark;
       },
     ),
     { stroke: true },
@@ -623,7 +624,7 @@ const pathCreators: Record<
         path.lineTo(size / 2, -size / 2);
       },
       (style, _dx, _dy, _l, scale) => {
-        scale.x = scale.y = style.size ?? 5;
+        scale.x = scale.y = style.size ?? defaultOptions.chartSize.mark;
       },
     ),
     { stroke: true },
@@ -631,7 +632,7 @@ const pathCreators: Record<
 
   'mark:path': [
     createPathMarks((path, { style: { path: stylePath, size, scale, origin } }, context) => {
-      const factor = (scale ?? 1) * (size ?? 5);
+      const factor = (scale ?? 1) * (size ?? defaultOptions.chartSize.mark);
       const mat = {
         a: factor,
         b: 0,
@@ -662,8 +663,8 @@ const pathCreators: Record<
   ],
 
   'mark:bar': [
-    createPathMarks((path, { l, style: { size, radius, extrude } }) => {
-      size = size ?? 5;
+    createPathMarks((path, { l, style: { size, radius = defaultOptions.chartStyle.radius, extrude } }) => {
+      size = size ?? defaultOptions.chartSize.mark;
 
       const pad = parsePaddingLike(extrude);
       const x = -pad.l;
@@ -694,7 +695,7 @@ const pathCreators: Record<
       },
       (style, _dx, _dy, l, scale) => {
         scale.x = l;
-        scale.y = style.size ?? 5;
+        scale.y = style.size ?? defaultOptions.chartSize.mark;
       },
     ),
     { stroke: true },
@@ -702,7 +703,7 @@ const pathCreators: Record<
 
   // ----------
   'mark:region': [
-    createPathMarks((path, { dx, dy, style: { radius, extrude } }) => {
+    createPathMarks((path, { dx, dy, style: { radius = defaultOptions.chartStyle.radius, extrude } }) => {
       const pad = parsePaddingLike(extrude);
       const x = -pad.l;
       const y = -pad.t;
@@ -729,7 +730,7 @@ export class TimescopeSeriesChartLayer extends TimescopeLayer {
   updateOptions(options: TimescopeRenderEngineOptions): void {
     super.updateOptions(options);
     if ('background' in options && options.background !== this.#background) {
-      this.#background = options.background ?? '#fff';
+      this.#background = options.background ?? defaultOptions.style.background;
       this.#plotData = {};
     }
   }
@@ -988,11 +989,11 @@ function renderPath(
     ctx.fill(fillPath);
   }
 
-  if (style.stroke && style.strokeStyle && (style.lineWidth ?? 1) > 0 && strokePath) {
+  if (style.stroke && style.strokeStyle && (style.lineWidth ?? defaultOptions.chartStyle.lineWidth) > 0 && strokePath) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = resolveFadeoutStyle(style.strokeStyle, floating, style.baseline);
-    ctx.lineWidth = style.lineWidth ?? 1;
+    ctx.lineWidth = style.lineWidth ?? defaultOptions.chartStyle.lineWidth;
     if (style.lineDashArray) {
       ctx.setLineDash(style.lineDashArray);
       ctx.lineDashOffset = style.lineDashOffset ?? 0;
@@ -1018,12 +1019,19 @@ function renderTextAt(
     typeof style.font === 'string' || style.size === undefined
       ? style.font
       : { ...style.font, size: style.font?.size ?? style.size };
-  ctx.font = resolveFont(font, { weight: 'normal', size: 14, family: DEFAULT_FONT_FAMILY }, options.font);
-  ctx.textAlign = style.textAlign ?? 'center';
+  ctx.font = resolveFont(
+    font,
+    { weight: 'normal', size: defaultOptions.chartSize.text, family: DEFAULT_FONT_FAMILY },
+    options.font,
+  );
+  ctx.textAlign = style.textAlign ?? defaultOptions.chartStyle.textAlign;
   ctx.textBaseline = style.textBaseline ?? 'middle';
 
   ctx.save();
-  ctx.translate(x + (style.offset?.[0] ?? 0), y + (style.offset?.[1] ?? 0));
+  ctx.translate(
+    x + (style.offset?.[0] ?? defaultOptions.chartStyle.offset[0]),
+    y + (style.offset?.[1] ?? defaultOptions.chartStyle.offset[1]),
+  );
   if (style.angle) ctx.rotate((style.angle / 180) * Math.PI);
 
   if (style.textOutline || style.textOutlineColor !== undefined || style.textOutlineWidth !== undefined) {
@@ -1048,12 +1056,19 @@ function renderIconAt(
 ) {
   if (!style.icon) return;
 
-  ctx.font = resolveFont(style.font, { weight: 'normal', size: style.size ?? 16, family: 'icons' });
+  ctx.font = resolveFont(style.font, {
+    weight: 'normal',
+    size: style.size ?? defaultOptions.chartSize.icon,
+    family: 'icons',
+  });
   ctx.textAlign = style.iconAlign ?? 'center';
   ctx.textBaseline = style.iconBaseline ?? 'middle';
 
   ctx.save();
-  ctx.translate(x + (style.offset?.[0] ?? 0), y + (style.offset?.[1] ?? 0));
+  ctx.translate(
+    x + (style.offset?.[0] ?? defaultOptions.chartStyle.offset[0]),
+    y + (style.offset?.[1] ?? defaultOptions.chartStyle.offset[1]),
+  );
   if (style.angle) ctx.rotate((style.angle / 180) * Math.PI);
 
   if (style.iconOutline || style.iconOutlineColor !== undefined || style.iconOutlineWidth !== undefined) {

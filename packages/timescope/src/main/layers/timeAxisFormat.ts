@@ -1,3 +1,4 @@
+import { defaultOptions } from '#src/core/defaults';
 import {
   scaleTimeUnit,
   type TimeAxisTick,
@@ -43,7 +44,7 @@ function formatCalendar(opts: TimeFormatFuncOptions & { timeZone?: string }, lab
     seconds,
     weekday,
   } = Calendar.fromEpoch(scaleTimeUnit(time, unit, 's'))
-    .zone(opts.timeZone ?? 'local')
+    .zone(opts.timeZone ?? defaultOptions.timeAxis.timeZone)
     .components();
   const [secondIntegral, subseconds] = seconds.split();
   const second = secondIntegral.integer();

@@ -1,4 +1,5 @@
 export * from '#src/main/options';
+export { defaultOptions } from '#src/core/defaults';
 export { Timescope } from '#src/main/Timescope';
 export {
   createDataLoader,

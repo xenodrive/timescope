@@ -68,6 +68,7 @@ timescope.fitTo([0, 30]);
 ## Next steps
 
 - Learn the [Core Concepts](/guide/concepts)
+- Add data, lines, curves, and points with [Drawing a Chart](/guide/drawing-a-chart)
 - Explore [Examples](/guide/examples/)
 - Connect remote data and application controls with [Advanced guides](/guide/advanced/)
 - Use a [Framework Binding](/guide/advanced/frameworks)

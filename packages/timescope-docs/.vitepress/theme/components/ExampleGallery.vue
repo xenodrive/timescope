@@ -29,7 +29,7 @@ function keyboard(event: KeyboardEvent) {
   if (event.key === 'Tab') {
     const controls = [
       ...document.querySelectorAll<HTMLElement>(
-        '.example-code-dialog button, .example-code-dialog select, .example-code-dialog [tabindex="0"]',
+        '.example-code-dialog button, .example-code-dialog select, .example-code-dialog a[href], .example-code-dialog [tabindex="0"]',
       ),
     ].filter((element) => element.getClientRects().length && !element.matches(':disabled'));
     const first = controls[0];

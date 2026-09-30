@@ -12,6 +12,7 @@ import type {
 } from '#src/bridge/protocol';
 import type { RenderCall } from '#src/bridge/rpc';
 import { Decimal } from '#src/core/decimal';
+import { defaultOptions } from '#src/core/defaults';
 import type { TimescopeEvent } from '#src/core/event';
 import { mergeOptions } from '#src/core/options';
 import type { TimescopeRange } from '#src/core/range';
@@ -546,11 +547,11 @@ export class TimescopeRenderEngine {
           //oy: height - sumH, // grow to the top
           oy: sumH - theight, // grow to the bottom
           height: theight,
-          symmetric: track.symmetric ?? false,
+          symmetric: track.symmetric ?? defaultOptions.track.symmetric,
 
           labelHeight:
             !track.symmetric &&
-            track.timeAxis !== false &&
+            (track.timeAxis ?? defaultOptions.track.timeAxis) !== false &&
             (typeof track.timeAxis !== 'object' || track.timeAxis.labels !== false)
               ? 7
               : 0,

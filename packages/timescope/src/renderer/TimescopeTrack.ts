@@ -1,4 +1,5 @@
 import { TimescopeAnimatedValue } from '#src/core/animation';
+import { defaultOptions } from '#src/core/defaults';
 import { TimescopeObservable } from '#src/core/event';
 import type { TimescopeYAxisData, TimescopeYProjectionWire } from '#src/renderer/types';
 import { asProjectionData, compareYProjection } from '#src/renderer/yProjection';
@@ -66,7 +67,7 @@ export class TimescopeTrack extends TimescopeObservable {
     this.id = opts.id;
     this.oy = opts.oy ?? 0;
     this.height = opts.height ?? 0;
-    this.symmetric = opts.symmetric ?? false;
+    this.symmetric = opts.symmetric ?? defaultOptions.track.symmetric;
     this.labelHeight = opts.labelHeight ?? 0;
     const p = Math.max(0, Math.min(this.height - 36, 18));
     this.paddingY = [p, p];

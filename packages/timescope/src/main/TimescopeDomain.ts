@@ -1,4 +1,5 @@
 import { Decimal, isDecimal, type NumberLike } from '#src/core/decimal';
+import { defaultOptions } from '#src/core/defaults';
 import { TimescopeObservable } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
 import type { TimescopeFontStyle } from '#src/main/fontStyle';
@@ -74,24 +75,24 @@ function parseDomainRange(range: DomainRangeInput | undefined, expand?: boolean,
 
   if (range == null) {
     return {
-      expand: rangeExpand ?? false,
-      shrink: rangeShrink ?? true,
-      default: [undefined, undefined],
+      expand: rangeExpand ?? defaultOptions.domainRange.expand,
+      shrink: rangeShrink ?? defaultOptions.domainRange.shrink,
+      default: [...defaultOptions.domainRange.default],
     };
   }
 
   if (Array.isArray(range)) {
     return {
-      expand: rangeExpand ?? false,
-      shrink: rangeShrink ?? true,
+      expand: rangeExpand ?? defaultOptions.domainRange.expand,
+      shrink: rangeShrink ?? defaultOptions.domainRange.shrink,
       default: range.map(Decimal) as TimescopeRange<Decimal | undefined>,
     };
   }
 
   if (typeof range === 'number' || isNumberLike(range)) {
     return {
-      expand: rangeExpand ?? false,
-      shrink: rangeShrink ?? true,
+      expand: rangeExpand ?? defaultOptions.domainRange.expand,
+      shrink: rangeShrink ?? defaultOptions.domainRange.shrink,
       default: [Decimal(0), Decimal(range)] as TimescopeRange<Decimal | undefined>,
     };
   }
@@ -101,8 +102,8 @@ function parseDomainRange(range: DomainRangeInput | undefined, expand?: boolean,
     shrink?: boolean;
     default?: NumberLike | TimescopeRange<NumberLike | undefined>;
   };
-  const expandValue = rangeExpand ?? rangeObj.expand ?? false;
-  const shrinkValue = rangeShrink ?? rangeObj.shrink ?? true;
+  const expandValue = rangeExpand ?? rangeObj.expand ?? defaultOptions.domainRange.expand;
+  const shrinkValue = rangeShrink ?? rangeObj.shrink ?? defaultOptions.domainRange.shrink;
   if (rangeObj.default != null && !Array.isArray(rangeObj.default)) {
     return {
       expand: expandValue,
@@ -114,7 +115,9 @@ function parseDomainRange(range: DomainRangeInput | undefined, expand?: boolean,
   return {
     expand: expandValue,
     shrink: shrinkValue,
-    default: (rangeObj.default ?? [undefined, undefined]).map(Decimal) as TimescopeRange<Decimal | undefined>,
+    default: (rangeObj.default ?? defaultOptions.domainRange.default).map(Decimal) as TimescopeRange<
+      Decimal | undefined
+    >,
   };
 }
 
@@ -233,11 +236,11 @@ export class TimescopeDomain extends TimescopeObservable {
   }
 
   get axis() {
-    return this.#options.axis;
+    return this.#options.axis ?? defaultOptions.domain.axis;
   }
 
   get scale() {
-    return this.#options.scale;
+    return this.#options.scale ?? defaultOptions.domain.scale;
   }
 
   get autoscale() {
@@ -245,19 +248,19 @@ export class TimescopeDomain extends TimescopeObservable {
   }
 
   get animation() {
-    return this.#options.animation ?? true;
+    return this.#options.animation ?? defaultOptions.domain.animation;
   }
 
   get unit() {
-    return this.#options.unit ?? '';
+    return this.#options.unit ?? defaultOptions.domain.unit;
   }
 
   get digits() {
-    return this.#options.digits ?? 1;
+    return this.#options.digits ?? defaultOptions.domain.digits;
   }
 
   get floatingGap() {
-    return this.#options.floatingGap ?? 20;
+    return this.#options.floatingGap ?? defaultOptions.domain.floatingGap;
   }
 
   #updateProjection() {
