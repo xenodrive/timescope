@@ -229,6 +229,7 @@ export class TimescopeCommittable<N extends null = null> extends TimescopeObserv
 
   #begin({ candidate }: TimescopeCommittableMessageBegin<N>) {
     this.#timeAnimation.cancel();
+    this.#state.animating = false;
     this.#state.cursorMode = 'current';
     this.#state.editing = true;
     this.#state.updated = false;

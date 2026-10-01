@@ -6,6 +6,31 @@ import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 describe('kinetic scrolling', () => {
   afterEach(() => vi.useRealTimers());
 
+  it('clears the animation state when momentum is interrupted before release', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const viewport = new TimescopeViewport({ time: 0, zoom: 0 });
+    onTestFinished(() => viewport.dispose());
+    viewport.setAxisLength([500, 500]);
+
+    viewport.dragStart();
+    vi.advanceTimersByTime(20);
+    viewport.dragUpdate(400, -100);
+    vi.advanceTimersByTime(20);
+    viewport.dragUpdate(300, -100);
+    viewport.dragEnd();
+    vi.advanceTimersByTime(100);
+    expect(viewport.animating).toBe(true);
+    const interrupted = viewport.current.time!;
+
+    viewport.dragStart();
+    expect(viewport.animating).toBe(false);
+    expect(viewport.dragging).toBe(true);
+    vi.advanceTimersByTime(600);
+    expect(viewport.current.time!.eq(interrupted)).toBe(true);
+    expect(viewport.animating).toBe(false);
+  });
+
   it('resists overscroll and returns to the time boundary after release', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
