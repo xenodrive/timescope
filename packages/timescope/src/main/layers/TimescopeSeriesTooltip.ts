@@ -7,6 +7,7 @@ import { parseUsing, unwrapFn } from '#src/main/layers/options';
 import type { TimescopeLayerDataLoadOptions } from '#src/main/layers/TimescopeLayerData';
 import { TimescopeSeriesLayerData, type TimescopeSeriesLayerDataOptions } from '#src/main/layers/TimescopeLayerData';
 import type { TimescopeOptions } from '#src/main/options';
+import { normalizeRound, roundParts, roundLabel } from '#src/main/round';
 import type { TimescopeDataRow } from '#src/main/TimescopeData';
 import type { TimescopeDataSeries, TimescopeSeriesPoint } from '#src/main/TimescopeDataSeries';
 import { releaseViewForDataSource, requestViewForDataSource } from '#src/main/TimescopeDataSource';
@@ -32,28 +33,27 @@ function parseInstantaneous(instantaneous: TimescopeDataSeriesInput['data']['ins
 }
 
 function parseTooltip(opts: TimescopeDataSeriesInput['tooltip']) {
+  const round = normalizeRound(typeof opts === 'object' ? opts.round : undefined);
   const format = ({
     name,
     unit,
-    digits,
     value,
   }: {
     time: Decimal;
     value: Decimal | null;
     name: string | undefined;
     unit: string;
-    digits: number;
   }) => {
     if (value == null) return 'No data';
     const items = [];
     if (name) items.push(name);
-    items.push(value.toFixed(digits));
+    items.push(roundLabel(roundParts(value, round), round.label));
     if (unit) items.push(unit);
 
     return items.join(' ');
   };
 
-  if (typeof opts === 'boolean' || !opts) return { format, digits: undefined };
+  if (typeof opts === 'boolean' || !opts) return { format };
   return {
     ...opts,
     format: opts.format ?? format,
@@ -196,7 +196,6 @@ export class TimescopeSeriesTooltip<O extends TimescopeSeriesLayerDataOptions> e
   ): TimescopeSeriesTooltipData {
     const { name } = series;
     const { unit } = series.domain;
-    const digits = this.#tooltip.digits ?? series.domain.digits ?? 2;
 
     const format = this.#tooltip.format;
 
@@ -213,7 +212,7 @@ export class TimescopeSeriesTooltip<O extends TimescopeSeriesLayerDataOptions> e
 
       data.t[i] = time;
       data.y[i] = projection.normalize(value);
-      data.text[i] = format({ time, value, unit, digits, name });
+      data.text[i] = format({ time, value, unit, name });
     }
 
     return {

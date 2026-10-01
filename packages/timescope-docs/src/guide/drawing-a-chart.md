@@ -91,13 +91,14 @@ The curve changes only the connections, not the samples or the Series' [instanta
 
 ## Log Scale
 
-The response values span several orders of magnitude. A linear scale makes the small bump near 44 seconds hard to see. On the instance created above, change just the Domain's scale:
+The response values span several orders of magnitude. A linear scale makes the small bump near 44 seconds hard to see. On the instance created above, switch to a logarithmic scale and use powers of ten for axis and tooltip labels:
 
 ```ts
 timescope.updateOptions({
   series: {
     response: {
-      data: { domain: { scale: 'log' } },
+      data: { domain: { scale: 'log', axis: { round: 'pow10' } } },
+      tooltip: { round: 'pow10' },
     },
   },
 });
@@ -105,7 +106,7 @@ timescope.updateOptions({
 
 <ClientOnly><PresetPreview preset="log-scale" /></ClientOnly>
 
-`updateOptions()` merges the change, keeping the DataSource, curve, unit, and value-axis settings. For an initially logarithmic Chart, instead put `scale: 'log'` beside `axis` and `unit` in the previous constructor's inline Domain.
+`updateOptions()` merges the change, keeping the DataSource, curve, unit, and other value-axis settings. For an initially logarithmic Chart, put these settings in the constructor instead.
 
 **Logarithmic Domains draw positive values only.** Any specified bounds must also be positive. Equal vertical distances now represent equal ratios rather than equal differences; time and the row values themselves are unchanged.
 

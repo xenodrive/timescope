@@ -1,5 +1,7 @@
-"""Make a small Timescope font from ASCII glyphs and scaled-down digits."""
+"""Make a small Timescope font with ASCII, subscript digits, and superscripts."""
 
+import base64
+import json
 import sys
 from pathlib import Path
 
@@ -10,9 +12,11 @@ from fontTools.ttLib import TTFont
 
 
 BASE = Path(__file__).resolve().parent.parent / "src" / "assets" / "fonts"
-SCALE = 0.90
+SUBSCRIPT_SCALE = 0.90
 SUBSCRIPT_WIDTH = 0.95
-DROP = 0  # em units; positive values place the digits below the baseline
+SUBSCRIPT_DROP = 0  # em units; positive values place the digits below the baseline
+SUPERSCRIPT_SCALE = 0.70
+SUPERSCRIPT_BIAS = 0.45  # em units; positive values raise the glyphs
 
 
 def make_font(source: Path, output: Path) -> None:
@@ -46,22 +50,41 @@ def make_font(source: Path, output: Path) -> None:
 
     glyphs = font.getGlyphSet()
     glyph_order = list(font.getGlyphOrder())
-    drop = round(font["head"].unitsPerEm * DROP)
+    drop = round(font["head"].unitsPerEm * SUBSCRIPT_DROP)
     for digit in range(10):
         base = digit_names[digit]
         subscript = f"uni{0x2080 + digit:04X}"
         advance, bearing = font["hmtx"][base]
-        scaled_advance = round(advance * SCALE)
+        scaled_advance = round(advance * SUBSCRIPT_SCALE)
         subscript_advance = round(scaled_advance * SUBSCRIPT_WIDTH)
         inset = round((scaled_advance - subscript_advance) / 2)
         pen = TTGlyphPen(glyphs)
-        glyphs[base].draw(TransformPen(pen, (SCALE, 0, 0, SCALE, -inset, -drop)))
+        glyphs[base].draw(TransformPen(pen, (SUBSCRIPT_SCALE, 0, 0, SUBSCRIPT_SCALE, -inset, -drop)))
         font["glyf"][subscript] = pen.glyph()
-        font["hmtx"][subscript] = (subscript_advance, round(bearing * SCALE) - inset)
+        font["hmtx"][subscript] = (subscript_advance, round(bearing * SUBSCRIPT_SCALE) - inset)
         glyph_order.append(subscript)
         for table in font["cmap"].tables:
             if table.isUnicode():
                 table.cmap[0x2080 + digit] = subscript
+
+    superscript_bias = round(font["head"].unitsPerEm * SUPERSCRIPT_BIAS)
+    for character, codepoint in zip("0123456789-", map(ord, "⁰¹²³⁴⁵⁶⁷⁸⁹⁻")):
+        base = cmap[ord(character)]
+        superscript = f"uni{codepoint:04X}"
+        advance, bearing = font["hmtx"][base]
+        pen = TTGlyphPen(glyphs)
+        glyphs[base].draw(
+            TransformPen(pen, (SUPERSCRIPT_SCALE, 0, 0, SUPERSCRIPT_SCALE, 0, superscript_bias))
+        )
+        font["glyf"][superscript] = pen.glyph()
+        font["hmtx"][superscript] = (
+            round(advance * SUPERSCRIPT_SCALE),
+            round(bearing * SUPERSCRIPT_SCALE),
+        )
+        glyph_order.append(superscript)
+        for table in font["cmap"].tables:
+            if table.isUnicode():
+                table.cmap[codepoint] = superscript
 
     font.setGlyphOrder(glyph_order)
     font["maxp"].numGlyphs = len(glyph_order)
@@ -84,6 +107,10 @@ def make_font(source: Path, output: Path) -> None:
         names.setName(value, name_id, 3, 1, 0x409)
     font.flavor = "woff2" if output.suffix.lower() == ".woff2" else None
     font.save(output)
+    if font.flavor == "woff2":
+        output.with_suffix(".woff2.json").write_text(
+            json.dumps(base64.b64encode(output.read_bytes()).decode("ascii")) + "\n"
+        )
 
 
 if __name__ == "__main__":

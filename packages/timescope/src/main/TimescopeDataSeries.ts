@@ -2,6 +2,7 @@ import type { Decimal, NumberLike } from '#src/core/decimal';
 import type { TimescopeDataResolution } from '#src/core/zoom';
 import type { MaybeFn, TimescopeChartLink, TimescopeChartMark, TimescopeChartType, Using1 } from '#src/main/chart';
 import type { TimescopeOptions } from '#src/main/options';
+import type { TimescopeRound } from '#src/main/round';
 import type { TimescopeDataRow } from '#src/main/TimescopeData';
 import type {
   InferSourceData,
@@ -43,14 +44,8 @@ export type TimescopeSeriesInput<
     | boolean
     | {
         label?: string;
-        digits?: number;
-        format?: (opts: {
-          time: Decimal;
-          value: Decimal | null;
-          name: string | undefined;
-          unit: string;
-          digits: number;
-        }) => string;
+        round?: TimescopeRound;
+        format?: (opts: { time: Decimal; value: Decimal | null; name: string | undefined; unit: string }) => string;
       };
   track?: Track;
 };

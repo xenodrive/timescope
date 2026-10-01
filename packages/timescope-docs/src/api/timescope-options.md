@@ -265,17 +265,17 @@ type TimescopeRangeLoader<T = unknown> = (request: TimescopeLoadRequest) => T | 
 
 ## Series
 
-| Key                  | Type                                                      | Contract                                           |
-| -------------------- | --------------------------------------------------------- | -------------------------------------------------- |
-| `data.source`        | `string`                                                  | Required; name in `options.sources`                |
-| `data.name`          | `string`                                                  | Display name                                       |
-| `data.color`         | `string`                                                  | Default Chart color                                |
-| `data.domain`        | `string \| TimescopeDomainOptions`                        | Shared Domain name or inline Domain                |
-| `data.resolution`    | `TimescopeDataResolution`                                 | [Data-resolution selection](#resolution)           |
-| `data.instantaneous` | `false \| { using?, zoom?, resolution? }`                 | [Cursor sampling](#instantaneous-values)           |
-| `chart`              | `TimescopeChartType \| { marks?, links? }`                | Preset or custom primitives                        |
-| `tooltip`            | `boolean \| { label?: string, digits?: number, format? }` | Tooltip settings; `false` disables cursor sampling |
-| `track`              | `string`                                                  | Track name                                         |
+| Key                  | Type                                                             | Contract                                           |
+| -------------------- | ---------------------------------------------------------------- | -------------------------------------------------- |
+| `data.source`        | `string`                                                         | Required; name in `options.sources`                |
+| `data.name`          | `string`                                                         | Display name                                       |
+| `data.color`         | `string`                                                         | Default Chart color                                |
+| `data.domain`        | `string \| TimescopeDomainOptions`                               | Shared Domain name or inline Domain                |
+| `data.resolution`    | `TimescopeDataResolution`                                        | [Data-resolution selection](#resolution)           |
+| `data.instantaneous` | `false \| { using?, zoom?, resolution? }`                        | [Cursor sampling](#instantaneous-values)           |
+| `chart`              | `TimescopeChartType \| { marks?, links? }`                       | Preset or custom primitives                        |
+| `tooltip`            | `boolean \| { label?: string, round?: TimescopeRound, format? }` | Tooltip settings; `false` disables cursor sampling |
+| `track`              | `string`                                                         | Track name                                         |
 
 ### Resolution
 
@@ -313,19 +313,41 @@ Directional snapping falls back to the nearest endpoint.
 
 ### Tooltip
 
-| Field    | Type                  | Contract                                                                         |
-| -------- | --------------------- | -------------------------------------------------------------------------------- |
-| `label`  | `string`              | Tooltip label override                                                           |
-| `digits` | `number`              | Decimal places; overrides domain `digits`; falls back to `2` when neither is set |
-| `format` | `(context) => string` | Value formatter                                                                  |
+| Field    | Type                  | Contract                                                                     |
+| -------- | --------------------- | ---------------------------------------------------------------------------- |
+| `label`  | `string`              | Tooltip label override                                                       |
+| `round`  | `TimescopeRound`      | Number rounding and label; unspecified: decimal without fixed rounding       |
+| `format` | `(context) => string` | Complete tooltip formatter; overrides the default display, including `round` |
 
-| Formatter context field | Type                                                                  |
-| ----------------------- | --------------------------------------------------------------------- |
-| `time`                  | `Decimal`                                                             |
-| `value`                 | `Decimal \| null`                                                     |
-| `name`                  | `string \| undefined`                                                 |
-| `unit`                  | `string`                                                              |
-| `digits`                | `number`; resolved tooltip/domain decimal places, falling back to `2` |
+| Formatter context field | Type                  |
+| ----------------------- | --------------------- |
+| `time`                  | `Decimal`             |
+| `value`                 | `Decimal \| null`     |
+| `name`                  | `string \| undefined` |
+| `unit`                  | `string`              |
+
+### Number Rounding {#number-rounding}
+
+`TimescopeRound` accepts a number, `'decimal'`, `'e'`, `'pow10'`, or an options object. A number selects decimal with that many fractional digits. A string selects its matching mode and label with `digits: 2`.
+
+| Object field | Type                                                 | Default / contract                                                                                           |
+| ------------ | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `mode`       | `'decimal' \| 'pow10'`                               | Inferred from a string `label`; otherwise `'decimal'`                                                        |
+| `digits`     | `number`                                             | Mantissa decimal places; safe integer, nonnegative for pow10; negative decimal digits round to powers of ten |
+| `label`      | `'decimal' \| 'e' \| 'pow10' \| (context) => string` | Matches `mode`; incompatible explicit mode/string-label pairs are rejected                                   |
+
+Object `digits` is optional: tooltips retain all digits; axes determine shared mantissa decimal places from ticks. Axes select values exactly representable at the requested precision, without changing the domain range; there may be fewer or no ticks. Constant domains omit a label if the requested precision cannot represent their value exactly.
+
+| Label context field | Type / contract                                                          |
+| ------------------- | ------------------------------------------------------------------------ |
+| `mode`              | `'decimal' \| 'pow10'`                                                   |
+| `value`             | `Decimal`; original tooltip value, or finalized axis tick value          |
+| `roundedValue`      | `Decimal`; displayed value; equals `value` for axes                      |
+| `mantissa`          | `string`; includes sign and padding for explicit or axis-resolved digits |
+| `base`              | `10`                                                                     |
+| `exponent`          | `bigint`; `0n` for decimal mode and zero values                          |
+
+`Decimal(mantissa) × 10^exponent` equals `roundedValue`. Built-in labels produce `mantissa`, `mantissa e exponent`, or `mantissa × 10` with a Unicode superscript exponent, without spaces. Label callbacks only assemble the supplied parts; changes they make to the represented value are the caller's responsibility. Rounding does not modify source data.
 
 ## `using` Selectors {#using-selectors}
 
@@ -558,27 +580,26 @@ Current range: [`setSelectionRange()`](/api/timescope#navigation) or component `
 
 ## Domains
 
-| Key           | Type                                                                    | Default / contract                                                                                              |
-| ------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `scale`       | `'linear' \| 'linear-symmetric' \| 'log'`                               | `'linear'`                                                                                                      |
-| `axis`        | `boolean \| 'left' \| 'right' \| TimescopeYAxisOptions`                 | Optional value axis                                                                                             |
-| `animation`   | `boolean`                                                               | `true`; range transitions                                                                                       |
-| `range`       | `TimescopeNumberLike \| [min?, max?] \| { expand?, shrink?, default? }` | Bounds are `TimescopeNumberLike`; unbounded ends follow visible data; scalar means `[0, value]`                 |
-| `expand`      | `boolean`                                                               | `false`; allow expansion beyond specified bounds                                                                |
-| `shrink`      | `boolean`                                                               | `true`; allow the range to contract                                                                             |
-| `floatingGap` | `number`                                                                | `20`; pixels between a floating range and the shared baseline                                                   |
-| `unit`        | `string`                                                                | Tooltip and value-axis unit                                                                                     |
-| `digits`      | `number`                                                                | Unspecified by default; fallback decimal places for tooltip and value axis; individual settings take precedence |
+| Key           | Type                                                                    | Default / contract                                                                              |
+| ------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `scale`       | `'linear' \| 'linear-symmetric' \| 'log'`                               | `'linear'`                                                                                      |
+| `axis`        | `boolean \| 'left' \| 'right' \| TimescopeYAxisOptions`                 | Optional value axis                                                                             |
+| `animation`   | `boolean`                                                               | `true`; range transitions                                                                       |
+| `range`       | `TimescopeNumberLike \| [min?, max?] \| { expand?, shrink?, default? }` | Bounds are `TimescopeNumberLike`; unbounded ends follow visible data; scalar means `[0, value]` |
+| `expand`      | `boolean`                                                               | `false`; allow expansion beyond specified bounds                                                |
+| `shrink`      | `boolean`                                                               | `true`; allow the range to contract                                                             |
+| `floatingGap` | `number`                                                                | `20`; pixels between a floating range and the shared baseline                                   |
+| `unit`        | `string`                                                                | Tooltip and value-axis unit                                                                     |
 
 | Object `range` field | Type / contract                                                       |
 | -------------------- | --------------------------------------------------------------------- |
 | `default`            | `TimescopeNumberLike \| [TimescopeNumberLike?, TimescopeNumberLike?]` |
 | `expand`, `shrink`   | `boolean`; top-level settings take precedence                         |
 
-| `TimescopeYAxisOptions` field | Type                                                                                                     |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `side`                        | `'left' \| 'right'`                                                                                      |
-| `label`                       | `string`                                                                                                 |
-| `digits`                      | `number`; overrides domain `digits`; otherwise automatically determined from ticks, shared by all labels |
-| `color`                       | `string`; overrides axis and label color; default label color: target CSS `color` / Node.js black        |
-| `font`                        | `TimescopeFontStyle`                                                                                     |
+| `TimescopeYAxisOptions` field | Type                                                                                                      |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `side`                        | `'left' \| 'right'`                                                                                       |
+| `label`                       | `string`                                                                                                  |
+| `round`                       | `TimescopeRound`; default: decimal with automatic tick precision; see [Number Rounding](#number-rounding) |
+| `color`                       | `string`; overrides axis and label color; default label color: target CSS `color` / Node.js black         |
+| `font`                        | `TimescopeFontStyle`                                                                                      |

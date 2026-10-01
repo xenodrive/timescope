@@ -1,6 +1,7 @@
 import { createChunkList, type TimescopeChunkSize } from '#src/core/chunk';
 import { Decimal } from '#src/core/decimal';
 import { TimescopeSeriesTooltip } from '#src/main/layers/TimescopeSeriesTooltip';
+import type { TimescopeRound } from '#src/main/round';
 import type { TimescopeLoadRequest } from '#src/main/TimescopeDataLoader';
 import { TimescopeDataSeries, type TimescopeSeriesInput } from '#src/main/TimescopeDataSeries';
 import { chunkStoreForDataSource, createDataSource } from '#src/main/TimescopeDataSource';
@@ -68,47 +69,58 @@ function fixture(immediate = false, chunkSize: TimescopeChunkSize = 4, tooltip?:
 describe('instantaneous data', () => {
   it.each([undefined, 3])('passes digits=%s and the unrounded value to a custom formatter', async (digits) => {
     const format = vi.fn(({ value }: { value: Decimal | null }) => `Custom ${value}`);
-    const view = fixture(false, 4, { digits, format });
+    const view = fixture(false, 4, { round: digits, format });
     await view.preload();
     view.move();
     const result = await view.load(false);
     expect(result.data.text).toEqual(['Custom 2']);
-    expect(format).toHaveBeenCalledWith(expect.objectContaining({ digits: digits ?? 2 }));
     expect(format.mock.calls[0][0].value?.eq(2)).toBe(true);
   });
 
-  it.each([
-    { domainDigits: undefined, tooltipDigits: undefined, expected: 'Reading 0.24 V' },
-    { domainDigits: 2, tooltipDigits: undefined, expected: 'Reading 0.24 V' },
-    { domainDigits: 1, tooltipDigits: 3, expected: 'Reading 0.238 V' },
-    { domainDigits: 3, tooltipDigits: 0, expected: 'Reading 0 V' },
-  ])(
-    'resolves tooltip digits $tooltipDigits before domain digits $domainDigits',
-    async ({ domainDigits, tooltipDigits, expected }) => {
-      const source = createDataSource([{ time: 0, value: '0.23781' }]);
-      const domain = new TimescopeDomain({ range: [0, 1], digits: domainDigits, unit: 'V', axis: { digits: 1 } });
-      const series = new TimescopeDataSeries({
-        sources: { source },
-        domain,
-        options: { data: { source: 'source', name: 'Reading' }, tooltip: { digits: tooltipDigits } },
-      });
-      const registry = new TimescopeViewRegistry();
-      const provider = new TimescopeSeriesTooltip({ series, viewContext: registry });
-      registry.update(viewState([Decimal(0), Decimal(1)], Decimal(1)));
-      try {
-        await Promise.all(
-          createChunkList([Decimal(0), Decimal(4)], Decimal(1), 4).map((chunk) =>
-            chunkStoreForDataSource(source).loadChunk(chunk),
-          ),
-        );
-        const result = await provider.loadData([Decimal(0), Decimal(1)], Decimal(1));
-        expect(result.data.text).toEqual([expected]);
-      } finally {
-        provider.dispose();
-        series.dispose();
-      }
+  it.each<{ tooltipDigits?: TimescopeRound; expected: string }>([
+    { tooltipDigits: undefined, expected: 'Reading 0.23781 V' },
+    { tooltipDigits: 2, expected: 'Reading 0.24 V' },
+    { tooltipDigits: 3, expected: 'Reading 0.238 V' },
+    { tooltipDigits: 0, expected: 'Reading 0 V' },
+    { tooltipDigits: 'e', expected: 'Reading 2.38e-1 V' },
+    { tooltipDigits: 'pow10', expected: 'Reading 2.38×10⁻¹ V' },
+    { tooltipDigits: { label: 'e' }, expected: 'Reading 2.3781e-1 V' },
+    {
+      tooltipDigits: {
+        mode: 'pow10',
+        digits: 2,
+        label: ({ mantissa, exponent, value, roundedValue }) => {
+          expect(value.eq('0.23781')).toBe(true);
+          expect(roundedValue.eq('0.238')).toBe(true);
+          return `${mantissa}E${exponent}`;
+        },
+      },
+      expected: 'Reading 2.38E-1 V',
     },
-  );
+  ])('uses tooltip round $tooltipDigits independently of the axis', async ({ tooltipDigits, expected }) => {
+    const source = createDataSource([{ time: 0, value: '0.23781' }]);
+    const domain = new TimescopeDomain({ range: [0, 1], unit: 'V', axis: { round: 1 } });
+    const series = new TimescopeDataSeries({
+      sources: { source },
+      domain,
+      options: { data: { source: 'source', name: 'Reading' }, tooltip: { round: tooltipDigits } },
+    });
+    const registry = new TimescopeViewRegistry();
+    const provider = new TimescopeSeriesTooltip({ series, viewContext: registry });
+    registry.update(viewState([Decimal(0), Decimal(1)], Decimal(1)));
+    try {
+      await Promise.all(
+        createChunkList([Decimal(0), Decimal(4)], Decimal(1), 4).map((chunk) =>
+          chunkStoreForDataSource(source).loadChunk(chunk),
+        ),
+      );
+      const result = await provider.loadData([Decimal(0), Decimal(1)], Decimal(1));
+      expect(result.data.text).toEqual([expected]);
+    } finally {
+      provider.dispose();
+      series.dispose();
+    }
+  });
 
   it('expands the cursor query using the selected resolution chunk size', async () => {
     const view = fixture(false, (resolution) => (resolution.eq('0.25') ? 8 : 4));

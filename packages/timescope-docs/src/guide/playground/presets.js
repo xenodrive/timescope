@@ -62,7 +62,10 @@ const definitions = [
     name: 'Log scale',
     description: 'The same curve on a logarithmic scale reveals the small bump near 44 seconds.',
     create() {
-      return responseState('log');
+      const state = responseState('log');
+      state.domains[0].axisRound = 'pow10';
+      state.series[0].tooltipRound = 'pow10';
+      return state;
     },
   },
   {

@@ -606,7 +606,10 @@ async function copy() {
               </select></label
             >
             <label>Unit <input v-model="editor.draft.unit" /></label>
-            <label>Digits <input v-model.number="editor.draft.digits" type="number" min="0" max="10" required /></label>
+            <label
+              >Axis digits
+              <input v-model.number="editor.draft.digits" type="number" min="0" max="10" placeholder="Auto"
+            /></label>
           </div>
           <template v-else-if="editor.collection === 'series'">
             <div class="playground-fields">

@@ -104,6 +104,7 @@ export type {
   TimescopeSourceOptions,
 } from '#src/main/TimescopeDataSource';
 export type { TimescopeDomainOptions, TimescopeYAxisOptions } from '#src/main/TimescopeDomain';
+export type { TimescopeRound, TimescopeRoundContext, TimescopeRoundMode, TimescopeRoundLabel } from '#src/main/round';
 export type { TimescopeFontStyle } from '#src/main/fontStyle';
 export type {
   CalendarLevel,

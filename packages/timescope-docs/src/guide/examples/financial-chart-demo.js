@@ -119,9 +119,9 @@ export function createFinancialChartDemo(target) {
       price: {
         range: { shrink: true, expand: true, default: [undefined, undefined] },
         unit: 'USDT',
-        digits: 2,
+        axis: { side: 'right', label: 'Price' },
       },
-      volume: { range: [0, undefined], unit: 'BTC', digits: 2 },
+      volume: { range: [0, undefined], unit: 'BTC', axis: { side: 'right', label: 'Volume' } },
     },
     series: {
       price: {

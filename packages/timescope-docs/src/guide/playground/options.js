@@ -32,7 +32,7 @@ export function newDomain(id) {
     gap: defaults.domain.floatingGap,
     axis: defaults.domain.axis === false ? 'none' : defaults.domain.axis,
     unit: defaults.domain.unit,
-    digits: defaults.domain.digits,
+    digits: '',
   };
 }
 
@@ -121,9 +121,11 @@ export function buildOptions(state) {
             shrink: domain.shrink,
           },
           floatingGap: domain.gap,
-          axis: domain.axis === 'none' ? false : domain.axis,
+          axis:
+            domain.axis === 'none'
+              ? false
+              : { side: domain.axis, round: domain.axisRound ?? (domain.digits === '' ? undefined : domain.digits) },
           ...(domain.unit ? { unit: domain.unit } : {}),
-          digits: domain.digits,
         },
       ]),
     ),
@@ -143,7 +145,7 @@ export function buildOptions(state) {
             marks: series.layers.filter((layer) => layer.kind === 'mark').map(layerOptions),
             links: series.layers.filter((layer) => layer.kind === 'link').map(layerOptions),
           },
-          tooltip: series.tooltip,
+          tooltip: series.tooltip ? { round: series.tooltipRound ?? 2 } : false,
         },
       ]),
     ),

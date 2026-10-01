@@ -3,6 +3,7 @@ import { defaultOptions } from '#src/core/defaults';
 import { TimescopeObservable } from '#src/core/event';
 import type { TimescopeRange } from '#src/core/range';
 import type { TimescopeFontStyle } from '#src/main/fontStyle';
+import type { TimescopeRound } from '#src/main/round';
 import type { TimescopeDataSeries } from '#src/main/TimescopeDataSeries';
 import {
   computeYProjectionToAnchor,
@@ -14,7 +15,7 @@ import type { TimescopeYProjectionWire } from '#src/renderer/types';
 
 export type TimescopeYAxisOptions = {
   side?: 'left' | 'right';
-  digits?: number;
+  round?: TimescopeRound;
   label?: string;
   color?: string;
   font?: TimescopeFontStyle;
@@ -29,7 +30,6 @@ export type TimescopeDomainOptions = {
   expand?: boolean;
   shrink?: boolean;
   unit?: string;
-  digits?: number;
   floatingGap?: number;
   axis?: boolean | 'left' | 'right' | TimescopeYAxisOptions;
 };
@@ -254,10 +254,6 @@ export class TimescopeDomain extends TimescopeObservable {
 
   get unit() {
     return this.#options.unit ?? defaultOptions.domain.unit;
-  }
-
-  get digits() {
-    return this.#options.digits ?? defaultOptions.domain.digits;
   }
 
   get floatingGap() {

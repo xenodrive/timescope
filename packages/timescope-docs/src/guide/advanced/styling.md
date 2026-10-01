@@ -64,6 +64,20 @@ Use `cursor.color` for the cursor's strip fill, `cursor.borderColor` for its cen
 
 ## Number formatting
 
-Leave `digits` unspecified for automatic value-axis decimal places, shared by all labels on the axis. Tooltips default to two decimal places, independently of the axis: an axis labeled `0.0`, `0.2`, `0.4` can show `0.24` in a tooltip.
+Axes automatically choose decimal places shared by their labels. Tooltips show values without fixed rounding. Set `tooltip: { round: 2 }` on a series to keep tooltip values concise without changing the data or axis.
 
-Set domain `digits` for shared fixed decimal places. Override it with `axis: { digits: 2 }` on the domain or `tooltip: { digits: 3 }` on the series. Use tooltip `format` for a custom value display; its context includes the resolved tooltip/domain `digits`, falling back to `2` when neither is set.
+Use `axis: { round: 2 }` on a domain for two decimal places. The axis chooses ticks that match the displayed values; a precision too coarse for the range can leave fewer or no ticks.
+
+Choose `round: 'e'` for `1.23e4` or `round: 'pow10'` for `1.23×10⁴`. String shortcuts use two mantissa decimal places. For automatic axis precision or unrounded tooltip mantissas, use `{ label: 'e' }` or `{ label: 'pow10' }` instead.
+
+Customize the label by assembling the numeric parts:
+
+```ts
+round: {
+  mode: 'pow10',
+  digits: 3,
+  label: ({ mantissa, base, exponent }) => `${mantissa} × ${base}^${exponent}`,
+}
+```
+
+Use tooltip `format` when replacing the complete tooltip text, including its name and unit. See [Number Rounding](/api/timescope-options#number-rounding) for the options and callback parts.

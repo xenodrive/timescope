@@ -15,6 +15,7 @@ export function createStylingDemo(target) {
     sources: { samples },
     series: {
       temperature: {
+        tooltip: { round: 2 },
         data: {
           source: 'samples',
           instantaneous: { using: 'temperature' },
@@ -27,6 +28,7 @@ export function createStylingDemo(target) {
         },
       },
       humidity: {
+        tooltip: { round: 2 },
         data: {
           source: 'samples',
           instantaneous: { using: 'humidity' },

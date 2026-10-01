@@ -1,6 +1,7 @@
 import { Decimal } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
 import { TimescopeLayerDataBase } from '#src/main/layers/TimescopeLayerData';
+import { normalizeRound, roundMantissa, roundParts, roundLabel } from '#src/main/round';
 import type { TimescopeDomain } from '#src/main/TimescopeDomain';
 import type { TimescopeYAxisData } from '#src/renderer/types';
 
@@ -39,7 +40,12 @@ function linearTickValues(lower: Decimal, upper: Decimal, digits: number | undef
   return values;
 }
 
-function logarithmicTickValues(lower: Decimal, upper: Decimal, digits: number | undefined): Decimal[] {
+function logarithmicTickValues(
+  lower: Decimal,
+  upper: Decimal,
+  digits: number | undefined,
+  fallbackDigits = digits,
+): Decimal[] {
   const lowerExponent = lower.order();
   const upperExponent = upper.order();
   const minimumExponent = digits === undefined ? lowerExponent : BigInt(-digits);
@@ -57,7 +63,7 @@ function logarithmicTickValues(lower: Decimal, upper: Decimal, digits: number | 
         if (factor === 1) powers.push(value);
       }
     }
-    if (multiples.length < 3) return linearTickValues(lower, upper, digits);
+    if (multiples.length < 3) return linearTickValues(lower, upper, fallbackDigits);
     if (powers.length >= 3 && Math.abs(powers.length - 5) < Math.abs(multiples.length - 5)) return powers;
     return multiples;
   }
@@ -111,26 +117,40 @@ export class TimescopeYAxis extends TimescopeLayerDataBase<TimescopeYAxisData, T
     const { projection, wire } = domain.createProjection();
     const options = domain.axis;
     const configured = typeof options === 'object' ? options : undefined;
-    const configuredDigits = configured?.digits ?? domain.digits;
+    const round = normalizeRound(configured?.round);
     const values: Decimal[] = [];
 
     if (domain.dataRange && projection.mode !== 'empty') {
       const [lower, upper] = domain.dataRange;
+      const magnitude = lower.abs().gt(upper.abs()) ? lower.abs() : upper.abs();
+      const tickDigits =
+        round.digits === undefined
+          ? undefined
+          : round.mode === 'decimal' || magnitude.isZero()
+            ? round.digits
+            : Number(BigInt(round.digits) - magnitude.order());
+      if (tickDigits !== undefined && !Number.isSafeInteger(tickDigits))
+        throw new RangeError('Axis round digits are out of range');
       if (lower.eq(upper)) {
-        values.push(lower);
+        // A constant-domain label must still describe the actual value, not a rounded neighbor.
+        if (roundParts(lower, round).roundedValue.eq(lower)) values.push(lower);
       } else if (domain.scale === 'log') {
-        values.push(...logarithmicTickValues(lower, upper, configuredDigits));
+        values.push(
+          ...logarithmicTickValues(lower, upper, round.mode === 'decimal' ? tickDigits : undefined, tickDigits),
+        );
       } else {
-        values.push(...linearTickValues(lower, upper, configuredDigits));
+        values.push(...linearTickValues(lower, upper, tickDigits));
       }
     }
 
-    const digits = configuredDigits ?? values.reduce((digits, value) => Math.max(digits, value.rescale().digits), 0);
+    const digits =
+      round.digits ??
+      values.reduce((digits, value) => Math.max(digits, roundMantissa(value, round.mode).rescale().digits), 0);
     const ticks = values
       .toSorted((a, b) => a.cmp(b))
       .map((value) => ({
         value: projection.normalize(value),
-        text: value.toFixed(digits),
+        text: roundLabel(roundParts(value, { ...round, digits }), round.label),
         zero: value.isZero(),
       }))
       .filter((tick) => Number.isFinite(tick.value));

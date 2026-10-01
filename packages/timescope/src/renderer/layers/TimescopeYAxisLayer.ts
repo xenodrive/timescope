@@ -57,7 +57,8 @@ export class TimescopeYAxisLayer extends TimescopeLayer {
       const metrics = ctx.measureText(tick.text);
       const textTop = y - Math.max(5.5, metrics.actualBoundingBoxAscent);
       if (textTop <= titleBottom) return [];
-      return [{ text: tick.text, y }];
+      const textBottom = y + Math.max(5.5, metrics.actualBoundingBoxDescent);
+      return [{ text: tick.text, zero: tick.zero, y, textTop, textBottom }];
     });
 
     ctx.beginPath();
@@ -71,7 +72,14 @@ export class TimescopeYAxisLayer extends TimescopeLayer {
     }
     ctx.stroke();
 
-    for (const { text, y } of ticks) {
+    const labels: typeof ticks = [];
+    // Reserve zero's space first, then select the remaining labels from top to bottom.
+    for (const tick of ticks.toSorted((a, b) => Number(Boolean(b.zero)) - Number(Boolean(a.zero)) || a.y - b.y)) {
+      // Leave room for the transparent label halos as well as the glyphs.
+      if (labels.some((label) => tick.textTop < label.textBottom + 4 && tick.textBottom + 4 > label.textTop)) continue;
+      labels.push(tick);
+    }
+    for (const { text, y } of labels.toSorted((a, b) => a.y - b.y)) {
       renderLabel(ctx, text, left ? x + 8 + maxTickWidth : x - 8, y);
     }
 

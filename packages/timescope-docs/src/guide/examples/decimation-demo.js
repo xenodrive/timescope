@@ -11,6 +11,7 @@ export function mountDecimation(target) {
     sources: { recording: { type: 'point-aggregate', data: vibrationSamples() } },
     series: {
       vibration: {
+        tooltip: { round: 3 },
         data: {
           source: 'recording',
           domain: { range: [-1.2, 1.8], axis: true },

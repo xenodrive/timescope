@@ -35,6 +35,7 @@ export function mountLiveSignal(target) {
     sources: { signal: source },
     series: {
       signal: {
+        tooltip: { round: 3 },
         data: {
           source: 'signal',
           name: 'Pulse',
