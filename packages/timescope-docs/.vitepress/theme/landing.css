@@ -3,9 +3,43 @@
   --landing-font: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --landing-mono: 'IBM Plex Mono', ui-monospace, monospace;
   --landing-logo-font: var(--landing-font);
+  --landing-bg: #fff;
+  --landing-text: #263b49;
+  --landing-panel-bg: #fff;
+  --landing-panel-border: #cfe4fa;
+  --landing-panel-tint-strength: 100%;
+  --landing-heading: #17566a;
+  --landing-description: #697c87;
+  --landing-diagram-text: #607c88;
+  --landing-diagram-strong: #24576a;
+  --landing-diagram-axis: #a3bac3;
+  --landing-diagram-ticks: #b1c6cd;
+  --landing-diagram-dashed: #82b0bf;
+  --landing-diagram-pointer: #163d76;
+  --landing-diagram-main-bg: #f2edff;
+  --landing-diagram-worker-bg: #e6f7ff;
   font-family: var(--landing-font);
-  color: #263b49;
-  background: #fff;
+  color: var(--landing-text);
+  background: var(--landing-bg);
+}
+@media screen {
+  .dark .VPHome {
+    --landing-bg: var(--vp-c-bg);
+    --landing-text: var(--vp-c-text-1);
+    --landing-panel-bg: var(--vp-c-bg-soft);
+    --landing-panel-border: #354b60;
+    --landing-panel-tint-strength: 10%;
+    --landing-heading: #a6deed;
+    --landing-description: #b1c0cb;
+    --landing-diagram-text: #a8bfcc;
+    --landing-diagram-strong: #c5e7f3;
+    --landing-diagram-axis: #698694;
+    --landing-diagram-ticks: #587480;
+    --landing-diagram-dashed: #78a9ba;
+    --landing-diagram-pointer: #b4d5ff;
+    --landing-diagram-main-bg: #352d4b;
+    --landing-diagram-worker-bg: #203b4c;
+  }
 }
 .VPHome .VPHero .container {
   max-width: 1056px;
@@ -119,16 +153,20 @@
   display: flex;
   flex-direction: column;
   padding: 23px 20px 14px;
-  border: 1px solid #cfe4fa;
+  border: 1px solid var(--landing-panel-border);
   border-radius: 12px;
-  background: linear-gradient(150deg, var(--panel-tint, #edf7ff), #fff 65%);
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--panel-tint, #edf7ff) var(--landing-panel-tint-strength), var(--landing-panel-bg)),
+    var(--landing-panel-bg) 65%
+  );
   break-inside: avoid;
 }
 .landing-feature h3 {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #17566a;
+  color: var(--landing-heading);
   font-size: 17px;
   line-height: 1.4;
   letter-spacing: -0.025em;
@@ -136,7 +174,7 @@
 }
 .landing-feature > p {
   margin: 9px 0 18px;
-  color: #697c87;
+  color: var(--landing-description);
   font-size: 11px;
   line-height: 1.75;
 }
@@ -183,20 +221,20 @@
   overflow: visible;
 }
 .landing-feature-diagram text {
-  fill: #607c88;
+  fill: var(--landing-diagram-text);
   font-family: var(--landing-font);
   font-size: 11px;
 }
 .landing-feature-diagram .diagram-strong {
-  fill: #24576a;
+  fill: var(--landing-diagram-strong);
   font-weight: 600;
 }
 .diagram-axis {
-  stroke: #a3bac3;
+  stroke: var(--landing-diagram-axis);
   stroke-width: 1.2;
 }
 .diagram-ticks {
-  stroke: #b1c6cd;
+  stroke: var(--landing-diagram-ticks);
   stroke-width: 1;
 }
 .diagram-cursor {
@@ -204,7 +242,7 @@
   stroke-width: 1.4;
 }
 .diagram-dashed {
-  stroke: #82b0bf;
+  stroke: var(--landing-diagram-dashed);
   stroke-width: 1;
   stroke-dasharray: 3 4;
 }

@@ -87,7 +87,7 @@ const features = [
               stroke="#008dff"
               stroke-width="3"
               stroke-linejoin="round" />
-            <Icon :icon="cursorPointer" x="135" y="30" width="30" height="30" color="#163d76" />
+            <Icon :icon="cursorPointer" x="135" y="30" width="30" height="30" color="var(--landing-diagram-pointer)" />
             <path class="diagram-dashed" d="M95 80 30 97M205 80 270 97" />
             <text x="150" y="92" text-anchor="middle">Zoom along time</text>
           </template>
@@ -155,8 +155,15 @@ const features = [
             <text x="150" y="104" text-anchor="middle">Just the range. Just the detail.</text>
           </template>
           <template v-else>
-            <rect x="10" y="20" width="116" height="75" rx="7" fill="#f2edff" stroke="#b99ae8" />
-            <rect x="174" y="20" width="116" height="75" rx="7" fill="#e6f7ff" stroke="#67b8f4" />
+            <rect x="10" y="20" width="116" height="75" rx="7" fill="var(--landing-diagram-main-bg)" stroke="#b99ae8" />
+            <rect
+              x="174"
+              y="20"
+              width="116"
+              height="75"
+              rx="7"
+              fill="var(--landing-diagram-worker-bg)"
+              stroke="#67b8f4" />
             <text x="68" y="40" text-anchor="middle" class="diagram-strong">Main thread</text>
             <text x="68" y="60" text-anchor="middle">load &amp; process</text>
             <text x="68" y="77" text-anchor="middle">your data</text>
