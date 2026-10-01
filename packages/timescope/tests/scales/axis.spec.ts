@@ -5,8 +5,48 @@ import { describe, expect, it } from 'vitest';
 
 describe('value axis presentation', () => {
   it.each([
-    { lower: -0.35, upper: 1.1, labels: ['0.0', '0.4', '0.7', '1.1'] },
-    { lower: -1.1, upper: 0.35, labels: ['-1.1', '-0.7', '-0.4', '0.0'] },
+    { range: ['0', '0.04'], scale: 'linear' as const, labels: ['0.00', '0.01', '0.02', '0.03', '0.04'] },
+    { range: ['0', '1000'], scale: 'linear' as const, labels: ['0', '200', '400', '600', '800', '1000'] },
+    { range: ['0.01', '0.5'], scale: 'log' as const, labels: ['0.01', '0.02', '0.05', '0.10', '0.20', '0.50'] },
+    { range: ['0.00125', '0.00125'], scale: 'linear' as const, labels: ['0.00125'] },
+  ])('automatically aligns decimal places for $scale range $range', async ({ range, scale, labels }) => {
+    const domain = new TimescopeDomain({ range: [range[0], range[1]], scale, axis: true }, 'value');
+    domain.recompute();
+    const axis = new TimescopeYAxis({ domain });
+    try {
+      const result = await axis.loadData([Decimal(0), Decimal(1)], Decimal(1));
+      expect(domain.digits).toBeUndefined();
+      expect(result.data.ticks.map((tick) => tick.text)).toEqual(labels);
+    } finally {
+      axis.dispose();
+    }
+  });
+
+  it.each([
+    { domainDigits: undefined, axisDigits: 0, labels: ['0', '1'] },
+    { domainDigits: 0, axisDigits: 2, labels: ['0.00', '0.20', '0.40', '0.60', '0.80', '1.00'] },
+    { domainDigits: 2, axisDigits: undefined, labels: ['0.00', '0.20', '0.40', '0.60', '0.80', '1.00'] },
+  ])(
+    'resolves axis digits $axisDigits before domain digits $domainDigits',
+    async ({ domainDigits, axisDigits, labels }) => {
+      const domain = new TimescopeDomain(
+        { range: [0, 1], digits: domainDigits, axis: { digits: axisDigits } },
+        'value',
+      );
+      domain.recompute();
+      const axis = new TimescopeYAxis({ domain });
+      try {
+        const result = await axis.loadData([Decimal(0), Decimal(1)], Decimal(1));
+        expect(result.data.ticks.map((tick) => tick.text)).toEqual(labels);
+      } finally {
+        axis.dispose();
+      }
+    },
+  );
+
+  it.each([
+    { lower: -0.35, upper: 1.1, labels: ['-0.2', '0.0', '0.2', '0.4', '0.6', '0.8', '1.0'] },
+    { lower: -1.1, upper: 0.35, labels: ['-1.0', '-0.8', '-0.6', '-0.4', '-0.2', '0.0', '0.2'] },
     { lower: -1, upper: 1, labels: ['-1.0', '-0.5', '0.0', '0.5', '1.0'] },
   ])('anchors the linear range [$lower, $upper] to evenly spaced ticks', async ({ lower, upper, labels }) => {
     const domain = new TimescopeDomain({ range: [lower, upper], digits: 1, axis: true }, 'signal');
@@ -30,10 +70,121 @@ describe('value axis presentation', () => {
     }
   });
 
-  it('keeps logarithmic tick positions and labels distinct in a narrow range at a huge baseline', async () => {
+  it.each([
+    { lower: 11, upper: 29, labels: ['15', '20', '25'] },
+    { lower: -29, upper: -11, labels: ['-25', '-20', '-15'] },
+    { lower: -0.35, upper: 1.1, labels: ['0', '1'] },
+  ])('uses round ticks inside [$lower, $upper] without expanding the range', async ({ lower, upper, labels }) => {
+    const domain = new TimescopeDomain({ range: [lower, upper], digits: 0, axis: true }, 'value');
+    domain.recompute();
+    const axis = new TimescopeYAxis({ domain });
+    try {
+      const result = await axis.loadData([Decimal(0), Decimal(1)], Decimal(1));
+      expect(result.data.ticks.map((tick) => tick.text)).toEqual(labels);
+      expect(domain.dataRange?.[0].eq(lower)).toBe(true);
+      expect(domain.dataRange?.[1].eq(upper)).toBe(true);
+    } finally {
+      axis.dispose();
+    }
+  });
+
+  it('limits tick density to the configured decimal precision without merging labels', async () => {
+    const domain = new TimescopeDomain({ range: [-0.04, 0.04], digits: 1, axis: true }, 'value');
+    domain.recompute();
+    const axis = new TimescopeYAxis({ domain });
+    try {
+      const result = await axis.loadData([Decimal(0), Decimal(1)], Decimal(1));
+      expect(result.data.ticks).toMatchObject([{ text: '0.0', zero: true }]);
+      expect(result.data.ticks).toHaveLength(1);
+    } finally {
+      axis.dispose();
+    }
+  });
+
+  it.each([undefined, 12])('keeps linear nice ticks exact at a huge baseline with digits=%s', async (digits) => {
+    const baseline = Decimal('1e30');
+    const lower = baseline.add('1.5e-10');
+    const upper = baseline.add('5.5e-10');
+    const domain = new TimescopeDomain({ range: [lower, upper], digits, axis: true }, 'value');
+    domain.recompute();
+    const axis = new TimescopeYAxis({ domain });
+    try {
+      const {
+        data: { ticks },
+      } = await axis.loadData([Decimal(0), Decimal(1)], Decimal(1));
+      expect(ticks.map((tick) => tick.text)).toEqual(
+        [2, 3, 4, 5].map((i) => baseline.add(Decimal(i).shift10(-10)).toFixed(digits ?? 10)),
+      );
+      for (let i = 1; i < ticks.length; i++) {
+        expect(ticks[i].value).toBeGreaterThan(ticks[i - 1].value);
+      }
+    } finally {
+      axis.dispose();
+    }
+  });
+
+  it.each([
+    { lower: '1', upper: '10000', digits: 0, labels: ['1', '10', '100', '1000', '10000'] },
+    { lower: '1', upper: '1000', digits: 0, labels: ['1', '10', '100', '1000'] },
+    { lower: '1', upper: '50', digits: 0, labels: ['1', '2', '5', '10', '20', '50'] },
+    { lower: '0.1', upper: '5', digits: 1, labels: ['0.1', '0.2', '0.5', '1.0', '2.0', '5.0'] },
+    { lower: '11', upper: '29', digits: 0, labels: ['15', '20', '25'] },
+    { lower: '0.01', upper: '0.5', digits: 1, labels: ['0.1', '0.2', '0.5'] },
+  ])('chooses round logarithmic ticks for [$lower, $upper]', async ({ lower, upper, digits, labels }) => {
+    const domain = new TimescopeDomain({ range: [lower, upper], scale: 'log', digits, axis: true }, 'value');
+    domain.recompute();
+    const axis = new TimescopeYAxis({ domain });
+    try {
+      const {
+        data: { ticks },
+      } = await axis.loadData([Decimal(0), Decimal(1)], Decimal(1));
+      expect(ticks.map((tick) => tick.text)).toEqual(labels);
+      const logLower = Math.log10(Number(lower));
+      const logSpan = Math.log10(Number(upper)) - logLower;
+      for (const tick of ticks) {
+        expect(tick.value).toBeCloseTo((Math.log10(Number(tick.text)) - logLower) / logSpan, 12);
+        expect(Decimal(tick.text).ge(lower) && Decimal(tick.text).le(upper)).toBe(true);
+      }
+      expect(domain.dataRange?.[0].eq(lower)).toBe(true);
+      expect(domain.dataRange?.[1].eq(upper)).toBe(true);
+    } finally {
+      axis.dispose();
+    }
+  });
+
+  it('samples exponent strides across a thousand decades', async () => {
+    const domain = new TimescopeDomain({ range: ['1', '1e1000'], scale: 'log', digits: 0, axis: true }, 'value');
+    domain.recompute();
+    const axis = new TimescopeYAxis({ domain });
+    try {
+      const {
+        data: { ticks },
+      } = await axis.loadData([Decimal(0), Decimal(1)], Decimal(1));
+      expect(ticks.map((tick) => Decimal(tick.text).order())).toEqual([0n, 200n, 400n, 600n, 800n, 1000n]);
+      for (const [i, tick] of ticks.entries()) expect(tick.value).toBeCloseTo(i / 5, 12);
+    } finally {
+      axis.dispose();
+    }
+  });
+
+  it('anchors exponent strides across negative and positive decades', async () => {
+    const domain = new TimescopeDomain({ range: ['1e-12', '1e12'], scale: 'log', digits: 12, axis: true }, 'value');
+    domain.recompute();
+    const axis = new TimescopeYAxis({ domain });
+    try {
+      const {
+        data: { ticks },
+      } = await axis.loadData([Decimal(0), Decimal(1)], Decimal(1));
+      expect(ticks.map((tick) => Decimal(tick.text).order())).toEqual([-10n, -5n, 0n, 5n, 10n]);
+    } finally {
+      axis.dispose();
+    }
+  });
+
+  it.each([undefined, 12])('keeps logarithmic ticks distinct at a huge baseline with digits=%s', async (digits) => {
     const lower = Decimal('1e30');
     const upper = lower.add('4e-10');
-    const domain = new TimescopeDomain({ range: [lower, upper], scale: 'log', digits: 12, axis: true }, 'value');
+    const domain = new TimescopeDomain({ range: [lower, upper], scale: 'log', digits, axis: true }, 'value');
     domain.recompute();
     const axis = new TimescopeYAxis({ domain });
     try {

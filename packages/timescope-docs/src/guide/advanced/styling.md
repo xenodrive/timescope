@@ -61,3 +61,9 @@ Leave label colors unspecified to follow the host. An explicit time-axis `labels
 Set `series.data.color` for the default Mark and Link color. Use primitive `lineColor` and `fillColor` for overrides, and `fillOpacity` to adjust fill transparency. Translucent Marks show the background without showing Links through their interiors.
 
 Use `cursor.color` for the cursor's strip fill, `cursor.borderColor` for its center line, and `selection.color` for the selected-range overlay. The cursor's default strip is transparent. Time-axis lines, ticks, and out-of-range areas default to translucent neutral gray, visible on both light and dark backgrounds. Axis and label overrides are listed in the [options reference](/api/timescope-options#time-axis); the [Styling example](/guide/examples/#styling) shows these settings together.
+
+## Number formatting
+
+Leave `digits` unspecified for automatic value-axis decimal places, shared by all labels on the axis. Tooltips default to two decimal places, independently of the axis: an axis labeled `0.0`, `0.2`, `0.4` can show `0.24` in a tooltip.
+
+Set domain `digits` for shared fixed decimal places. Override it with `axis: { digits: 2 }` on the domain or `tooltip: { digits: 3 }` on the series. Use tooltip `format` for a custom value display; its context includes the resolved tooltip/domain `digits`, falling back to `2` when neither is set.

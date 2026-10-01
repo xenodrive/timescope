@@ -53,7 +53,7 @@ function parseTooltip(opts: TimescopeDataSeriesInput['tooltip']) {
     return items.join(' ');
   };
 
-  if (typeof opts === 'boolean' || !opts) return { format };
+  if (typeof opts === 'boolean' || !opts) return { format, digits: undefined };
   return {
     ...opts,
     format: opts.format ?? format,
@@ -195,7 +195,8 @@ export class TimescopeSeriesTooltip<O extends TimescopeSeriesLayerDataOptions> e
     resolution: Decimal,
   ): TimescopeSeriesTooltipData {
     const { name } = series;
-    const { unit, digits } = series.domain;
+    const { unit } = series.domain;
+    const digits = this.#tooltip.digits ?? series.domain.digits ?? 2;
 
     const format = this.#tooltip.format;
 

@@ -14,6 +14,7 @@ import type { TimescopeYProjectionWire } from '#src/renderer/types';
 
 export type TimescopeYAxisOptions = {
   side?: 'left' | 'right';
+  digits?: number;
   label?: string;
   color?: string;
   font?: TimescopeFontStyle;

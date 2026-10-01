@@ -26,7 +26,7 @@ export const defaultOptions = Object.freeze({
     floatingGap: 20,
     axis: false,
     unit: '',
-    digits: 1,
+    digits: undefined,
   }),
   domainRange: Object.freeze({
     default: Object.freeze([undefined, undefined] as const),

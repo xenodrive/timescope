@@ -43,6 +43,7 @@ export type TimescopeSeriesInput<
     | boolean
     | {
         label?: string;
+        digits?: number;
         format?: (opts: {
           time: Decimal;
           value: Decimal | null;

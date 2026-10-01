@@ -1,4 +1,4 @@
-import { Decimal, precisionForSpan } from '#src/core/decimal';
+import { Decimal } from '#src/core/decimal';
 import type { TimescopeRange } from '#src/core/range';
 import { TimescopeLayerDataBase } from '#src/main/layers/TimescopeLayerData';
 import type { TimescopeDomain } from '#src/main/TimescopeDomain';
@@ -7,6 +7,94 @@ import type { TimescopeYAxisData } from '#src/renderer/types';
 export type TimescopeYAxisDataOptions = {
   domain: TimescopeDomain;
 };
+
+function linearTickValues(lower: Decimal, upper: Decimal, digits: number | undefined): Decimal[] {
+  const minimumStep = digits === undefined ? undefined : Decimal(1).shift10(-digits);
+  const exponent = upper.sub(lower).divExact(4).order();
+  const candidateFor = (step: Decimal) => {
+    const first = lower.ceilBy(step);
+    const count = first.gt(upper) ? 0n : upper.sub(first).divFloor(step).integer() + 1n;
+    const error = count > 5n ? count - 5n : 5n - count;
+    return { step, first, count, error };
+  };
+  let selected = candidateFor(minimumStep ?? Decimal(1).shift10(exponent - 1n));
+
+  for (const offset of [-1n, 0n, 1n]) {
+    for (const factor of [1, 2, 5]) {
+      const step = Decimal(factor).shift10(exponent + offset);
+      // Fixed decimal labels must distinguish adjacent ticks without rounding collisions.
+      if (minimumStep && step.lt(minimumStep)) continue;
+      const candidate = candidateFor(step);
+      if (
+        candidate.error < selected.error ||
+        (candidate.error === selected.error && candidate.count > selected.count)
+      ) {
+        selected = candidate;
+      }
+    }
+  }
+
+  const values: Decimal[] = [];
+  for (let value = selected.first; value.le(upper); value = value.add(selected.step)) values.push(value);
+  return values;
+}
+
+function logarithmicTickValues(lower: Decimal, upper: Decimal, digits: number | undefined): Decimal[] {
+  const lowerExponent = lower.order();
+  const upperExponent = upper.order();
+  const minimumExponent = digits === undefined ? lowerExponent : BigInt(-digits);
+
+  if (upperExponent - lowerExponent <= 3n) {
+    const powers: Decimal[] = [];
+    const multiples: Decimal[] = [];
+    // This branch visits at most four decades, regardless of their magnitude.
+    for (let exponent = lowerExponent; exponent <= upperExponent; exponent++) {
+      if (exponent < minimumExponent) continue;
+      for (const factor of [1, 2, 5]) {
+        const value = Decimal(factor).shift10(exponent);
+        if (value.lt(lower) || value.gt(upper)) continue;
+        multiples.push(value);
+        if (factor === 1) powers.push(value);
+      }
+    }
+    if (multiples.length < 3) return linearTickValues(lower, upper, digits);
+    if (powers.length >= 3 && Math.abs(powers.length - 5) < Math.abs(multiples.length - 5)) return powers;
+    return multiples;
+  }
+
+  // Select an exponent stride before generating ticks, even for thousands of decades.
+  const firstExponent = lower.eq(Decimal(1).shift10(lowerExponent)) ? lowerExponent : lowerExponent + 1n;
+  const start = firstExponent > minimumExponent ? firstExponent : minimumExponent;
+  if (start > upperExponent) return [];
+  const candidateFor = (stride: bigint) => {
+    const first = Decimal(start).ceilBy(stride).integer();
+    const count = first > upperExponent ? 0n : (upperExponent - first) / stride + 1n;
+    const error = count > 5n ? count - 5n : 5n - count;
+    return { stride, first, count, error };
+  };
+  let selected = candidateFor(1n);
+  const order = Decimal(upperExponent - start + 1n)
+    .divExact(4)
+    .order();
+  for (const offset of [-1n, 0n, 1n]) {
+    for (const factor of [1, 2, 5]) {
+      const stride = Decimal(factor).shift10(order + offset);
+      if (stride.lt(1)) continue;
+      const candidate = candidateFor(stride.integer());
+      if (
+        candidate.error < selected.error ||
+        (candidate.error === selected.error && candidate.count > selected.count)
+      ) {
+        selected = candidate;
+      }
+    }
+  }
+  const values: Decimal[] = [];
+  for (let exponent = selected.first; exponent <= upperExponent; exponent += selected.stride) {
+    values.push(Decimal(1).shift10(exponent));
+  }
+  return values;
+}
 
 export class TimescopeYAxis extends TimescopeLayerDataBase<TimescopeYAxisData, TimescopeYAxisDataOptions> {
   static isEnabled(domain: TimescopeDomain) {
@@ -23,6 +111,7 @@ export class TimescopeYAxis extends TimescopeLayerDataBase<TimescopeYAxisData, T
     const { projection, wire } = domain.createProjection();
     const options = domain.axis;
     const configured = typeof options === 'object' ? options : undefined;
+    const configuredDigits = configured?.digits ?? domain.digits;
     const values: Decimal[] = [];
 
     if (domain.dataRange && projection.mode !== 'empty') {
@@ -30,31 +119,18 @@ export class TimescopeYAxis extends TimescopeLayerDataBase<TimescopeYAxisData, T
       if (lower.eq(upper)) {
         values.push(lower);
       } else if (domain.scale === 'log') {
-        // Quarter-interval logarithmic ticks are successive geometric means.
-        // Retain the endpoints exactly and enough digits to distinguish a narrow range.
-        const precision = precisionForSpan(upper, upper.sub(lower));
-        const middle = lower.mul(upper).sqrt(precision);
-        values.push(lower, lower.mul(middle).sqrt(precision), middle, middle.mul(upper).sqrt(precision), upper);
+        values.push(...logarithmicTickValues(lower, upper, configuredDigits));
       } else {
-        const step = upper.sub(lower).divExact(4);
-        if (lower.le(0) && upper.ge(0)) {
-          // At most four steps fit on either side of zero; compare exact values
-          // rather than rounding a division to find the first visible tick.
-          for (let i = -4; i <= 4; i++) {
-            const value = step.mul(i);
-            if (value.ge(lower) && value.le(upper)) values.push(value);
-          }
-        } else {
-          for (let i = 0; i <= 4; i++) values.push(lower.add(step.mul(i)));
-        }
+        values.push(...linearTickValues(lower, upper, configuredDigits));
       }
     }
 
+    const digits = configuredDigits ?? values.reduce((digits, value) => Math.max(digits, value.rescale().digits), 0);
     const ticks = values
       .toSorted((a, b) => a.cmp(b))
       .map((value) => ({
         value: projection.normalize(value),
-        text: value.toFixed(domain.digits),
+        text: value.toFixed(digits),
         zero: value.isZero(),
       }))
       .filter((tick) => Number.isFinite(tick.value));

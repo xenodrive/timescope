@@ -265,17 +265,17 @@ type TimescopeRangeLoader<T = unknown> = (request: TimescopeLoadRequest) => T | 
 
 ## Series
 
-| Key                  | Type                                       | Contract                                           |
-| -------------------- | ------------------------------------------ | -------------------------------------------------- |
-| `data.source`        | `string`                                   | Required; name in `options.sources`                |
-| `data.name`          | `string`                                   | Display name                                       |
-| `data.color`         | `string`                                   | Default Chart color                                |
-| `data.domain`        | `string \| TimescopeDomainOptions`         | Shared Domain name or inline Domain                |
-| `data.resolution`    | `TimescopeDataResolution`                  | [Data-resolution selection](#resolution)           |
-| `data.instantaneous` | `false \| { using?, zoom?, resolution? }`  | [Cursor sampling](#instantaneous-values)           |
-| `chart`              | `TimescopeChartType \| { marks?, links? }` | Preset or custom primitives                        |
-| `tooltip`            | `boolean \| { label?: string, format? }`   | Tooltip settings; `false` disables cursor sampling |
-| `track`              | `string`                                   | Track name                                         |
+| Key                  | Type                                                      | Contract                                           |
+| -------------------- | --------------------------------------------------------- | -------------------------------------------------- |
+| `data.source`        | `string`                                                  | Required; name in `options.sources`                |
+| `data.name`          | `string`                                                  | Display name                                       |
+| `data.color`         | `string`                                                  | Default Chart color                                |
+| `data.domain`        | `string \| TimescopeDomainOptions`                        | Shared Domain name or inline Domain                |
+| `data.resolution`    | `TimescopeDataResolution`                                 | [Data-resolution selection](#resolution)           |
+| `data.instantaneous` | `false \| { using?, zoom?, resolution? }`                 | [Cursor sampling](#instantaneous-values)           |
+| `chart`              | `TimescopeChartType \| { marks?, links? }`                | Preset or custom primitives                        |
+| `tooltip`            | `boolean \| { label?: string, digits?: number, format? }` | Tooltip settings; `false` disables cursor sampling |
+| `track`              | `string`                                                  | Track name                                         |
 
 ### Resolution
 
@@ -313,18 +313,19 @@ Directional snapping falls back to the nearest endpoint.
 
 ### Tooltip
 
-| Field    | Type                  | Contract               |
-| -------- | --------------------- | ---------------------- |
-| `label`  | `string`              | Tooltip label override |
-| `format` | `(context) => string` | Value formatter        |
+| Field    | Type                  | Contract                                                                         |
+| -------- | --------------------- | -------------------------------------------------------------------------------- |
+| `label`  | `string`              | Tooltip label override                                                           |
+| `digits` | `number`              | Decimal places; overrides domain `digits`; falls back to `2` when neither is set |
+| `format` | `(context) => string` | Value formatter                                                                  |
 
-| Formatter context field | Type                  |
-| ----------------------- | --------------------- |
-| `time`                  | `Decimal`             |
-| `value`                 | `Decimal \| null`     |
-| `name`                  | `string \| undefined` |
-| `unit`                  | `string`              |
-| `digits`                | `number`              |
+| Formatter context field | Type                                                                  |
+| ----------------------- | --------------------------------------------------------------------- |
+| `time`                  | `Decimal`                                                             |
+| `value`                 | `Decimal \| null`                                                     |
+| `name`                  | `string \| undefined`                                                 |
+| `unit`                  | `string`                                                              |
+| `digits`                | `number`; resolved tooltip/domain decimal places, falling back to `2` |
 
 ## `using` Selectors {#using-selectors}
 
@@ -557,26 +558,27 @@ Current range: [`setSelectionRange()`](/api/timescope#navigation) or component `
 
 ## Domains
 
-| Key           | Type                                                                    | Default / contract                                                                              |
-| ------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `scale`       | `'linear' \| 'linear-symmetric' \| 'log'`                               | `'linear'`                                                                                      |
-| `axis`        | `boolean \| 'left' \| 'right' \| TimescopeYAxisOptions`                 | Optional value axis                                                                             |
-| `animation`   | `boolean`                                                               | `true`; range transitions                                                                       |
-| `range`       | `TimescopeNumberLike \| [min?, max?] \| { expand?, shrink?, default? }` | Bounds are `TimescopeNumberLike`; unbounded ends follow visible data; scalar means `[0, value]` |
-| `expand`      | `boolean`                                                               | `false`; allow expansion beyond specified bounds                                                |
-| `shrink`      | `boolean`                                                               | `true`; allow the range to contract                                                             |
-| `floatingGap` | `number`                                                                | `20`; pixels between a floating range and the shared baseline                                   |
-| `unit`        | `string`                                                                | Tooltip and value-axis unit                                                                     |
-| `digits`      | `number`                                                                | Tooltip and value-axis decimal places                                                           |
+| Key           | Type                                                                    | Default / contract                                                                                              |
+| ------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `scale`       | `'linear' \| 'linear-symmetric' \| 'log'`                               | `'linear'`                                                                                                      |
+| `axis`        | `boolean \| 'left' \| 'right' \| TimescopeYAxisOptions`                 | Optional value axis                                                                                             |
+| `animation`   | `boolean`                                                               | `true`; range transitions                                                                                       |
+| `range`       | `TimescopeNumberLike \| [min?, max?] \| { expand?, shrink?, default? }` | Bounds are `TimescopeNumberLike`; unbounded ends follow visible data; scalar means `[0, value]`                 |
+| `expand`      | `boolean`                                                               | `false`; allow expansion beyond specified bounds                                                                |
+| `shrink`      | `boolean`                                                               | `true`; allow the range to contract                                                                             |
+| `floatingGap` | `number`                                                                | `20`; pixels between a floating range and the shared baseline                                                   |
+| `unit`        | `string`                                                                | Tooltip and value-axis unit                                                                                     |
+| `digits`      | `number`                                                                | Unspecified by default; fallback decimal places for tooltip and value axis; individual settings take precedence |
 
 | Object `range` field | Type / contract                                                       |
 | -------------------- | --------------------------------------------------------------------- |
 | `default`            | `TimescopeNumberLike \| [TimescopeNumberLike?, TimescopeNumberLike?]` |
 | `expand`, `shrink`   | `boolean`; top-level settings take precedence                         |
 
-| `TimescopeYAxisOptions` field | Type                                                                                              |
-| ----------------------------- | ------------------------------------------------------------------------------------------------- |
-| `side`                        | `'left' \| 'right'`                                                                               |
-| `label`                       | `string`                                                                                          |
-| `color`                       | `string`; overrides axis and label color; default label color: target CSS `color` / Node.js black |
-| `font`                        | `TimescopeFontStyle`                                                                              |
+| `TimescopeYAxisOptions` field | Type                                                                                                     |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `side`                        | `'left' \| 'right'`                                                                                      |
+| `label`                       | `string`                                                                                                 |
+| `digits`                      | `number`; overrides domain `digits`; otherwise automatically determined from ticks, shared by all labels |
+| `color`                       | `string`; overrides axis and label color; default label color: target CSS `color` / Node.js black        |
+| `font`                        | `TimescopeFontStyle`                                                                                     |
