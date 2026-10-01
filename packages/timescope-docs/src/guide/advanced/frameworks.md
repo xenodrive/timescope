@@ -28,6 +28,8 @@ Navigation state is passed separately from `options`:
 
 ## Lifecycle
 
-Components own their mount targets and dispose the Timescope automatically. Set chart dimensions and background with CSS on the host element, using the component's `style` or class prop. Without a definite host height, the canvas uses a `36px` fallback. `ready` / `onReady` means the canvas has a non-zero size, not that data loading is complete; for export, [wait for data and drawing](/guide/advanced/views#wait-for-data-and-drawing). Stop application-owned timers and data producers on unmount.
+Components own their mount targets and dispose the Timescope automatically, including listeners registered with its `on()` method. Manually unsubscribe only if a subscription should end before the instance is disposed. Clean up application-owned timers, data producers, and listeners on external objects yourself on component unmount; see [Cleanup](/guide/advanced/views#cleanup).
+
+Set chart dimensions and background with CSS on the host element, using the component's `style` or class prop. Without a definite host height, the canvas uses a `36px` fallback. `ready` / `onReady` means the canvas has a non-zero size, not that data loading is complete; for export, [wait for data and drawing](/guide/advanced/views#wait-for-data-and-drawing).
 
 [Props, events, and component refs](/api/frameworks) · [Rendering and fonts](/guide/advanced/backends)

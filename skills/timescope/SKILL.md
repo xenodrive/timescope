@@ -40,8 +40,11 @@ Assume Timescope has already been chosen; focus on implementing the requested UI
 4. Implement the requested data flow and presentation using explicit time units,
    source references, and shared domains where needed. The examples below
    illustrate direct class usage; adapt them to the application's structure.
-5. Integrate creation and updates with the application's lifecycle; clean up
-   when the instance outlives a module or view.
+5. Match cleanup to the application's lifecycle. Omit cleanup code when the
+   instance lives for the whole page and changes cause a full-page reload.
+   For HMR or view/module teardown within the same document, dispose directly
+   owned instances and clean up application-owned resources. Instance disposal
+   also removes its event listeners.
 
 ## Task to implementation map
 
@@ -83,10 +86,10 @@ Provide a mount target in the page:
 ```
 
 Run either example on the client after the target exists, with a non-zero
-container width. These examples are independent. Full-page navigation needs
-no explicit cleanup; register `cleanup` for HMR (e.g.
-`import.meta.hot?.dispose(cleanup)`) or a lifecycle you manage yourself.
-Framework bindings handle their own cleanup.
+container width. These examples are independent and omit cleanup for a
+page-lifetime instance without HMR. Add the teardown registration described in
+[Cleanup only when needed](#cleanup-only-when-needed) for HMR or a shorter-lived
+view or module. Framework bindings handle instance disposal automatically.
 
 ### Timepicker: select a time and synchronize an external control
 
@@ -100,7 +103,7 @@ const timescope = new Timescope({
 
 // Store the initial value too: subscribing does not initialize application state.
 let selectedTime = timescope.time; // Decimal | null
-const unsubscribe = timescope.on('timechanged', (event) => {
+timescope.on('timechanged', (event) => {
   selectedTime = event.value;
   // Publish selectedTime to application state here.
 });
@@ -108,12 +111,6 @@ const unsubscribe = timescope.on('timechanged', (event) => {
 // Call from an external date/time control. `false` disables animation.
 function selectFromExternalControl(value: Date) {
   timescope.setTime(value, false);
-}
-
-// Register only if the instance needs explicit teardown (e.g. HMR).
-function cleanup() {
-  unsubscribe();
-  timescope.dispose();
 }
 ```
 
@@ -147,15 +144,37 @@ const timescope = new Timescope({
   },
   tracks: { default: { timeAxis: { relative: true } } },
 });
-
-// Register only if the instance needs explicit teardown (e.g. HMR).
-function cleanup() {
-  timescope.dispose();
-}
 ```
 
 This example uses relative times in seconds. Adapt the rows, source references,
 and presentation to the requested data; keep time units consistent throughout.
+
+### Cleanup only when needed
+
+- **Page lifetime, no HMR:** When the instance stays active until a full-page
+  reload, navigation, or tab close, omit cleanup functions and registrations.
+  The browser releases the page's resources; do not add `unload` or
+  `beforeunload` handlers solely to call `dispose()`.
+- **HMR or teardown within the same document:** Register cleanup when a module
+  is replaced by HMR, a SPA route leaves, or a manually owned view is removed.
+  Dispose the old instance and stop application-owned timers, data producers,
+  and listeners on external objects so they do not survive the replacement.
+  For Vite HMR, add this to either example:
+
+  ```ts
+  function cleanup() {
+    timescope.dispose(); // Also removes listeners registered with timescope.on().
+    // Clean up application-owned resources here, if any.
+  }
+
+  import.meta.hot?.dispose(cleanup);
+  ```
+
+  For view teardown, register the same cleanup with the application's lifecycle
+  hook. Defining a cleanup function without registering it is not sufficient.
+- **Framework components:** The binding disposes its instance automatically;
+  do not duplicate that disposal. Clean up application-owned resources when
+  the component is unmounted.
 
 ### Fonts: global style and local overrides
 
@@ -200,6 +219,8 @@ returns to the defaults.
   use a `Date`, an ISO date string, or explicitly convert milliseconds to seconds.
 - `time: null` and `setTime(null)` follow the live clock. For historical or
   relative data, initialize with an explicit `time` or `fit` range.
+  `setPlaybackTime()` supplies a clock value, not an advancing timer; update it
+  on each media/data tick and use `setTime(null)` to follow it.
 - An initial `fit` accepts `[start, end]` or `{ range: [start, end], padding }`;
   `padding` is a number for both sides or `[left, right]` in CSS pixels. Do not
   combine initial `fit` with `time` or `zoom`. It is applied once when the canvas
@@ -222,21 +243,72 @@ returns to the defaults.
   constructor or `setOptions()`; omission in `updateOptions()` retains the
   existing layout.
 - Inline data arrays are snapshots: mutating the original array does not update
-  the visualization. Read the source update API before implementing live data.
+  the visualization until invalidation. Keep a `createDataSource()` instance to
+  invalidate or reuse it; retain that instance across appearance-only options
+  updates to preserve loaded data.
   Only point-aggregate sources expose `append()` among the built-in source types.
-- Range loaders receive `{ range, resolution }` with Decimal values. Return rows
-  intersecting the requested range and available neighboring rows needed for
-  connections: one on each side for lines, two for curves, even if the range
-  itself contains no points.
+- Function loaders default to range loading; set `chunked: false` for a no-argument
+  loader returning a complete snapshot. A URL without placeholders loads a snapshot.
+- Range loaders receive `{ range, resolution }` with Decimal values and a
+  half-open `[start, end)` range. Return complete intersecting interval rows,
+  not clipped intervals, plus available neighboring points for connections:
+  one on each side for lines/steps, two for curves, even in empty ranges.
+- `append()` requires nondecreasing times across initial and appended points;
+  equal times are allowed. `await append()` means data updated, not drawing
+  complete; advance the playback clock separately. `invalidate()` discards
+  appends absent from the original input.
 - `setOptions` replaces configurable options; `updateOptions` retains omitted
   options. To remove an individual Source, Series, Track, or Domain, pass `null`
   for its named entry in `updateOptions`. Updates that leave a Series referring
   to a missing Source, Track, or named Domain are rejected. Constructor-only
   inputs such as `fit` and `selection.range` do not remain in `options`; change
   current time, zoom, and selection range with their dedicated setters.
-- `on` returns an unsubscribe function. Value events such as `timechanged` expose
-  their value as `event.value`. Dispose directly owned instances when explicitly
-  tearing down their view or module.
+- `defaultOptions` is not a complete constructor configuration. Copy only the
+  relevant group; its groups and arrays are frozen. Leave context-dependent
+  defaults unspecified rather than spreading the whole export.
+- Value events such as `timechanged` expose their value as `event.value`.
+- Omit cleanup for page-lifetime instances without HMR. Dispose directly owned
+  instances on HMR replacement or view/module teardown within the same document.
+  `dispose()` also removes listeners registered with `timescope.on()`; do not
+  add redundant unsubscribe calls when disposing the instance. Use the returned
+  unsubscribe function when a subscription should end while the instance stays
+  active. `unmount()` retains instance listeners for a later mount. Neither
+  unsubscribing nor disposing cancels event callbacks already queued for delivery,
+  including the final `unmount` event on disposal of a mounted chart.
+- Clean up application-owned timers, data producers, and listeners on external
+  objects (such as `window` or media elements) separately when HMR or in-page
+  teardown requires cleanup. Instance disposal does not manage these resources.
+
+## Drawing and export pitfalls
+
+- A Series without `chart` draws no Chart. Give the host a definite CSS height;
+  the `36px` fallback is for a time axis, not a full chart.
+- Logarithmic Domains draw only positive values and require positive explicit
+  bounds.
+- An area defaults to `value` against `#zero`; use `using: ['min', 'max']` for
+  a ribbon. Links draw in array order, then Marks; put areas before lines.
+  Curved Links do not change the Series' instantaneous-value sampling.
+- `ready` / `mount` mean drawable, not data-loaded; `invalidate()` / `reload()`
+  do not wait for replacement data. Before reading pixels, use
+  `await timescope.prepareView().fetch()` then `await timescope.nextFrame()`.
+- Navigation, option changes, resizing, or unmounting abort an active prepared
+  fetch with `AbortError`. Keep the view, clock, and size stable during export;
+  do not export a cancelled view or edit a draft after `fetch()` / `abort()`.
+- Prefer automatic thread selection; explicit `renderThread: 'worker'` requires
+  compatible Worker support. Browser PNG export also works with Worker rendering;
+  do not force `'main'` for export. `backend` and `renderThread` are constructor-only;
+  Node.js PNG export needs `skia-canvas`.
+- Resize supplied canvases with `await timescope.resize(width, height, dpr)`;
+  CSS layout does not resize them. DPR defaults to `1`; wait for data and drawing.
+  CSS backgrounds are not in exported pixels; composite a background if needed.
+- Leave axis label colors unset to inherit the host's CSS `color` and follow
+  theme changes. Resolve CSS variables on the host; canvas options need concrete
+  colors, not `inherit` or `var(...)`. Node.js defaults to black label colors.
+- Inherited fills use the Series color at 25% alpha; explicit `fillColor` uses
+  its own alpha. `fillOpacity` applies to either; set a fill color for solid points.
+- `round` changes labels, not data. Coarse axis precision can remove ticks;
+  keep precision automatic if ticks disappear. Tooltip `format` replaces the
+  whole text, including name and unit, not just the number.
 
 ## Framework integration
 
@@ -249,6 +321,10 @@ lifecycle callbacks, events, and exposed methods. For direct class integration,
 create the instance after the DOM target exists. In server-rendered applications,
 initialize the visualization on the client.
 
+Framework components dispose their Timescope instance and its event listeners
+automatically. Only unsubscribe manually when a subscription should end sooner;
+still clean up application-owned resources on component unmount.
+
 In framework components, pass configurable `TimescopeOptions` as a single
 `options` prop; it replaces the previous options when changed. Keep current
 `time`, `zoom`, and `selectionRange` outside `options` and synchronize them
@@ -257,6 +333,16 @@ one-time values or `initialFit` for a range (without other initial values).
 `renderThread` and `fonts` are constructor-only component props.
 Pass the configurable text style through `options.font`, not a standalone
 `font` prop; keep `fonts` as the separate creation-only font-loading prop.
+
+- Omitting `time` lets the chart manage it; `time={null}` follows the clock.
+  `initialFit` also requires both controlled `time` and `zoom` to be omitted.
+- Use each binding's update model: Vue's reactive `defineTimescopeOptions`
+  comes from `@timescope/vue`; React/Solid/Luna need new complete options objects
+  (memoize derived options in React), and Svelte uses `$state.raw` plus reassignment.
+  Solid props read signals (`time()`); Luna reactive props receive accessors (`time`).
+- Core value events use `event.value`; Vue/React/Solid/Luna handlers receive
+  values directly, while Svelte events use `event.detail`. Do not copy the core
+  event handler shape into a component callback.
 
 ## Additional documentation
 

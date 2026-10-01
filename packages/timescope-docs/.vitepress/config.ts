@@ -67,6 +67,7 @@ export default defineConfig({
             {
               text: 'Advanced',
               link: '/guide/advanced/',
+              collapsed: true,
               items: [
                 { text: 'Loading and Updating Data', link: '/guide/advanced/data' },
                 { text: 'Controlling Views', link: '/guide/advanced/views' },
@@ -91,6 +92,7 @@ export default defineConfig({
         {
           text: 'Examples',
           link: '/guide/examples/',
+          collapsed: true,
           items: [
             ...examples.map(({ name, title }) => ({ text: title, link: `/guide/examples/#${name}` })),
             { text: 'Playground', link: '/guide/examples/playground' },

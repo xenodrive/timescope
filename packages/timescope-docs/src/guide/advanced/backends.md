@@ -51,7 +51,7 @@ For inherited label colors, theme changes, and transparent backgrounds, see [Sty
 
 ## Render a PNG in the browser
 
-Keep shared chart and initial-view settings in `options` and mount into `#chart`. Use main-thread rendering and follow the [data-and-drawing completion sequence](/guide/advanced/views#wait-for-data-and-drawing) before encoding it:
+Keep shared chart and initial-view settings in `options` and mount into `#chart`. Browser PNG export works with both Worker and main-thread rendering; no `renderThread: 'main'` override is needed. Follow the [data-and-drawing completion sequence](/guide/advanced/views#wait-for-data-and-drawing) before encoding it:
 
 ```html
 <div id="chart" style="width: 800px; height: 240px"></div>
@@ -64,7 +64,6 @@ const timescope = new Timescope({
   ...options,
   target: '#chart',
   backend: 'canvas',
-  renderThread: 'main',
 });
 
 try {

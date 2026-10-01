@@ -108,15 +108,38 @@ Navigation, option changes, resizing, or unmounting cancel an active fetch with 
 
 ## Cleanup
 
-Dispose the Timescope when its container is removed, and unsubscribe listeners when their application controls are no longer active:
+An instance that lives for the whole page does not need explicit cleanup when changes cause a full-page reload rather than HMR, or when leaving the page or closing the tab. You can omit cleanup code in that case; do not add `unload` or `beforeunload` handlers solely to dispose the chart.
+
+For HMR, SPA route changes, or removing a view while the document remains active, dispose directly owned instances during teardown so the old chart does not remain alive. `dispose()` also removes listeners registered with `timescope.on()`, so there is no need to unsubscribe them individually when disposing the instance:
+
+```ts
+timescope.on('timechanged', ({ value }) => {
+  console.log(value?.toString() ?? 'live');
+});
+
+// When the chart is no longer needed:
+timescope.dispose(); // Release the instance and its listeners.
+```
+
+Register cleanup with the relevant lifecycle hook; merely defining a cleanup function does not run it. For Vite HMR:
+
+```ts
+import.meta.hot?.dispose(() => {
+  timescope.dispose();
+  // Clean up application-owned resources here, if any.
+});
+```
+
+Use the returned unsubscribe function only when a subscription should end while the Timescope instance remains active, for example when an application control is removed:
 
 ```ts
 const stop = timescope.on('timechanged', ({ value }) => {
   console.log(value?.toString() ?? 'live');
 });
 
-stop(); // Remove this subscription.
-timescope.dispose(); // Release the instance.
+stop(); // End only this subscription; keep the chart active.
 ```
 
-[Framework components](/guide/advanced/frameworks#lifecycle) handle disposal automatically. Stop application-owned timers and data producers yourself in either case.
+Neither unsubscribing nor disposing cancels event callbacks already queued for delivery. `unmount()` is not disposal: it retains instance listeners for a later mount.
+
+[Framework components](/guide/advanced/frameworks#lifecycle) handle instance disposal, including its listeners, automatically; do not duplicate that disposal. When HMR or in-page teardown requires cleanup, clean up application-owned timers, data producers, and listeners registered on external objects (such as `window` or a media element) yourself, whether using a framework component or a directly owned instance.

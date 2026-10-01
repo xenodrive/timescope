@@ -127,9 +127,11 @@ Browser-only loading; Skia Canvas ignores `fonts`. The bundled Timescope font is
 | `redraw()`                                             | `Promise<void>`         | Request drawing; no data fetch                                                   |
 | `nextFrame()`                                          | `Promise<void>`         | Wait for a drawable mount and completed drawing; no data fetch                   |
 | `mount(target?: Element \| string \| TimescopeCanvas)` | `this`                  | Mount on a compatible target; built-in backends require a target                 |
-| `unmount()`                                            | `void`                  | Release the mounted chart; retain externally supplied canvas                     |
-| `dispose()`                                            | `void`                  | Release the instance                                                             |
+| `unmount()`                                            | `void`                  | Release the mount; retain instance listeners and externally supplied canvas       |
+| `dispose()`                                            | `void`                  | Release the instance, including its event listeners                              |
 | `on(event, handler)`                                   | `() => void`            | Subscribe; returned function unsubscribes                                        |
+
+Listeners registered with `on()` are removed automatically on `dispose()`. Use the returned unsubscribe function to end a subscription before instance disposal; calling it separately during disposal is unnecessary. Neither unsubscribing nor disposing cancels callbacks already queued for delivery, including the final `unmount` event on disposal of a mounted chart. Application-owned timers, data producers, and listeners on external objects remain the application's responsibility.
 
 ### Animation
 
