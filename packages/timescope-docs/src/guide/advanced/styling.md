@@ -60,17 +60,28 @@ Leave label colors unspecified to follow the host. An explicit time-axis `labels
 
 Set `series.data.color` for the default Mark and Link color. Use primitive `lineColor` and `fillColor` for overrides, and `fillOpacity` to adjust fill transparency. Translucent Marks show the background without showing Links through their interiors.
 
+Inherited fills use the Series color at 25% alpha. An explicit `fillColor` uses its own alpha; `fillOpacity` applies in either case. For filled path Marks, a transparent fill or `fillOpacity: 0` leaves a transparent interior rather than showing previously drawn Links. Text and icon Marks do not have this background-cutout behavior.
+
+Use `fillPost: true` when you want the fill to replace the interior portion of the outline; the default keeps the complete outline over the fill. Pixels outside the Mark's path are unaffected.
+
 Use `cursor.color` for the cursor's strip fill, `cursor.borderColor` for its center line, and `selection.color` for the selected-range overlay. The cursor's default strip is transparent. Time-axis lines, ticks, and out-of-range areas default to translucent neutral gray, visible on both light and dark backgrounds. Axis and label overrides are listed in the [options reference](/api/timescope-options#time-axis); the [Styling example](/guide/examples/#styling) shows these settings together.
 
 ## Number formatting
 
-Axes automatically choose decimal places shared by their labels. Tooltips show values without fixed rounding. Set `tooltip: { round: 2 }` on a series to keep tooltip values concise without changing the data or axis.
+Set `tooltip.round` on a Series or `axis.round` on a Domain to control number labels without changing source data. For a tooltip value of `12345.6789`:
 
-Use `axis: { round: 2 }` on a domain for two decimal places. The axis chooses ticks that match the displayed values; a precision too coarse for the range can leave fewer or no ticks.
+| `round`                     | Display    |
+| --------------------------- | ---------- |
+| `2` or `'decimal'`          | `12345.68` |
+| `'e'`                       | `1.23e4`   |
+| `'pow10'`                   | `1.23×10⁴` |
+| `{ label: 'e', digits: 3 }` | `1.235e4`  |
 
-Choose `round: 'e'` for `1.23e4` or `round: 'pow10'` for `1.23×10⁴`. String shortcuts use two mantissa decimal places. For automatic axis precision or unrounded tooltip mantissas, use `{ label: 'e' }` or `{ label: 'pow10' }` instead.
+String shortcuts use two decimal places, including trailing zeros. In exponential mode, `digits` applies to the mantissa. Use `{ label: 'e' }` or `{ label: 'pow10' }` without `digits` for unrounded tooltip mantissas or automatic axis precision. Negative decimal digits round to tens, hundreds, and so on.
 
-Customize the label by assembling the numeric parts:
+Without `round`, tooltips retain all digits and axes choose shared decimal places automatically. With an explicit precision, axes select exactly representable ticks; a coarse precision may leave fewer or no ticks, including for constant-value domains. Leave axis precision automatic if that happens.
+
+For a custom label, assemble the formatted mantissa and exponent:
 
 ```ts
 round: {
@@ -80,4 +91,4 @@ round: {
 }
 ```
 
-Use tooltip `format` when replacing the complete tooltip text, including its name and unit. See [Number Rounding](/api/timescope-options#number-rounding) for the options and callback parts.
+The callback also receives `value` and `roundedValue`: original and displayed values for tooltips, or the same finalized tick value for axes. Use tooltip `format` only when replacing the complete text, including its name and unit. [Round fields and callback types](/api/timescope-options#number-rounding).

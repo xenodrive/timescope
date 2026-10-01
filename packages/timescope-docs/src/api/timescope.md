@@ -40,8 +40,6 @@ Configurable fields: [Timescope Options](/api/timescope-options).
 
 #### Fonts
 
-`fonts` controls font-data loading at creation, not the selected drawing font. Use the configurable [`font` option](/api/timescope-options#font-style) to select the global font style, or a local `font` to override it for specific labels or Marks. For example, `font: { family: 'MS Gothic' }` selects that family while preserving each location's default size and weight.
-
 | Input        | Additional loading                                                            |
 | ------------ | ----------------------------------------------------------------------------- |
 | Omitted      | Accessible document `@font-face` rules                                        |
@@ -49,12 +47,9 @@ Configurable fields: [Timescope Options](/api/timescope-options).
 | String entry | CSS stylesheet URL                                                            |
 | Object entry | `family`, CSS font `source` or `BufferSource`, optional `FontFaceDescriptors` |
 
-These inputs apply to browser backends, which resolve stylesheets before mounting the renderer. Skia Canvas ignores `fonts`; register custom fonts with Skia Canvas's `FontLibrary` instead.
+Browser-only loading; Skia Canvas ignores `fonts`. The bundled Timescope font is always available.
 
-| Environment | Bundled `Timescope` font                    |
-| ----------- | ------------------------------------------- |
-| Browser     | Always loaded                               |
-| Skia Canvas | Automatically registered with `FontLibrary` |
+[Selecting and loading fonts](/guide/advanced/backends#fonts).
 
 ### Input types
 
@@ -87,8 +82,6 @@ These inputs apply to browser backends, which resolve stylesheets before mountin
 | `editing`                | `boolean`                                                              | Read; time being edited                                           |
 | `options`                | `TimescopeOptions`                                                     | Read; configurable options, excluding initial state               |
 | `canvas`                 | `TimescopeCanvas \| null`                                              | Read; created or supplied canvas; `null` when unmounted           |
-
-`target` is a constructor / `mount()` input, not a property. For a container target, `canvas` is created inside it; for a supplied canvas, `canvas` is that same object.
 
 ## Methods
 

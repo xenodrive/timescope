@@ -91,6 +91,8 @@ The Series' `data.resolution` and the DataSource's resolution hints select the [
 
 Each display query covers a chunk of width **`chunkSize × data resolution`**, anchored to **`chunkOrigin`**. Chunks overlapping the visible range are queried with their full ranges. Results are cached per DataSource and shared across Series using that instance.
 
+When calling `source.query()` directly, aggregate DataSources also return whole buckets anchored to `chunkOrigin`, with neighboring context; do not assume every returned row lies inside the requested range.
+
 ![Chunks aligned to chunkOrigin; the visible range selects full chunks to query at the chosen resolution](../assets/chunk-loading.svg)
 
 `chunkSize` defaults to `256`, and `chunkOrigin` to `0`. Snapshots answer locally; the following range-loading inputs acquire only the requested history.

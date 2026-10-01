@@ -14,39 +14,41 @@ titleTemplate: Timescope API
 
 ## Props
 
-| Prop             | Type                                                                                           | Contract                                                                                                |
-| ---------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `options`        | `TimescopeOptions`                                                                             | Complete chart configuration; updates replace it as with [`setOptions()`](/api/timescope#configuration) |
-| `time`           | `Decimal \| number \| string \| Date \| null`                                                  | Selected time; `null` follows the clock                                                                 |
-| `zoom`           | `number`                                                                                       | Selected zoom level                                                                                     |
-| `timeRange`      | `[time \| undefined, time \| undefined]`                                                       | Navigation bounds; endpoint type as for `time`                                                          |
-| `zoomRange`      | `[number \| undefined, number \| undefined]`                                                   | Zoom bounds                                                                                             |
-| `selectionRange` | `[Decimal, Decimal] \| null`                                                                   | Selected range; `null` clears it                                                                        |
-| `initialTime`    | Same as `time`                                                                                 | Creation-only; default `null`; defined `time` takes precedence                                          |
-| `initialZoom`    | `number`                                                                                       | Creation-only; default `0`; defined `zoom` takes precedence                                             |
-| `initialFit`     | `[start, end] \| { range: [start, end], padding?: number \| [left, right] }`                   | Creation-only; endpoints `TimescopeTimeLike<never>`; padding in CSS pixels                              |
-| `renderThread`   | `'main' \| 'worker'`                                                                           | Creation-only; automatic when omitted                                                                   |
-| `fonts`          | `(string \| { family: string, source: string \| BufferSource, desc?: FontFaceDescriptors })[]` | Creation-only; [font inputs](/api/timescope#fonts)                                                      |
+| Prop             | Type                                                                                           | Contract                                                                   |
+| ---------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `options`        | `TimescopeOptions`                                                                             | Complete configuration; updates replace it                                 |
+| `time`           | `Decimal \| number \| string \| Date \| null`                                                  | Selected time; `null` follows the clock                                    |
+| `zoom`           | `number`                                                                                       | Selected zoom level                                                        |
+| `timeRange`      | `[time \| undefined, time \| undefined]`                                                       | Navigation bounds; endpoint type as for `time`                             |
+| `zoomRange`      | `[number \| undefined, number \| undefined]`                                                   | Zoom bounds                                                                |
+| `selectionRange` | `[Decimal, Decimal] \| null`                                                                   | Selected range; `null` clears it                                           |
+| `initialTime`    | Same as `time`                                                                                 | Creation-only; default `null`; defined `time` takes precedence             |
+| `initialZoom`    | `number`                                                                                       | Creation-only; default `0`; defined `zoom` takes precedence                |
+| `initialFit`     | `[start, end] \| { range: [start, end], padding?: number \| [left, right] }`                   | Creation-only; endpoints `TimescopeTimeLike<never>`; padding in CSS pixels |
+| `renderThread`   | `'main' \| 'worker'`                                                                           | Creation-only; automatic when omitted                                      |
+| `fonts`          | `(string \| { family: string, source: string \| BufferSource, desc?: FontFaceDescriptors })[]` | Creation-only; [font inputs](/api/timescope#fonts)                         |
 
-| Constraint                    | Rule                                                                                                             |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `initialFit`                  | Applies with both `time` and `zoom` undefined at creation; incompatible with `initialTime` / `initialZoom`       |
-| Chart dimensions / background | CSS on the host element through component `style` or class props; fallback height `36px`                         |
-| Selection appearance          | `options.selection`; `false` disables and clears selection                                                       |
-| Text font                     | `options.font`; [global style and local overrides](/api/timescope-options#font-style); no standalone `font` prop |
-| Mounting and disposal         | Automatic with component lifecycle                                                                               |
+`initialFit` requires creation-time `time` and `zoom` to be undefined; incompatible with `initialTime` / `initialZoom`. [Configuration and lifecycle](/guide/advanced/frameworks).
 
 ## Reactive inputs
 
-Host styling is forwarded to the target element, not to the canvas or chart options. React accepts `style` as a CSS object and `className`; Solid accepts `style` and `class`; Vue accepts native `style` and `class` attributes. Svelte and Luna accept a CSS string in `style` and a string in `class`; Luna also accepts accessors for these props.
+| Framework | Host styling inputs                                     |
+| --------- | ------------------------------------------------------- |
+| React     | CSS-object `style`; `className`                         |
+| Solid     | `style`; `class`                                        |
+| Vue       | Native `style`; `class`                                 |
+| Svelte    | CSS-string `style`; string `class`                      |
+| Luna      | CSS-string `style`; string `class`; values or accessors |
 
-| Framework | State input                                               | Options updates                                                                                                 |
-| --------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Vue       | `v-model:time`, `v-model:zoom`, `v-model:selection-range` | Nested reactive changes or replacement; `defineTimescopeOptions` from `@timescope/vue` returns reactive options |
-| React     | Value props and change callbacks                          | New complete options object                                                                                     |
-| Svelte    | `bind:time`, `bind:zoom`, `bind:selectionRange`           | New complete options object; `$state.raw` for reactive storage                                                  |
-| Solid     | Signal values, e.g. `time={time()}`                       | New complete options object, e.g. `options={options()}`                                                         |
-| Luna      | Values or accessors, e.g. `time={time}`                   | Value or accessor returning a new complete options object                                                       |
+Host styling applies to the target element. [Styling components](/guide/advanced/frameworks#lifecycle).
+
+| Framework | State input                                               | Options updates                        |
+| --------- | --------------------------------------------------------- | -------------------------------------- |
+| Vue       | `v-model:time`, `v-model:zoom`, `v-model:selection-range` | Nested reactive changes or replacement |
+| React     | Value props and change callbacks                          | New complete options object            |
+| Svelte    | `bind:time`, `bind:zoom`, `bind:selectionRange`           | New complete options object            |
+| Solid     | Signal values                                             | New complete options object            |
+| Luna      | Values or accessors                                       | New complete options object            |
 
 ## Events and callbacks
 

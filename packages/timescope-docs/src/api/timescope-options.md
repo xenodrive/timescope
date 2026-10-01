@@ -10,7 +10,7 @@ titleTemplate: Timescope API
 | `TimescopeOptionsInitial`         | Constructor; adds [constructor-only fields](/api/timescope#options-constructor-only) |
 | `TimescopeUpdateOptions`          | `updateOptions()`; partial settings, `null` to delete named entries                  |
 | `defineTimescopeOptions(options)` | Typed options with inferred DataSource, Series, and Track names                      |
-| `defaultOptions`                  | Read-only effective defaults, grouped by option; [using defaults](#default-values)   |
+| `defaultOptions`                  | Frozen, grouped defaults; [groups](#default-values)                                  |
 
 ## Options
 
@@ -27,36 +27,22 @@ titleTemplate: Timescope API
 
 ### Default Values
 
-Import `defaultOptions` to inspect or reuse the fallback values used by Timescope itself.
+| `defaultOptions` group                    | Contents                              |
+| ----------------------------------------- | ------------------------------------- |
+| `time`, `zoom`, `wheelSensitivity`, `fit` | Navigation                            |
+| `options`                                 | Top-level options                     |
+| `cursor`                                  | Cursor colors                         |
+| `domain`, `domainRange`                   | Value scales and bounds               |
+| `track`, `timeAxis`                       | Track layout and time axis            |
+| `series`                                  | Tooltip, sampling, colors, fill alpha |
+| `chartStyle`, `chartSize`, `chartUsing`   | Primitive styles, sizes, selectors    |
+| `source`                                  | Chunking, loading, caching            |
 
-```ts
-import { defineTimescopeOptions, defaultOptions } from 'timescope';
-
-const options = defineTimescopeOptions({
-  domains: {
-    amplitude: { ...defaultOptions.domain, axis: 'left' },
-  },
-});
-```
-
-| Group                                     | Contents                                                                                       |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `time`, `zoom`, `wheelSensitivity`, `fit` | Initial navigation values and fit padding                                                      |
-| `options`                                 | Top-level fallback flags and unset named collections                                           |
-| `cursor`                                  | Cursor colors                                                                                  |
-| `domain`, `domainRange`                   | Value scale, labels, axis, automatic bounds, and range behavior                                |
-| `track`, `timeAxis`                       | Automatic Track height, time-axis visibility, calendar/relative mode, time zone, and time unit |
-| `series`                                  | Tooltip and instantaneous-value defaults, automatic color palette, and inherited-fill alpha    |
-| `chartStyle`, `chartSize`, `chartUsing`   | Primitive style defaults, per-kind sizes, and field selectors                                  |
-| `source`                                  | Chunk size/origin, immediate loading, and inactive query-cache size                            |
-
-The export is **not a complete constructor configuration**: its groups describe effective defaults, not named DataSources, Series, Domains, or Tracks. Reuse individual values or spread an appropriate group as above; do not spread the entire export into `new Timescope()`.
-
-Every group and array is frozen. Omitted settings can also be contextual: Track heights share the available canvas, a Series uses the first Track, and unspecified primitive colors inherit the Series color. An inherited fill uses `series.fillAlpha`; an explicit `fillColor` does not apply that extra alpha. These rules are not equivalent to filling every optional field with a static value.
+[Reusing defaults](/guide/advanced/views#reuse-default-values).
 
 ## DataSources {#sources}
 
-**Snapshot loading** acquires a complete dataset. **Chunk loading** queries a DataSource in time chunks at a selected data resolution; a DataSource can answer from a snapshot or acquire the requested rows with a **range loader**. The API's `TimescopeRangeLoader` name describes that acquisition interface, not a requirement that requests align to chunk boundaries. See [Loading and Updating Data](/guide/advanced/data) for both workflows.
+[Loading workflows](/guide/advanced/data).
 
 ### Input Types
 
@@ -117,19 +103,12 @@ Every group and array is frozen. Omitted settings can also be contextual: Track 
 
 ### Direct Queries
 
-```ts
-type TimescopeDataSourceQuery = {
-  range: [Decimal, Decimal];
-  resolution: Decimal;
-};
-```
+| `TimescopeDataSourceQuery` field | Type                 | Contract                                            |
+| -------------------------------- | -------------------- | --------------------------------------------------- |
+| `range`                          | `[Decimal, Decimal]` | Finite; `start <= end`; no chunk alignment required |
+| `resolution`                     | `Decimal`            | Positive data resolution in row time units          |
 
-| Field / output          | Contract                                                              |
-| ----------------------- | --------------------------------------------------------------------- |
-| `range`                 | Finite, ordered; `start <= end`; independent of chunk boundaries      |
-| `resolution`            | Data resolution; positive interval in row time units                  |
-| Simple range DataSource | Same request and response contract as a [range loader](#range-loader) |
-| Aggregated output       | Whole buckets anchored to `chunkOrigin`, with neighboring context     |
+Output: canonical rows; [range contract](#range-loader), [aggregate fields](#aggregated-output).
 
 ### Payloads and Decoders
 
@@ -214,15 +193,13 @@ type TimescopeLoadRequest = { range: [Decimal, Decimal]; resolution: Decimal };
 type TimescopeRangeLoader<T = unknown> = (request: TimescopeLoadRequest) => T | Promise<T>;
 ```
 
-| Request / response            | Contract                                                                            |
-| ----------------------------- | ----------------------------------------------------------------------------------- |
-| Request                       | Arbitrary finite ordered range; positive resolution; no chunk-alignment requirement |
-| Point rows                    | All points with `start <= time < end`                                               |
-| Interval rows                 | All rows with `rowStart < end && start < rowEnd`; complete and untrimmed            |
-| Lines / steps and their areas | Recommended nearest neighbor on each side, where available                          |
-| Curves and curve areas        | Recommended two nearest neighbors on each side, where available                     |
-| Range with no points          | Same neighboring-row recommendation                                                 |
-| Density                       | Appropriate to the requested resolution                                             |
+| Request / response | Contract                                                         |
+| ------------------ | ---------------------------------------------------------------- |
+| Request            | Same fields and constraints as [Direct Queries](#direct-queries) |
+| Points             | `start <= time < end`                                            |
+| Intervals          | `rowStart < end && start < rowEnd`; complete rows                |
+
+[Returning rows and Link neighbors](/guide/advanced/data#return-rows-for-a-range).
 
 ### Invalidation and Caching
 
@@ -286,13 +263,10 @@ type TimescopeRangeLoader<T = unknown> = (request: TimescopeLoadRequest) => T | 
 | `(context: TimescopeResolutionContext) => TimescopeNumberLike`              | Data-resolution resolver           |
 | `{ resolve?: TimescopeResolutionResolver, snap?: TimescopeResolutionSnap }` | Resolver and snap mode             |
 
-| Context / default                 | Value                                                                                |
-| --------------------------------- | ------------------------------------------------------------------------------------ |
-| `context.resolution`              | `Decimal`; display resolution in time units per pixel, `2 ** (-zoom)`                |
-| `context.resolutions`             | `readonly Decimal[]`; DataSource's preferred data resolutions, empty if unrestricted |
-| Default preferred data resolution | Display resolution                                                                   |
-| Default snap                      | `'nearest'`                                                                          |
-| Snap candidates                   | DataSource resolutions; integer-zoom resolutions if none supplied                    |
+| `TimescopeResolutionContext` field | Type                 | Meaning                                                 |
+| ---------------------------------- | -------------------- | ------------------------------------------------------- |
+| `resolution`                       | `Decimal`            | Display resolution; `2 ** (-zoom)`                      |
+| `resolutions`                      | `readonly Decimal[]` | Preferred DataSource resolutions; empty if unrestricted |
 
 | Snap      | Selection                                                     |
 | --------- | ------------------------------------------------------------- |
@@ -300,7 +274,7 @@ type TimescopeRangeLoader<T = unknown> = (request: TimescopeLoadRequest) => T | 
 | `floor`   | Largest data resolution at or below the preferred resolution  |
 | `ceil`    | Smallest data resolution at or above the preferred resolution |
 
-Directional snapping falls back to the nearest endpoint.
+Defaults: display resolution, `'nearest'` snap. Candidates: source hints, otherwise integer-zoom resolutions; directional snaps clamp to endpoints. [Choosing data resolution](/guide/advanced/data#chunk-loading).
 
 ### Instantaneous Values
 
@@ -328,26 +302,31 @@ Directional snapping falls back to the nearest endpoint.
 
 ### Number Rounding {#number-rounding}
 
-`TimescopeRound` accepts a number, `'decimal'`, `'e'`, `'pow10'`, or an options object. A number selects decimal with that many fractional digits. A string selects its matching mode and label with `digits: 2`.
+`TimescopeRound`: `number | 'decimal' | 'e' | 'pow10' | { mode?, digits?, label? }`.
 
-| Object field | Type                                                 | Default / contract                                                                                           |
-| ------------ | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `mode`       | `'decimal' \| 'pow10'`                               | Inferred from a string `label`; otherwise `'decimal'`                                                        |
-| `digits`     | `number`                                             | Mantissa decimal places; safe integer, nonnegative for pow10; negative decimal digits round to powers of ten |
-| `label`      | `'decimal' \| 'e' \| 'pow10' \| (context) => string` | Matches `mode`; incompatible explicit mode/string-label pairs are rejected                                   |
+| Shortcut       | Equivalent options                                 |
+| -------------- | -------------------------------------------------- |
+| `n` (`number`) | `{ mode: 'decimal', digits: n, label: 'decimal' }` |
+| `'decimal'`    | `{ mode: 'decimal', digits: 2, label: 'decimal' }` |
+| `'e'`          | `{ mode: 'pow10', digits: 2, label: 'e' }`         |
+| `'pow10'`      | `{ mode: 'pow10', digits: 2, label: 'pow10' }`     |
 
-Object `digits` is optional: tooltips retain all digits; axes determine shared mantissa decimal places from ticks. Axes select values exactly representable at the requested precision, without changing the domain range; there may be fewer or no ticks. Constant domains omit a label if the requested precision cannot represent their value exactly.
+| Object field | Type                                                                          | Default / constraint                                                                                     |
+| ------------ | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `mode`       | `'decimal' \| 'pow10'`                                                        | Inferred from string `label`; otherwise `'decimal'`                                                      |
+| `digits`     | `number`                                                                      | Mantissa decimal places; omitted: tooltip unrounded, axis automatic; safe integer, nonnegative for pow10 |
+| `label`      | `'decimal' \| 'e' \| 'pow10' \| ((context: TimescopeRoundContext) => string)` | Defaults to `mode`; incompatible mode/label pairs rejected                                               |
 
-| Label context field | Type / contract                                                          |
-| ------------------- | ------------------------------------------------------------------------ |
-| `mode`              | `'decimal' \| 'pow10'`                                                   |
-| `value`             | `Decimal`; original tooltip value, or finalized axis tick value          |
-| `roundedValue`      | `Decimal`; displayed value; equals `value` for axes                      |
-| `mantissa`          | `string`; includes sign and padding for explicit or axis-resolved digits |
-| `base`              | `10`                                                                     |
-| `exponent`          | `bigint`; `0n` for decimal mode and zero values                          |
+| `TimescopeRoundContext` field | Type                   | Meaning                                       |
+| ----------------------------- | ---------------------- | --------------------------------------------- |
+| `mode`                        | `'decimal' \| 'pow10'` | Resolved mode                                 |
+| `value`                       | `Decimal`              | Original tooltip value / finalized axis value |
+| `roundedValue`                | `Decimal`              | Displayed value; equals `value` on axes       |
+| `mantissa`                    | `string`               | Signed, formatted mantissa                    |
+| `base`                        | `10`                   | Exponent base                                 |
+| `exponent`                    | `bigint`               | `0n` in decimal mode                          |
 
-`Decimal(mantissa) × 10^exponent` equals `roundedValue`. Built-in labels produce `mantissa`, `mantissa e exponent`, or `mantissa × 10` with a Unicode superscript exponent, without spaces. Label callbacks only assemble the supplied parts; changes they make to the represented value are the caller's responsibility. Rounding does not modify source data.
+[Number formatting and custom labels](/guide/advanced/styling#number-formatting).
 
 ## `using` Selectors {#using-selectors}
 
@@ -369,16 +348,24 @@ Object `digits` is optional: tooltips retain all digits; axes determine shared m
 
 ## Chart Presets
 
-| Preset                                                      | Result                                                  |
-| ----------------------------------------------------------- | ------------------------------------------------------- |
-| `'lines'`, `'lines:filled'`                                 | Line Chart, optionally filled                           |
-| `'curves'`, `'curves:filled'`                               | Monotone cubic Chart, optionally filled                 |
-| `'steps-start'`, `'steps'`, `'steps-end'`                   | Steps; optional `:filled`                               |
-| `'points'`                                                  | Circle Marks                                            |
-| `'linespoints'`, `'curvespoints'`                           | Lines / curves with circles; optional `:filled`         |
-| `'stepspoints-start'`, `'stepspoints'`, `'stepspoints-end'` | Steps with circles; optional `:filled`                  |
-| `'impulses'`, `'impulsespoints'`                            | Lines from the shared baseline, optionally with circles |
-| `'bars'`, `'bars:filled'`                                   | Bars from the shared baseline                           |
+| Preset                | Marks                       | Links        | `:filled` variant adds |
+| --------------------- | --------------------------- | ------------ | ---------------------- |
+| `'lines'`             | —                           | `line`       | `area`                 |
+| `'curves'`            | —                           | `curve`      | `curve-area`           |
+| `'steps-start'`       | —                           | `step-start` | `step-area-start`      |
+| `'steps'`             | —                           | `step`       | `step-area`            |
+| `'steps-end'`         | —                           | `step-end`   | `step-area-end`        |
+| `'points'`            | `circle`                    | —            | Not supported          |
+| `'linespoints'`       | `circle`                    | `line`       | `area`                 |
+| `'curvespoints'`      | `circle`                    | `curve`      | `curve-area`           |
+| `'stepspoints-start'` | `circle`                    | `step-start` | `step-area-start`      |
+| `'stepspoints'`       | `circle`                    | `step`       | `step-area`            |
+| `'stepspoints-end'`   | `circle`                    | `step-end`   | `step-area-end`        |
+| `'impulses'`          | `line` to `#zero`           | —            | Not supported          |
+| `'impulsespoints'`    | `line` to `#zero`, `circle` | —            | Not supported          |
+| `'bars'`              | Unfilled `bar` to `#zero`   | —            | Bar fill               |
+
+[Choosing Marks and Links](/guide/drawing-a-chart#ribbon-points).
 
 ## Links
 
@@ -433,16 +420,11 @@ Object `digits` is optional: tooltips retain all digits; axes determine shared m
 
 | Key           | Type      | Contract                                                                               |
 | ------------- | --------- | -------------------------------------------------------------------------------------- |
-| `fillColor`   | `string`  | Explicit color, including alpha                                                        |
+| `fillColor`   | `string`  | Default: Series color at 25% alpha; explicit color uses its own alpha                  |
 | `fillOpacity` | `number`  | Multiplies fill alpha, including explicit `fillColor`; default `1`, clamped to `0`–`1` |
-| `fillPost`    | `boolean` | Fill after the stroke                                                                  |
+| `fillPost`    | `boolean` | `false`; fill after stroke when `true`                                                 |
 
-| Default fill | Color                                                            |
-| ------------ | ---------------------------------------------------------------- |
-| Marks        | Series color at 25% alpha; path interiors cleared before filling |
-| Links        | Series color at 25% alpha                                        |
-
-Filled path Marks erase previously drawn pixels inside their paths, then paint their fill color. This also applies to explicit `fillColor`: a transparent fill or `fillOpacity: 0` leaves a transparent hole rather than revealing Links. Pixels outside the paths are retained. With `fillPost: true`, erasure and filling occur after the stroke, removing its interior portion. Text and icon Marks do not erase their backgrounds.
+[Fill appearance](/guide/advanced/styling#drawing-colors).
 
 ### Geometry
 
@@ -509,27 +491,9 @@ Filled path Marks erase previously drawn pixels inside their paths, then paint t
 | Value-axis labels | `normal 11px Timescope, sans-serif` |
 | Tooltips          | `normal 12px Timescope, sans-serif` |
 
-`options.font` sets the font for text Marks, time-axis and value-axis labels, and Tooltips, but not icon Marks. It selects the font style; the constructor's `fonts` option loads font data.
+Object precedence: local `font` → global object `font` → location default. String fonts are complete declarations. Icon fonts are local only.
 
-Object font properties inherit in this order: local `font` → `options.font` → per-location defaults. Unspecified or `undefined` properties do not override inherited values. For example, `font: { family: 'MS Gothic' }` preserves each location's default size and weight.
-
-Strings are complete CSS canvas font declarations, such as `'bold 14px "MS Gothic"'`, not family names alone. A local string overrides the global font entirely. A global string is used unchanged when there is no local font or explicit Mark size; local object properties cannot inherit from a CSS string and instead use per-location defaults.
-
-Text Mark font-size precedence: local string `font` as supplied → local object `font.size` → Mark `style.size` → global object `font.size` → default. Icon Marks keep their existing local font and size defaults.
-
-```ts
-const timescope = new Timescope({
-  target: '#chart',
-  font: { family: 'MS Gothic', weight: 'bold' },
-  tracks: {
-    default: { timeAxis: { labels: { font: { size: 16, weight: 'normal' } } } },
-  },
-});
-```
-
-Here, time-axis labels use `normal 16px "MS Gothic"`; Tooltips use `bold 12px "MS Gothic"`. Other text keeps its per-location size while inheriting the global family and weight.
-
-`updateOptions({ font: { weight: 'normal' } })` changes the weight while retaining the other global properties. `updateOptions({ font: undefined })` clears the global style. `setOptions()` replaces the configuration: omitted `font` properties do not retain the previous global style. Framework components accept the global style through their `options.font`, while `fonts` remains a separate creation-only prop.
+[Font selection and overrides](/guide/advanced/backends#select-a-font-style).
 
 ## Tracks
 

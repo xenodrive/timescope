@@ -32,6 +32,24 @@ timescope.updateOptions({
 
 Time and zoom are preserved by both methods. For data changes rather than configuration changes, see [Loading and Updating Data](/guide/advanced/data).
 
+### Reuse default values
+
+Import `defaultOptions` to inspect or reuse the fallback settings. Spread only the group relevant to your configuration:
+
+```ts
+import { defineTimescopeOptions, defaultOptions } from 'timescope';
+
+const options = defineTimescopeOptions({
+  domains: {
+    amplitude: { ...defaultOptions.domain, axis: 'left' },
+  },
+});
+```
+
+The export is not a complete constructor configuration: it contains no named DataSources, Series, Domains, or Tracks. Do not spread the whole export into `new Timescope()`. Groups and arrays are frozen; copy them when customizing.
+
+Some defaults depend on the chart: unspecified Track heights share the available space, a Series uses the first Track, and primitive colors inherit the Series color. Leave these settings unspecified when you want that behavior rather than assigning a fixed value.
+
 ## Follow a live or playback clock
 
 As described in [Core Concepts](/guide/concepts#time-and-zoom), `time = null` follows a clock. Use `setPlaybackTime()` to supply an application-driven clock instead of wall-clock time. Call it on each media or data tick; it does not advance playback by itself.

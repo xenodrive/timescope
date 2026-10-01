@@ -118,22 +118,26 @@ try {
 
 ### Select a font style
 
-`font` selects the global font style for text Marks, axis labels, and Tooltips, but not icon Marks. Use an object to retain each location's default size and weight. Here, a local override changes only the time-axis label size:
+`font` selects the global style for text Marks, axis labels, and Tooltips, but not icon Marks. Object properties inherit from local settings, then the global style, then each location's defaults:
 
 ```ts
 const timescope = new Timescope({
   target: '#chart',
   fonts: [{ family: 'Chart Labels', source: 'url(/fonts/chart-labels.woff2)' }],
-  font: { family: 'Chart Labels, sans-serif' },
+  font: { family: 'Chart Labels, sans-serif', weight: 'bold' },
   tracks: {
-    default: { timeAxis: { labels: { font: { size: 16 } } } },
+    default: { timeAxis: { labels: { font: { size: 16, weight: 'normal' } } } },
   },
 });
 ```
 
-For an installed system font, `font: { family: 'MS Gothic' }` is enough. String styles must be complete CSS canvas font declarations, not family names. See [Font Style](/api/timescope-options#font-style) for inheritance and size precedence.
+Here, time-axis labels use normal 16px Chart Labels; Tooltips use bold 12px Chart Labels. Other text retains its default size. For an installed system font, `font: { family: 'MS Gothic' }` is enough without a `fonts` entry.
 
-Change `font` later with `setOptions()` or `updateOptions()`. [Framework components](/guide/advanced/frameworks) accept it through `options.font`.
+A string such as `'bold 14px "MS Gothic"'` is a complete font declaration, not a family name. A local string replaces the global font; local objects inherit defaults rather than properties from a global string. Prefer objects for combined global and local settings.
+
+For text Marks, size priority is local string font → local object `font.size` → Mark `style.size` → global object `font.size` → default. A global string is used unchanged when neither a local font nor an explicit Mark size is set.
+
+Use `updateOptions({ font: { weight: 'normal' } })` to change only the weight, or `updateOptions({ font: undefined })` to clear the style. `setOptions()` replaces the configuration. [Framework components](/guide/advanced/frameworks) accept the style through `options.font`.
 
 ### Load custom font data
 
