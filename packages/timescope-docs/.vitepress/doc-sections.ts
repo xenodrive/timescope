@@ -25,7 +25,7 @@ export function docSections(md: MarkdownRenderer) {
       return token;
     };
 
-    for (const token of state.tokens) {
+    for (const [index, token] of state.tokens.entries()) {
       // Headings inside quotes, lists, or callouts are not page sections.
       if (token.type === 'heading_open' && token.level === 0) {
         const level = Number(token.tag.slice(1));
@@ -46,6 +46,22 @@ export function docSections(md: MarkdownRenderer) {
           output.push(html('<section class="doc-section">\n'));
           token.attrJoin('class', 'doc-section-heading');
           inSection = true;
+        }
+        if (level === headingLevel || (headingLevel === 3 && level === 2)) {
+          const kind = level === headingLevel ? 'section' : 'group';
+          const inline = state.tokens[index + 1];
+          const label = md.utils.escapeHtml(
+            (inline.children ?? [])
+              .filter((child) => child.type === 'text' || child.type === 'code_inline')
+              .map((child) => child.content)
+              .join('')
+              .replaceAll('\u200b', ''),
+          );
+          output.push(
+            html(
+              `<div class="doc-sticky doc-sticky--${kind}" aria-hidden="true"><div class="doc-sticky-label">${label}</div></div>\n`,
+            ),
+          );
         }
       }
       output.push(token);

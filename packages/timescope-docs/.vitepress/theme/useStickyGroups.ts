@@ -1,17 +1,18 @@
 import { nextTick, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vitepress';
 
-/** Detect sticking from the stable section boundary, not the resizing heading. */
+/** Only toggle presentation state; the real headings stay in normal document flow. */
 export function useStickyGroups() {
   const route = useRoute();
   let frame = 0;
   const update = () => {
     frame = 0;
-    for (const group of document.querySelectorAll<HTMLElement>('.doc-group')) {
-      const heading = group.querySelector<HTMLElement>('.doc-group-heading');
-      if (!heading) continue;
-      const top = parseFloat(getComputedStyle(heading).top);
-      group.classList.toggle('is-stuck', group.getBoundingClientRect().top < top);
+    for (const section of document.querySelectorAll<HTMLElement>('.doc-group, .doc-section')) {
+      const proxy = section.querySelector<HTMLElement>(':scope > .doc-sticky');
+      const heading = section.querySelector<HTMLElement>(':scope > .doc-group-heading, :scope > .doc-section-heading');
+      if (!proxy || !heading) continue;
+      const top = parseFloat(getComputedStyle(proxy).top);
+      section.classList.toggle('is-stuck', heading.getBoundingClientRect().top < top);
     }
   };
   const schedule = () => {
