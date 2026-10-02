@@ -1,0 +1,77 @@
+const references: Record<string, string[]> = {
+  'classes#timescope': ['Timescope'],
+  'types#timescopeoptionsinitial': ['TimescopeOptionsInitial'],
+  'classes#timescopedataloader': ['TimescopeDataLoader'],
+  'classes#timescopedatasourcebase': ['TimescopeDataSourceBase'],
+  'classes#decimal': ['Decimal'],
+  'classes#calendar': ['Calendar'],
+  'interfaces#timescopepreparedview': ['TimescopePreparedView'],
+  'interfaces#timescopedatasource': ['TimescopeDataSource'],
+  'interfaces#timescopedatasource-invalidation': ['TimescopeDataSourceInvalidation'],
+  'interfaces#timescopeappendonlydatasource': ['TimescopeAppendOnlyDataSource'],
+  'types#number-and-time-inputs': ['DecimalLike', 'TimescopeNumberLike', 'TimescopeTimeLike'],
+  'types#ranges-and-sizes': ['TimescopeRange', 'TimescopeSize'],
+  'types#timescopefitoptions': ['TimescopeFitOptions'],
+  'types#timescopeanimationinput': ['TimescopeAnimationInput'],
+  'types#timescopesourceinput': ['TimescopeSourceInput', 'TimescopeOptionsSources'],
+  'types#timescopesourceoptions': ['TimescopeSourceOptions'],
+  'types#timescopesourcecommonoptions': ['TimescopeSourceCommonOptions'],
+  'types#percentiles': ['TimescopePercentileOptions'],
+  'types#timescopedataloaderoptions': ['TimescopeDataLoaderOptions'],
+  'types#load-and-query-requests': ['TimescopeLoadRequest', 'TimescopeDataSourceQuery'],
+  'types#loader-callbacks': ['TimescopeRangeLoader', 'TimescopeSnapshotLoader', 'TimescopeDataDecoder'],
+  'types#data-rows': ['TimescopeDataRowInput'],
+  'types#normalized-rows': ['TimescopeDataRow'],
+  'types#timescopemappings': ['TimescopeMappings'],
+  'types#timescopeoptions': ['TimescopeOptions'],
+  'types#timescopeupdateoptions': ['TimescopeUpdateOptions'],
+  'types#timescopeseriesinput': ['TimescopeSeriesInput', 'TimescopeOptionsSeries'],
+  'types#timescopedataresolution': [
+    'TimescopeDataResolution',
+    'TimescopeResolutionResolver',
+    'TimescopeResolutionSnap',
+  ],
+  'types#resolution-context': ['TimescopeResolutionContext'],
+  'types#timescoperound': ['TimescopeRound', 'TimescopeRoundMode', 'TimescopeRoundLabel'],
+  'types#round-context': ['TimescopeRoundContext'],
+  'types#using': ['Using', 'Using1', 'Using2'],
+  'types#timescopecharttype': ['TimescopeChartType'],
+  'types#timescopechartlink': ['TimescopeChartLink'],
+  'types#timescopechartmark': ['TimescopeChartMark'],
+  'types#chart-entries': ['TimescopeChartStyleEntry'],
+  'types#stroke-and-fill': ['StrokeStyle', 'FillStyle'],
+  'types#mark-geometry': ['SizeStyle', 'AngleStyle', 'OffsetStyle', 'BoxStyle', 'PathStyle'],
+  'types#text-and-icons': ['TextStyle', 'IconStyle'],
+  'types#timescopefontstyle': ['TimescopeFontStyle'],
+  'types#timescopeoptionstracks': ['TimescopeOptionsTracks'],
+  'types#timescopetimeaxisoptions': ['TimescopeTimeAxisOptions'],
+  'types#time-formatting': [
+    'TimeFormatFunc',
+    'TimeFormatFuncOptions',
+    'TimeFormatLabeler',
+    'TimeFormatLabelerOptions',
+    'CalendarLevel',
+  ],
+  'types#timescopeoptionsselection': ['TimescopeOptionsSelection'],
+  'types#timescopedomainoptions': ['TimescopeDomainOptions', 'TimescopeOptionsDomains'],
+  'types#timescopeyaxisoptions': ['TimescopeYAxisOptions'],
+  'types#rendering-targets': ['TimescopeBackendChoice', 'TimescopeBackendTarget', 'TimescopeCanvas'],
+  'types#timescopeenvironment': ['TimescopeEnvironment'],
+  'utilities#definetimescopeoptions': ['defineTimescopeOptions'],
+  'utilities#createdefinetimescopeoptions': ['createDefineTimescopeOptions'],
+  'utilities#createdataloader': ['createDataLoader'],
+  'utilities#createdatasource': ['createDataSource'],
+  'utilities#defaultoptions': ['defaultOptions'],
+  'frameworks#component-refs': ['TimescopeAPI'],
+};
+
+const links = new Map(
+  Object.entries(references).flatMap(([target, names]) => names.map((name) => [name, `/api/${target}`] as const)),
+);
+
+export function splitApiIdentifiers(text: string) {
+  return text
+    .split(/(\b[A-Za-z]\w*\b)/)
+    .filter(Boolean)
+    .map((text) => ({ text, href: links.get(text) }));
+}

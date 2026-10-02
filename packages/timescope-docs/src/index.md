@@ -19,5 +19,5 @@ hero:
       link: /examples/gallery
     - theme: alt
       text: API Reference
-      link: /api/timescope
+      link: /api/
 ---

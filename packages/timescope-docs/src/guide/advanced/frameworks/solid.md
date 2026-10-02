@@ -66,14 +66,10 @@ To fit the data without binding time and zoom:
 
 ## Options and events
 
-| Task                            | Solid syntax                                                                |
-| ------------------------------- | --------------------------------------------------------------------------- |
-| Set chart height                | `style` with a CSS object containing `height: '240px'`                      |
-| Update options                  | Return a new complete object from `createMemo`; pass `options={options()}`  |
-| Bind a selection                | `selectionRange={selection()}` and `onSelectionRangeChanged={setSelection}` |
-| Follow the clock                | `setTime(null)`                                                             |
-| Handle readiness                | `onReady={onReady}`                                                         |
-| Preview time during interaction | `onTimeChanging={setPreview}`                                               |
-| Style the host element          | `class` and `style`                                                         |
+For options derived from signals, return a new complete configuration from `createMemo` and pass it as `options={options()}`. Use `class` and `style` to set the host's dimensions and background; the example gives it a height of `240px`.
+
+To synchronize a selection, pass `selectionRange={selection()}` and `onSelectionRangeChanged={setSelection}`. Call `setTime(null)` to follow the clock.
+
+Use `onTimeChanging={setPreview}` to preview time during interaction; it receives the time value directly. `onReady={onReady}` tells you when the canvas is mounted and drawable.
 
 [Shared component behavior](/guide/advanced/frameworks/overview#configuration-and-state) · [Props and callbacks](/api/frameworks) · [Data updates](/guide/advanced/data)

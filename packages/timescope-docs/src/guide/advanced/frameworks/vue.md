@@ -52,13 +52,10 @@ To fit the data without binding time and zoom:
 
 ## Options and events
 
-| Task                            | Vue syntax                                                                          |
-| ------------------------------- | ----------------------------------------------------------------------------------- |
-| Style the host element          | `style="height: 240px; background: white"` or `class`                               |
-| Update options                  | `options.cursor = false`; nested changes are observed                               |
-| Bind a selection                | `v-model:selection-range="selection"`                                               |
-| Follow the clock                | `time.value = null`                                                                 |
-| Handle readiness                | `@ready="onReady"`                                                                  |
-| Preview time during interaction | `@timechanging="value => preview = value"`; the handler receives the value directly |
+The reactive options helper lets you update settings directly. For example, `options.cursor = false` hides the cursor; nested changes are observed too. Use `style` or `class` on the component to set its height and background.
+
+Bind a selection with `v-model:selection-range="selection"`, just as you bind time and zoom. To follow the clock, set `time.value = null`.
+
+Vue event handlers receive the changed value directly. Use `@timechanging="value => preview = value"` to preview time during interaction, and `@ready="onReady"` when you need to know that the canvas is mounted and drawable.
 
 [Shared component behavior](/guide/advanced/frameworks/overview#configuration-and-state) · [Props, events, and ref methods](/api/frameworks) · [Data updates](/guide/advanced/data)

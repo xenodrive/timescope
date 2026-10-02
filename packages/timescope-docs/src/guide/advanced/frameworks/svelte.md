@@ -49,13 +49,10 @@ To fit the data without binding time and zoom:
 
 ## Options and events
 
-| Task                            | Svelte syntax                                                                        |
-| ------------------------------- | ------------------------------------------------------------------------------------ |
-| Style the host element          | `style="height: 240px; background: white"` or `class`                                |
-| Update options                  | Declare options with `$state.raw` and assign a new complete object                   |
-| Bind a selection                | `bind:selectionRange`                                                                |
-| Follow the clock                | `time = null`                                                                        |
-| Handle readiness                | `on:ready={onReady}`                                                                 |
-| Preview time during interaction | `on:timechanging={event => preview = event.detail}`; events carry values in `detail` |
+If the options will change, declare them with `$state.raw` and assign a new complete configuration for each update. Set the host's height and background with the component's CSS-string `style` prop or `class`.
+
+Use `bind:selectionRange` to synchronize a selection, just as the example binds time and zoom. Assign `time = null` to follow the clock.
+
+Svelte events carry the changed value in `event.detail`. For example, `on:timechanging={event => preview = event.detail}` previews time during interaction. Use `on:ready={onReady}` when you need to know that the canvas is mounted and drawable.
 
 [Shared component behavior](/guide/advanced/frameworks/overview#configuration-and-state) · [Props, events, and ref methods](/api/frameworks) · [Data updates](/guide/advanced/data)

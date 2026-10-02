@@ -44,7 +44,7 @@ const timescope = new Timescope({
 - **`sources`** registers DataSources. The key `samples` is how a Series refers to this array; it is not a field in each row.
 - **`series`** registers Series. `signal` is the Series name, independent of the DataSource name.
 - **`chart: 'lines'`** connects consecutive samples. Without a `chart`, a Series does not draw a Chart.
-- **Target height** leaves room for the Chart. Without a definite target height, the canvas uses a `36px` fallback intended for a time axis.
+- **Target height** leaves room for the Chart; set it explicitly with CSS.
 - **`fit`** chooses the initial visible range. Numeric times are seconds by default, so this example spans 60 seconds from the Unix epoch.
 
 With `tracks` and `data.domain` omitted, this uses the implicit `default` Track and an independent, automatically scaled linear Domain. No value axis is shown unless requested.
@@ -53,7 +53,7 @@ With `tracks` and `data.domain` omitted, this uses the implicit `default` Track 
 
 ## Curve
 
-Use `chart: 'curves'` to join samples with a monotone cubic curve rather than straight segments. Replace the basic configuration with the following response-time example:
+Use `chart: 'curves'` to join samples with a smooth curve. Replace the basic configuration with the following response-time example:
 
 ```ts {19}
 const response = Array.from({ length: 16 }, (_, index) => {
@@ -183,7 +183,7 @@ const timescope = new Timescope({
 
 Links are drawn in array order, then Marks are drawn over them. Putting the area before the line keeps the central line visible. All these primitives use the same Series and Domain, so the automatic range includes the ribbon's `min` and `max`, not just the central values.
 
-Other combinations work the same way: use `curve-area` and `curve` for a smooth ribbon, or use the [`linespoints` / `curvespoints` presets](/api/timescope-options#chart-presets) when you only need a line or curve with points.
+Other combinations work the same way: use `curve-area` and `curve` for a smooth ribbon, or use the [`linespoints` / `curvespoints` presets](/api/types#timescopecharttype) when you only need a line or curve with points.
 
 [Marks & Links example](/examples/gallery#ribbon-points) · [Edit in Playground](/examples/playground?preset=ribbon-points)
 
@@ -192,4 +192,4 @@ Other combinations work the same way: use `curve-area` and `curve` for a smooth 
 - Compare shared Domains and separate Tracks in [Multiple Series](/examples/gallery#multiple-series) and [Multiple Tracks](/examples/gallery#multiple-tracks).
 - Open an example's **Options** popup for its configuration, or use [Playground](/examples/playground) to edit it.
 - Connect remote history, chunk loading, and live samples with [Loading and Updating Data](/guide/advanced/data).
-- Look up all [Chart presets](/api/timescope-options#chart-presets), [Links](/api/timescope-options#links), [Marks](/api/timescope-options#marks), and [`using` selectors](/api/timescope-options#using-selectors).
+- Look up all [Chart presets](/api/types#timescopecharttype), [Links](/api/types#timescopechartlink), [Marks](/api/types#timescopechartmark), and [`using` selectors](/api/types#using).

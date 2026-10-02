@@ -1,6 +1,7 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitepress';
+import { apiMarkdown } from './api-markdown.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = resolve(__dirname, '..');
@@ -36,6 +37,7 @@ export default defineConfig({
   lastUpdated: false,
   markdown: {
     math: true,
+    config: apiMarkdown,
     //lineNumbers: true,
     theme: {
       light: 'github-light',
@@ -52,7 +54,7 @@ export default defineConfig({
         activeMatch: '^/guide/',
       },
       { text: 'Examples', link: '/examples/gallery', activeMatch: '^/examples/' },
-      { text: 'API', link: '/api/timescope', activeMatch: '^/api/' },
+      { text: 'API', link: '/api/', activeMatch: '^/api/' },
     ],
     socialLinks: [{ icon: 'github', link: 'https://github.com/xenodrive/timescope' }],
     sidebar: (() => {
@@ -71,6 +73,7 @@ export default defineConfig({
               items: [
                 { text: 'Loading and Updating Data', link: '/guide/advanced/data' },
                 { text: 'Controlling Views', link: '/guide/advanced/views' },
+                { text: 'Numbers and Calendar Time', link: '/guide/advanced/numbers-and-time' },
                 { text: 'Rendering Backends', link: '/guide/advanced/backends' },
                 { text: 'Styling', link: '/guide/advanced/styling' },
               ],
@@ -100,13 +103,20 @@ export default defineConfig({
         },
         {
           text: 'API Reference',
-          link: '/api/timescope',
+          link: '/api/',
           items: [
-            { text: 'Timescope', link: '/api/timescope' },
-            { text: 'Timescope Options', link: '/api/timescope-options' },
+            { text: 'Overview', link: '/api/' },
+            {
+              text: 'Timescope',
+              collapsed: false,
+              items: [
+                { text: 'Classes', link: '/api/classes' },
+                { text: 'Interfaces', link: '/api/interfaces' },
+                { text: 'Types', link: '/api/types' },
+                { text: 'Utilities', link: '/api/utilities' },
+              ],
+            },
             { text: 'Framework Components', link: '/api/frameworks' },
-            { text: 'Decimal', link: '/api/decimal' },
-            { text: 'Calendar', link: '/api/calendar' },
           ],
         },
       ];

@@ -63,7 +63,7 @@ timescope.setZoom(2);
 timescope.fitTo([0, 30]);
 ```
 
-[Method reference](/api/timescope#navigation)
+[Method reference](/api/classes#timescope-methods)
 
 ## Next steps
 
@@ -72,4 +72,4 @@ timescope.fitTo([0, 30]);
 - Connect remote data and application controls with [Loading and Updating Data](/guide/advanced/data)
 - Use a [framework binding](/guide/advanced/frameworks/overview)
 - Explore [Examples](/examples/gallery)
-- Look up signatures and options in the [API Reference](/api/timescope)
+- Look up signatures and options in the [API Reference](/api/)

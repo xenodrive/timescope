@@ -7,6 +7,7 @@ import github from '@iconify-icons/mdi/github';
 import WarpBackground from './WarpBackground.vue';
 import './style.css';
 import './landing.css';
+import './api.css';
 import './print.css';
 
 const Layout = DefaultTheme.Layout;

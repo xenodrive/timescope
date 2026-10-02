@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" font-family="ui-sans-serif, system-ui, 'Segoe UI', sans-serif">
-  <title>Chunk alignment and display queries</title>
-  <desc>The timeline is divided into chunks of chunkSize times the requested resolution, anchored to chunkOrigin. The visible range overlaps three chunks. Each selected chunk is queried from the DataSource using its full range and the same resolution.</desc>
+  <title>Preferred query ranges</title>
+  <desc>chunkSize and chunkOrigin define preferred query ranges. Each chunk spans chunkSize times resolution from chunkOrigin. The example ranges extend beyond the visible range; loaders must also accept arbitrary ranges.</desc>
   <defs>
     <marker id="chunk-query" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#3b82f6"/>
@@ -41,7 +41,7 @@
   <path d="M688 210 l-10 -5 v10 z" fill="#64748b"/>
   <text x="696" y="216" font-size="23" fill="#64748b">t</text>
 
-  <!-- The visible range selects full chunks. -->
+  <!-- Query ranges can extend beyond the visible range. -->
   <rect x="365" y="250" width="240" height="17" fill="rgba(59,130,246,0.15)" stroke="#3b82f6"/>
   <g stroke="#3b82f6" stroke-dasharray="4 3">
     <line x1="365" y1="210" x2="365" y2="250"/>

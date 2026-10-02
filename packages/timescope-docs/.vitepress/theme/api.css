@@ -1,0 +1,79 @@
+.vp-doc .api-object {
+  --api-sticky-top: calc(3rem + var(--vp-layout-top-height, 0px));
+  margin: 3rem 0;
+  display: flow-root;
+}
+
+.vp-doc .api-object [id] {
+  scroll-margin-top: calc(var(--api-sticky-top) + 6rem);
+}
+
+.vp-doc .api-object > .api-object-heading {
+  position: sticky;
+  top: var(--api-sticky-top);
+  z-index: 10;
+  margin: 0;
+  border: 0;
+  padding: 0.75rem 0;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 2rem;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+  scroll-margin-top: var(--api-sticky-top);
+}
+
+.vp-doc .api-object-heading .header-anchor {
+  top: 0.75rem;
+}
+
+.vp-doc .api-section-heading {
+  margin: 1.75rem 0 0.75rem;
+  border: 0;
+  padding: 0;
+  color: var(--vp-c-text-2);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+  letter-spacing: 0;
+}
+
+.vp-doc h2.api-section-heading {
+  margin-top: 3rem;
+  font-size: 1.125rem;
+}
+
+.vp-doc h4.api-section-heading {
+  font-size: 0.875rem;
+}
+
+.vp-doc .api-section-heading .header-anchor {
+  top: 0;
+}
+
+@media (min-width: 60rem) {
+  .vp-doc .api-object {
+    --api-sticky-top: calc(var(--vp-nav-height) + 3.25rem + var(--vp-layout-top-height, 0px));
+  }
+}
+
+@media (min-width: 80rem) {
+  .vp-doc .api-object {
+    --api-sticky-top: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px));
+  }
+}
+
+@media (max-width: 39.999rem) {
+  .vp-doc .api-object > .api-object-heading {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+}
+
+@media print {
+  .vp-doc .api-object > .api-object-heading {
+    position: static;
+  }
+}

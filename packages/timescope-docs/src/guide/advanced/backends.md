@@ -4,22 +4,13 @@ title: Rendering Backends
 
 # Rendering Backends
 
-Choose a drawing target for interactive charts or image exports in the browser and Node.js. The same data and chart configuration can be used in either environment.
+The same chart configuration works in the browser and Node.js. In the browser, the `'canvas'` backend can mount into a DOM container or use a supplied canvas. For Node.js image exports, use the `'skia-canvas'` backend with a `Canvas` from `skia-canvas`.
 
-| Environment          | Backend         | Target                                        |
-| -------------------- | --------------- | --------------------------------------------- |
-| Browser              | `'canvas'`      | DOM container, selector, or compatible canvas |
-| Node.js image export | `'skia-canvas'` | `Canvas` from `skia-canvas`                   |
+Omit `backend` for automatic selection, normally Canvas in browsers and Skia Canvas in Node.js. An array of candidates selects the first compatible backend. `environment` can override the canvas environment's scheduler, path constructor, and font collection.
 
 ## Browser charts
 
-The examples in [Drawing a Chart](/guide/drawing-a-chart) use the browser Canvas backend with automatic sizing and thread selection. Set `renderThread` only when your environment requires a specific rendering thread:
-
-| `renderThread` | Browser rendering                              |
-| -------------- | ---------------------------------------------- |
-| Omitted        | Worker when supported; otherwise main thread   |
-| `'main'`       | Main thread                                    |
-| `'worker'`     | Require Worker support and a compatible target |
+The examples in [Drawing a Chart](/guide/drawing-a-chart) use automatic sizing and thread selection. Usually you can leave `renderThread` unspecified. If your environment requires main-thread rendering, set it explicitly:
 
 ```ts
 import { Timescope } from 'timescope';
@@ -30,22 +21,19 @@ const timescope = new Timescope({
 });
 ```
 
-`backend` and `renderThread` are constructor-only. [Constructor reference](/api/timescope#options-constructor-only)
+Use `renderThread: 'worker'` to require Worker rendering; this needs Worker support and a compatible target. Both `backend` and `renderThread` are constructor-only. [Constructor options](/api/types#timescopeoptionsinitial)
 
 ## External canvases and sizing
 
-Pass a container or selector as `target` for automatic sizing, or supply an existing canvas when your application manages its size. Read `timescope.canvas` to access the mounted canvas.
+Pass a container or selector as `target` to let the chart follow its layout automatically. Set its dimensions with CSS, including a definite height. Timescope creates the canvas and removes it when disposed.
 
-Container targets follow layout automatically; supplied canvases require explicit resizing:
+Omit the constructor's `target` to mount later with `timescope.mount(target)`. Built-in backends require a compatible target. `timescope.canvas` is `null` while unmounted.
 
-| Target            | Size                                                              | On disposal                  |
-| ----------------- | ----------------------------------------------------------------- | ---------------------------- |
-| Browser container | Automatic; size the target with CSS; fallback height `36px`       | Chart-created canvas removed |
-| Supplied canvas   | `await timescope.resize(width, height, dpr)`; DPR defaults to `1` | Supplied canvas retained     |
+Supply an existing canvas when your application needs to manage its dimensions, such as for a fixed-size export. Resize it with `await timescope.resize(width, height, dpr)`; `dpr` defaults to `1`. Timescope retains a supplied canvas when disposed, so your application keeps ownership of it.
 
-After resizing an export canvas, [wait for data and drawing](/guide/advanced/views#wait-for-data-and-drawing) before reading pixels.
+`resize()` returns `false` for automatically sized targets or a failed resize.
 
-Set dimensions and background on the target with CSS. Give the target a definite height for a chart; otherwise it uses a `36px` fallback. The canvas is transparent; CSS backgrounds are not included in exported pixels.
+Read `timescope.canvas` to access the mounted canvas. After resizing an export canvas, [wait for data and drawing](/guide/advanced/views#wait-for-data-and-drawing) before reading pixels. The canvas is transparent; a CSS background on its container is not included in exported pixels.
 
 For inherited label colors, theme changes, and transparent backgrounds, see [Styling](/guide/advanced/styling).
 
@@ -130,9 +118,11 @@ const timescope = new Timescope({
 });
 ```
 
-Here, time-axis labels use normal 16px Chart Labels; Tooltips use bold 12px Chart Labels. Other text retains its default size. For an installed system font, `font: { family: 'MS Gothic' }` is enough without a `fonts` entry.
+Here, time-axis labels use normal 16px Chart Labels; other text uses bold Chart Labels at its default size. For an installed system font, `font: { family: 'MS Gothic' }` is enough without a `fonts` entry.
 
 A string such as `'bold 14px "MS Gothic"'` is a complete font declaration, not a family name. A local string replaces the global font; local objects inherit defaults rather than properties from a global string. Prefer objects for combined global and local settings.
+
+In font objects, numeric `size` is in pixels and numeric `lineHeight` is unitless; strings use CSS font-size and line-height syntax. `family` can list comma-separated fallback families. Icon fonts use local settings only.
 
 For text Marks, size priority is local string font → local object `font.size` → Mark `style.size` → global object `font.size` → default. A global string is used unchanged when neither a local font nor an explicit Mark size is set.
 
@@ -142,10 +132,8 @@ Use `updateOptions({ font: { weight: 'normal' } })` to change only the weight, o
 
 `fonts` loads additional font data in the browser; it does not select the drawing font. It is constructor-only, or a separate creation-only prop in framework components.
 
-| `fonts`                | Additional fonts loaded in the browser    |
-| ---------------------- | ----------------------------------------- |
-| Omitted                | Accessible document `@font-face` rules    |
-| `[]`                   | None                                      |
-| URL / definition array | Specified stylesheets or font definitions |
+When `fonts` is omitted, Timescope loads accessible document `@font-face` rules. To choose the font data explicitly, supply stylesheet URLs or font definitions, as in the example above. Pass `fonts: []` to skip loading additional fonts.
 
-[Font inputs](/api/timescope#fonts) · [Font styles](/api/timescope-options#font-style) · [Framework components](/guide/advanced/frameworks/overview)
+Skia Canvas ignores `fonts`. The Timescope font is always available.
+
+[Font inputs](/api/types#timescopeoptionsinitial) · [Font styles](/api/types#timescopefontstyle) · [Framework components](/guide/advanced/frameworks/overview)

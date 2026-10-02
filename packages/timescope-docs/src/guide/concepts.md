@@ -2,7 +2,7 @@
 
 Timescope is a time-series visualizer with time navigation controls.
 
-- **Infinite by design** — unlimited range and precision with [Decimal](/api/decimal).
+- **Infinite by design** — unlimited range and precision with [Decimal](/api/classes#decimal).
 - **Shared time** — keeps overlaid Charts and separate Tracks temporally aligned.
 - **Independent Marks and Links** — composable shapes and connections.
 
@@ -18,7 +18,7 @@ $$
 
 At zoom `0`, one pixel spans one time unit. Increasing zoom by one halves the display resolution and the visible time span.
 
-Timescope uses [Decimal](/api/decimal) as a common numeric representation for time, values, and resolutions, preserving precision across widely different scales.
+Timescope uses [Decimal](/api/classes#decimal) as a common numeric representation for time, values, and resolutions, preserving precision across widely different scales.
 
 `time = null` follows the clock (the wall clock by default); the property remains `null`, not the current timestamp. `timeRange` bounds navigation, and `zoomRange` bounds the zoom level.
 
@@ -34,7 +34,9 @@ A **canonical row** contains named `times`, named `values`, and optional `data` 
 
 ![Coordinates of one row: a point, multiple values at one time, or a value spanning a time interval](./assets/row-anatomy.svg)
 
-Equal times describe a point; different times describe the half-open interval from earliest to latest. Either can carry one or several values. Metadata does not define coordinates. See the [row types](/api/timescope-options#rows) for accepted inputs.
+Equal times describe a point; different times describe the half-open interval from earliest to latest. Either can carry one or several values. Metadata does not define coordinates. See the [row types](/api/types#data-rows) for accepted inputs.
+
+Provide exactly one of `time` or `times`, and exactly one of `value` or `values`, with at least one named time. Only simple DataSources support interval rows; aggregate and percentile DataSources accept points.
 
 ### DataLoader and DataSource
 
@@ -52,13 +54,17 @@ A **Series** brings together data from a DataSource, a value Domain, and shared 
 
 ### Instantaneous Value
 
-A Series also provides an **[instantaneous value](/api/timescope-options#instantaneous-values)** sampled at the time cursor. By default, it reads `value` from the latest row at or before the cursor, without interpolating drawn connections. Its sampling resolution can differ from the Chart's data resolution, allowing a Tooltip to show detailed values alongside a broader Chart view.
+A Series also provides an **[instantaneous value](/api/types#instantaneous-values)** sampled at the time cursor. By default, it reads `value` from the latest row at or before the cursor, without interpolating drawn connections. Its sampling resolution can differ from the Chart's data resolution, allowing a Tooltip to show detailed values alongside a broader Chart view.
+
+Use `data.instantaneous.using` to choose a value, and `zoom` or `resolution` to choose sampling granularity. Set `data.instantaneous: false` to disable cursor sampling; `tooltip: false` also disables it.
 
 ![A Series samples an instantaneous value at the time cursor, which a Tooltip can display alongside a broader Chart view](./assets/instantaneous-value.svg)
 
 ## Tracks
 
-A **[Track](/api/timescope-options#tracks)** provides a drawing region for Series consumers such as Charts and Tooltips. Tracks stack vertically, while Charts on the same Track are overlaid. All Tracks share time and display resolution, preserving temporal alignment across separate drawing regions.
+A **[Track](/api/types#timescopeoptionstracks)** provides a drawing region for Series consumers such as Charts and Tooltips. Tracks stack vertically, while Charts on the same Track are overlaid. All Tracks share time and display resolution, preserving temporal alignment across separate drawing regions.
+
+Set a Track's `height` for a fixed CSS-pixel height or `symmetric: true` to mirror positive and negative chart space. Hiding its time axis does not remove the `#zero` baseline.
 
 ![Charts overlay within a Track; vertically stacked Tracks share time and display resolution](./assets/tracks.svg)
 
@@ -68,13 +74,13 @@ A **Chart** visualizes the data of a Series using Marks and Links.
 
 ### Marks and Links
 
-**Marks** draw individual rows. **Links** connect consecutive rows. A Chart can combine any number of either independently. [Chart presets](/api/timescope-options#chart-presets) are combinations of these same primitives, so preset and custom Charts share one model.
+**Marks** draw individual rows. **Links** connect consecutive rows. A Chart can combine any number of either independently. [Chart presets](/api/types#timescopecharttype) are combinations of these same primitives, so preset and custom Charts share one model.
 
 ![Circle marks, a line link, and an area link compose a chart](./assets/marks-and-links.svg)
 
 ### `using` selectors {#using-selectors}
 
-A [`using` selector](/api/timescope-options#using-selectors) binds a primitive to the row's fields: a time supplies the horizontal coordinate and a value supplies the vertical coordinate. Different primitives can select different fields from the same row, without changing the row's time range.
+A [`using` selector](/api/types#using) binds a primitive to the row's fields: a time supplies the horizontal coordinate and a value supplies the vertical coordinate. Different primitives can select different fields from the same row, without changing the row's time range.
 
 Primitives take one or two coordinates, each defined by a time and a value. They can also refer to the Track's [shared baseline](#shared-baseline) (`#zero`) or its chart-area edges (`#top`, `#bottom`).
 
@@ -82,7 +88,7 @@ Primitives take one or two coordinates, each defined by a time and a value. They
 
 ## Domains
 
-A **[Domain](/api/timescope-options#domains)** determines how values map to vertical positions through a scale and range. A value axis is an optional display of that mapping; a Domain works without one.
+A **[Domain](/api/types#timescopedomainoptions)** determines how values map to vertical positions through a scale and range. A value axis is an optional display of that mapping; a Domain works without one.
 
 Each Series has its own Domain unless it shares one explicitly. Inline Domain settings belong to that Series, so auto-scaled Series can have different ranges even on the same Track. Equal heights need not mean equal values. Sharing a Domain gives Series a common scale and range, independently of their Track.
 
@@ -96,13 +102,15 @@ Each Track has a **shared baseline** — the position where its time axis is dra
 
 ### Floating Ranges
 
-A range away from zero can **float** above or below the shared baseline, magnifying local differences. A [**`floatingGap`**](/api/timescope-options#domains) separates the range from the baseline; bars and areas extending to the baseline fade through it.
+A range away from zero can **float** above or below the shared baseline, magnifying local differences. A [**`floatingGap`**](/api/types#timescopedomainoptions) separates the range from the baseline; bars and areas extending to the baseline fade through it.
 
 ![A zero-inclusive linear range reaches the shared baseline; a floating positive range magnifies local differences and fades toward the baseline across a gap](./assets/domain-floating.svg)
 
 ### Auto Scaling
 
-A Domain can follow visible data. Unspecified bounds adjust automatically; [**`expand`** and **`shrink`**](/api/timescope-options#domains) control whether the range can grow beyond specified bounds and contract again.
+A Domain can follow visible data. Unspecified bounds adjust automatically; [**`expand`** and **`shrink`**](/api/types#timescopedomainoptions) control whether the range can grow beyond specified bounds and contract again.
+
+An `undefined` range endpoint follows visible data. A scalar `range` means `[0, value]`. Use `range: { default, expand, shrink }` to group these settings, or set `expand` and `shrink` at the Domain's top level, where they take precedence. Domain `animation` controls range transitions, and `unit` appears on Tooltips and value-axis labels.
 
 ![With a default range of zero to ten, expand allows wider data to enlarge the range, while shrink controls whether it contracts again](./assets/domain-auto-scaling.svg)
 

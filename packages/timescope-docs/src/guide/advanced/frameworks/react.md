@@ -66,13 +66,10 @@ To fit the data without binding time and zoom:
 
 ## Options and events
 
-| Task                            | React syntax                                                                                                     |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Style the host element          | `style` with a CSS object, or `className`                                                                        |
-| Update options                  | Pass a new complete object; keep static options outside the component, or memoize derived options with `useMemo` |
-| Bind a selection                | `selectionRange={selection}` and `onSelectionRangeChanged={setSelection}`                                        |
-| Follow the clock                | `setTime(null)`                                                                                                  |
-| Handle readiness                | `onReady={onReady}`                                                                                              |
-| Preview time during interaction | `onTimeChanging={setPreview}`                                                                                    |
+Keep static options outside the component, as above. For options derived from props or state, use `useMemo` and pass a new complete object when they change. Set the host's dimensions and background with a CSS-object `style` prop or `className`.
+
+To synchronize a selection, pair `selectionRange={selection}` with `onSelectionRangeChanged={setSelection}`. To follow the clock instead of a fixed time, call `setTime(null)`.
+
+Use `onTimeChanging={setPreview}` to preview time during interaction without replacing the committed time state. `onReady={onReady}` tells you when the canvas is mounted and drawable.
 
 [Shared component behavior](/guide/advanced/frameworks/overview#configuration-and-state) · [Props, callbacks, and ref methods](/api/frameworks) · [Data updates](/guide/advanced/data)

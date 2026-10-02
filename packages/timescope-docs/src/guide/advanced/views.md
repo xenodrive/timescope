@@ -6,14 +6,58 @@ title: Controlling Views
 
 The snippets use the basic `timescope` instance from [Drawing a Chart](/guide/drawing-a-chart#basic-chart). Basic navigation and fitting are covered in [Getting Started](/guide/getting-started#view-control).
 
+## Fit and constrain navigation
+
+Use constructor `fit` for the initial view, or `fitTo()` to fit a range later. Both defer fitting until the canvas has a drawable size. The range must have `start < end`; padding is measured in CSS pixels and must be finite and nonnegative. A scalar applies to both sides:
+
+```ts
+timescope.fitTo([0, 30], { padding: [24, 48], animation: false });
+```
+
+Do not combine constructor `fit` with `time` or `zoom`. Without `fit`, `time` defaults to `null` and `zoom` to `0`. `fitTo()` returns `false` for an invalid range or padding.
+
+Set `timeRange` and `zoomRange` at creation, or use their setters to change navigation bounds. An `undefined` endpoint is unbounded; `null` in `timeRange` follows the clock. Calling `setTimeRange()` without a range restores `[undefined, null]`, while `setZoomRange()` removes zoom limits.
+
+`wheelSensitivity` controls wheel delta per zoom level and defaults to `200`. Set `timescope.disabled = true` to disable interaction; it defaults to `false`.
+
+## Animate navigation
+
+`setTime()` defaults to an `'out'` animation lasting `500` ms; `setZoom()` defaults to `'linear'` over `200` ms. Assigning `time` or `zoom` directly uses the same setters. Both setters return `false` for invalid input.
+
+Pass `false` as the animation argument for an immediate change. String presets use `500` ms: `'in-out'` starts and ends smoothly, `'linear'` moves at a constant rate, and `'out'` slows toward the end. Use an object to choose a duration:
+
+```ts
+timescope.setTime(15, { animation: 'in-out', duration: 300 });
+```
+
+The object's `lazy` option commits the selected value after the animation rather than at its start. `tangent` controls the initial slope of an `'out'` animation. Prepared-view setters use the same defaults.
+
+## Observe view changes
+
+Read `time` and `zoom` for committed navigation state, `timeChanging` and `zoomChanging` during interaction, and `timeAnimating` and `zoomAnimating` during animation. Subscribe to the matching `changing`, `changed`, `animating`, and `animated` events to observe those phases. Value events contain `{ type, value, origin? }`.
+
+`animating` indicates a time animation, not a zoom animation; `editing` indicates that time is being edited. `size` describes the viewport's position, CSS-pixel dimensions, and drawing DPR. `options` contains configuration without creation-only state.
+
+Lifecycle events carry their event-name string. `ready` fires once per instance at its first drawable, non-zero-size mount; `mount` fires at each drawable mount. `resize` reports size or DPR changes, `unmount` reports mount removal, and `change` reports observable state changes. The `error` value event reports backend selection or initialization failures.
+
+[Properties and events](/api/classes#timescope-properties)
+
+## Select a time range
+
+Selection is enabled by default. Shift-drag creates a range, and its handles allow resizing. Set `selection.resizable: false` to disable these interactions, or `selection: false` to disable selection and clear its range. `selection: true` restores default selection settings.
+
+Set an initial range with constructor `selection.range`, or change it later:
+
+```ts
+timescope.setSelectionRange([10, 20]);
+timescope.clearSelectionRange();
+```
+
+Passing `null` to `setSelectionRange()` also clears it. The setter is ignored while selection is disabled. Read `selectionRange` for the committed range and `selectionRangeChanging` during interaction; their events are `selectionrangechanged` and `selectionrangechanging`. Use `selection.color` to customize the overlay and `selection.invert: true` to shade outside the range.
+
 ## Update chart configuration
 
-Use a partial update for a local change, or replace the options when your application holds the complete desired configuration:
-
-| Method                 | Configuration                                        |
-| ---------------------- | ---------------------------------------------------- |
-| `updateOptions(patch)` | Merge changes; retain omitted settings               |
-| `setOptions(next)`     | Replace configuration; omitted settings use defaults |
+Use `updateOptions()` when changing part of the chart. It merges the supplied settings and keeps those you omit. For example, this changes the chart preset while retaining its source, color, and other settings:
 
 ```ts
 timescope.updateOptions({
@@ -30,7 +74,26 @@ timescope.updateOptions({
 });
 ```
 
-Time and zoom are preserved by both methods. For data changes rather than configuration changes, see [Loading and Updating Data](/guide/advanced/data).
+Use `setOptions()` instead when your application holds the complete desired configuration. It replaces the current options, so omitted settings return to their defaults.
+
+Objects merge in `updateOptions()`; arrays and source inputs replace their previous values. Named entries accept `null` for deletion. Both update methods preserve time and zoom, and clear selection only when it is disabled. For changes to the data itself, see [Loading and Updating Data](/guide/advanced/data).
+
+### Typed configuration
+
+Use `defineTimescopeOptions()` when extracting configuration into a reusable variable. It returns the same object while preserving inferred source names, row fields, metadata, and Track names, and checking their references:
+
+```ts
+import { defineTimescopeOptions } from 'timescope';
+
+const options = defineTimescopeOptions({
+  sources: { samples: [{ time: 0, value: 1 }] },
+  series: { signal: { data: { source: 'samples' }, chart: 'lines' } },
+});
+```
+
+Referenced DataSources, Tracks, and named Domains must exist. Omitting `tracks` creates an implicit `default` Track; an empty Track object is invalid.
+
+Use `createDefineTimescopeOptions(wrapper)` to integrate an options wrapper, such as a framework's reactive helper. It returns the wrapper's result with the input's inferred type, so the wrapper must preserve the options structure and value types. Without a wrapper it returns the input unchanged.
 
 ### Reuse default values
 
@@ -65,21 +128,11 @@ timescope.setPlaybackTime(null); // Restore the wall clock.
 
 ## Wait for data and drawing
 
-Use a **prepared view** to load required data before switching to a different time and zoom. For image export, also wait for `nextFrame()` after fetching:
+Use a **prepared view** to load the data needed at a particular time and zoom. Calling `fetch()` loads that data and activates the prepared view. Then await `nextFrame()` to finish drawing it before reading or exporting pixels.
 
-```text
-prepareView() → edit draft → await fetch() → await nextFrame() → export pixels
-                              data ready       drawing done
-```
+The `ready` and `mount` events only tell you that the canvas has a drawable size. Likewise, `reload()` requests a refresh without waiting for replacement data. Neither is a substitute for fetching and drawing before an export.
 
-| Operation or event   | Completion guarantee                           |
-| -------------------- | ---------------------------------------------- |
-| `ready` / `mount`    | Drawable canvas with a non-zero size           |
-| `await reload()`     | Invalidation requested if the result is `true` |
-| `await view.fetch()` | Required data ready; prepared view activated   |
-| `await nextFrame()`  | Requested frame drawn; no data-fetch guarantee |
-
-To finish loading and drawing the current view:
+To finish loading and drawing the current view, use these two calls in order:
 
 ```ts
 await timescope.prepareView().fetch();
@@ -105,7 +158,11 @@ try {
 > [!WARNING]
 > Navigation, option changes, resizing, or unmounting cancel an active fetch with `AbortError`. Keep the view, clock, and canvas size stable during export.
 
-[Prepared-view methods and cancellation](/api/timescope#prepared-views) · [Browser PNG export](/guide/advanced/backends#render-a-png-in-the-browser) · [Node.js PNG export](/guide/advanced/backends#render-a-png-in-node-js)
+Once `fetch()` starts, or after `abort()`, draft setters throw `InvalidStateError`. Fetching requires a mounted instance and no other fetching view. Call `view.abort(reason)` to cancel a draft or fetch; the default reason is `AbortError`, and `view.signal` exposes the cancellation signal. Acquisition failures reject `fetch()` with the original error.
+
+`redraw()` requests drawing without acquiring data. `nextFrame()` waits for a drawable mount and completed drawing, also without acquiring data.
+
+[Prepared-view methods and cancellation](/api/interfaces#timescopepreparedview-methods) · [Browser PNG export](/guide/advanced/backends#render-a-png-in-the-browser) · [Node.js PNG export](/guide/advanced/backends#render-a-png-in-node-js)
 
 ## Cleanup
 
@@ -141,6 +198,6 @@ const stop = timescope.on('timechanged', ({ value }) => {
 stop(); // End only this subscription; keep the chart active.
 ```
 
-Neither unsubscribing nor disposing cancels event callbacks already queued for delivery. `unmount()` is not disposal: it retains instance listeners for a later mount.
+`unmount()` retains instance listeners for a later mount. Use `dispose()` when the instance is no longer needed.
 
 [Framework components](/guide/advanced/frameworks/overview#lifecycle) handle instance disposal, including its listeners, automatically; do not duplicate that disposal. When HMR or in-page teardown requires cleanup, clean up application-owned timers, data producers, and listeners registered on external objects (such as `window` or a media element) yourself, whether using a framework component or a directly owned instance.

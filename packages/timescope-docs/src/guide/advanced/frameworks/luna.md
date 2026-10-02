@@ -64,13 +64,10 @@ To fit the data without binding time and zoom:
 
 ## Options and events
 
-| Task                            | Luna syntax                                                                    |
-| ------------------------------- | ------------------------------------------------------------------------------ |
-| Style the host element          | `style="height: 240px; background: white"` or `class`; accessors are supported |
-| Update options                  | `options={() => ...}` returning a new complete object                          |
-| Bind a selection                | `selectionRange={selection}` and `onSelectionRangeChanged={setSelection}`      |
-| Follow the clock                | `setTime(null)`                                                                |
-| Handle readiness                | `onReady={onReady}`                                                            |
-| Preview time during interaction | `onTimeChanging={setPreview}`                                                  |
+For reactive configuration, pass an `options` accessor that returns a new complete object when its dependencies change. The `style` and `class` props also accept accessors, so the host's dimensions and background can follow your application state.
+
+To synchronize a selection, pass its accessor as `selectionRange={selection}` and update it with `onSelectionRangeChanged={setSelection}`. Call `setTime(null)` to follow the clock.
+
+Use `onTimeChanging={setPreview}` to preview time during interaction. `onReady={onReady}` tells you when the canvas is mounted and drawable.
 
 [Shared component behavior](/guide/advanced/frameworks/overview#configuration-and-state) · [Props and callbacks](/api/frameworks) · [Data updates](/guide/advanced/data)
