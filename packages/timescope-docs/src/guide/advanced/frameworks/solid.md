@@ -76,4 +76,4 @@ To fit the data without binding time and zoom:
 | Preview time during interaction | `onTimeChanging={setPreview}`                                               |
 | Style the host element          | `class` and `style`                                                         |
 
-[Shared component behavior](/guide/advanced/frameworks#configuration-and-state) · [Props and callbacks](/api/frameworks) · [Data updates](/guide/advanced/data)
+[Shared component behavior](/guide/advanced/frameworks/overview#configuration-and-state) · [Props and callbacks](/api/frameworks) · [Data updates](/guide/advanced/data)

@@ -136,7 +136,7 @@ A string such as `'bold 14px "MS Gothic"'` is a complete font declaration, not a
 
 For text Marks, size priority is local string font → local object `font.size` → Mark `style.size` → global object `font.size` → default. A global string is used unchanged when neither a local font nor an explicit Mark size is set.
 
-Use `updateOptions({ font: { weight: 'normal' } })` to change only the weight, or `updateOptions({ font: undefined })` to clear the style. `setOptions()` replaces the configuration. [Framework components](/guide/advanced/frameworks) accept the style through `options.font`.
+Use `updateOptions({ font: { weight: 'normal' } })` to change only the weight, or `updateOptions({ font: undefined })` to clear the style. `setOptions()` replaces the configuration. [Framework components](/guide/advanced/frameworks/overview) accept the style through `options.font`.
 
 ### Load custom font data
 
@@ -148,4 +148,4 @@ Use `updateOptions({ font: { weight: 'normal' } })` to change only the weight, o
 | `[]`                   | None                                      |
 | URL / definition array | Specified stylesheets or font definitions |
 
-[Font inputs](/api/timescope#fonts) · [Font styles](/api/timescope-options#font-style) · [Framework components](/guide/advanced/frameworks)
+[Font inputs](/api/timescope#fonts) · [Font styles](/api/timescope-options#font-style) · [Framework components](/guide/advanced/frameworks/overview)

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { examples } from '../../../src/guide/examples/catalog';
+import { examples } from '../../../src/examples/catalog';
 import ExampleCard from './ExampleCard.vue';
 
 const active = ref('');

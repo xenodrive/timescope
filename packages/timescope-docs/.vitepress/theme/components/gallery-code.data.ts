@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { mountedCode } from '../../../src/guide/examples/module-code.ts';
+import { mountedCode } from '../../../src/examples/module-code.ts';
 
 export interface VanillaExample {
   html: string;
@@ -8,11 +8,11 @@ export interface VanillaExample {
 export declare const data: Record<string, VanillaExample>;
 
 function source(name: string) {
-  return readFileSync(new URL(`../../../src/guide/examples/${name}`, import.meta.url), 'utf8');
+  return readFileSync(new URL(`../../../src/examples/${name}`, import.meta.url), 'utf8');
 }
 
 export default {
-  watch: ['../../../src/guide/examples/*.vue', '../../../src/guide/examples/*.js'],
+  watch: ['../../../src/examples/*.vue', '../../../src/examples/*.js'],
   load() {
     const examples = [
       ['events', 'events-demo', '#example-intermediate-values'],

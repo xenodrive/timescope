@@ -4,7 +4,7 @@ title: Styling
 
 # Styling
 
-Style the host element with CSS and customize the drawing through chart options. The [Styling example](/guide/examples/#styling) combines a gradient background with custom Marks, Links, axes, cursor, and selection colors.
+Style the host element with CSS and customize the drawing through chart options. The [Styling example](/examples/gallery#styling) combines a gradient background with custom Marks, Links, axes, cursor, and selection colors.
 
 ## Backgrounds and layout
 
@@ -26,7 +26,7 @@ The canvas is transparent, so a chart can overlay a gradient or an image on its 
 
 Use `background-image: url(...)` and `background-size: cover` for an image. Add `overflow: hidden` when using rounded corners so the chart stays inside the target's shape.
 
-Set a definite target height for a chart; without one, the height falls back to `36px`. With [framework components](/guide/advanced/frameworks), use the component's `style` or class prop. CSS backgrounds are not included in [PNG exports](/guide/advanced/backends#render-a-png-in-the-browser).
+Set a definite target height for a chart; without one, the height falls back to `36px`. With [framework components](/guide/advanced/frameworks/overview), use the component's `style` or class prop. CSS backgrounds are not included in [PNG exports](/guide/advanced/backends#render-a-png-in-the-browser).
 
 ## Dark and light themes
 
@@ -67,7 +67,7 @@ Inherited fills use the Series color at 25% alpha. An explicit `fillColor` uses 
 
 Use `fillPost: true` when you want the fill to replace the interior portion of the outline; the default keeps the complete outline over the fill. Pixels outside the Mark's path are unaffected.
 
-Use `cursor.color` for the cursor's strip fill, `cursor.borderColor` for its center line, and `selection.color` for the selected-range overlay. The cursor's default strip is transparent. Time-axis lines, ticks, and out-of-range areas default to translucent neutral gray, visible on both light and dark backgrounds. Axis and label overrides are listed in the [options reference](/api/timescope-options#time-axis); the [Styling example](/guide/examples/#styling) shows these settings together.
+Use `cursor.color` for the cursor's strip fill, `cursor.borderColor` for its center line, and `selection.color` for the selected-range overlay. The cursor's default strip is transparent. Time-axis lines, ticks, and out-of-range areas default to translucent neutral gray, visible on both light and dark backgrounds. Axis and label overrides are listed in the [options reference](/api/timescope-options#time-axis); the [Styling example](/examples/gallery#styling) shows these settings together.
 
 ## Number formatting
 

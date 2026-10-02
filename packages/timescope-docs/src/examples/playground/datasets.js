@@ -1,4 +1,4 @@
-import { annotationData } from '../examples/annotation-data.js';
+import { annotationData } from '../annotation-data.js';
 
 const recording = annotationData();
 export const datasets = {

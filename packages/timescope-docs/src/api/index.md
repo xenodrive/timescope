@@ -1,24 +1,10 @@
-# API Reference
+---
+title: Redirecting
+layout: false
+---
 
-This reference lists API inputs, defaults, return values, and contracts. For step-by-step setup and examples, start with [Getting Started](/guide/getting-started) and the guides.
+<script setup>
+import Redirect from '../../.vitepress/theme/components/Redirect.vue';
+</script>
 
-| Reference                                   | Contents                                                |
-| ------------------------------------------- | ------------------------------------------------------- |
-| [Timescope](/api/timescope)                 | Constructor, state, methods, prepared views, events     |
-| [Timescope Options](/api/timescope-options) | DataSources, Series, Charts, Tracks, Domains, selection |
-| [Framework Components](/api/frameworks)     | Props, bindings, callbacks, component refs              |
-| [Decimal](/api/decimal)                     | Numeric inputs, arithmetic, rounding, conversion        |
-| [Calendar](/api/calendar)                   | Date components, time zones, alignment, format tokens   |
-
-```ts
-import {
-  Timescope,
-  createDataSource,
-  createDataLoader,
-  defineTimescopeOptions,
-  defaultOptions,
-  Decimal,
-  Calendar,
-} from 'timescope';
-import type { TimescopeOptions, TimescopeUpdateOptions, TimescopeTimeLike, TimescopeNumberLike } from 'timescope';
-```
+<Redirect to="/api/timescope" />

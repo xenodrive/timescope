@@ -1,5 +1,5 @@
 import { initialState, newDomain, newLayer, newSeries, newTrack } from './options.js';
-import { examples } from '../examples/catalog.ts';
+import { examples } from '../catalog.ts';
 
 // Sample-specific settings belong here, not in the editor's defaults.
 function chartState(height = 200) {

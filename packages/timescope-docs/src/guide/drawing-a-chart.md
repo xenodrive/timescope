@@ -49,7 +49,7 @@ const timescope = new Timescope({
 
 With `tracks` and `data.domain` omitted, this uses the implicit `default` Track and an independent, automatically scaled linear Domain. No value axis is shown unless requested.
 
-[Basic Chart example](/guide/examples/#basic-chart) · [Edit in Playground](/guide/examples/playground?preset=basic-chart)
+[Basic Chart example](/examples/gallery#basic-chart) · [Edit in Playground](/examples/playground?preset=basic-chart)
 
 ## Curve
 
@@ -87,7 +87,7 @@ The inline **Domain** enables a left value axis and adds `ms` to its labels and 
 
 The curve changes only the connections, not the samples or the Series' [instantaneous value](/guide/concepts#instantaneous-value).
 
-[Curve example](/guide/examples/#curve) · [Edit in Playground](/guide/examples/playground?preset=curve)
+[Curve example](/examples/gallery#curve) · [Edit in Playground](/examples/playground?preset=curve)
 
 ## Log Scale
 
@@ -141,7 +141,7 @@ These settings control label formatting independently of the scale and do not ch
 
 <ClientOnly><PresetPreview preset="log-scale" /></ClientOnly>
 
-[Log Scale example](/guide/examples/#log-scale) · [Edit in Playground](/guide/examples/playground?preset=log-scale)
+[Log Scale example](/examples/gallery#log-scale) · [Edit in Playground](/examples/playground?preset=log-scale)
 
 ## Marks & Links {#ribbon-points}
 
@@ -185,11 +185,11 @@ Links are drawn in array order, then Marks are drawn over them. Putting the area
 
 Other combinations work the same way: use `curve-area` and `curve` for a smooth ribbon, or use the [`linespoints` / `curvespoints` presets](/api/timescope-options#chart-presets) when you only need a line or curve with points.
 
-[Marks & Links example](/guide/examples/#ribbon-points) · [Edit in Playground](/guide/examples/playground?preset=ribbon-points)
+[Marks & Links example](/examples/gallery#ribbon-points) · [Edit in Playground](/examples/playground?preset=ribbon-points)
 
 ## Next steps
 
-- Compare shared Domains and separate Tracks in [Multiple Series](/guide/examples/#multiple-series) and [Multiple Tracks](/guide/examples/#multiple-tracks).
-- Open an example's **Options** popup for its configuration, or use [Playground](/guide/examples/playground) to edit it.
+- Compare shared Domains and separate Tracks in [Multiple Series](/examples/gallery#multiple-series) and [Multiple Tracks](/examples/gallery#multiple-tracks).
+- Open an example's **Options** popup for its configuration, or use [Playground](/examples/playground) to edit it.
 - Connect remote history, chunk loading, and live samples with [Loading and Updating Data](/guide/advanced/data).
 - Look up all [Chart presets](/api/timescope-options#chart-presets), [Links](/api/timescope-options#links), [Marks](/api/timescope-options#marks), and [`using` selectors](/api/timescope-options#using-selectors).

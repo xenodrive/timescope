@@ -1,8 +1,8 @@
 ---
-title: Framework Bindings
+title: Overview
 ---
 
-# Framework Bindings
+# Overview
 
 Use the chart configuration from [Drawing a Chart](/guide/drawing-a-chart) through a framework component's `options` prop. Choose one binding below; the examples are alternatives, not successive steps.
 

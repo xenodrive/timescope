@@ -48,25 +48,26 @@ export default defineConfig({
     nav: [
       {
         text: 'Guide',
-        link: '/guide/',
+        link: '/guide/getting-started',
+        activeMatch: '^/guide/',
       },
-      { text: 'Examples', link: '/guide/examples/' },
-      { text: 'API', link: '/api/' },
+      { text: 'Examples', link: '/examples/gallery', activeMatch: '^/examples/' },
+      { text: 'API', link: '/api/timescope', activeMatch: '^/api/' },
     ],
     socialLinks: [{ icon: 'github', link: 'https://github.com/xenodrive/timescope' }],
     sidebar: (() => {
       const shared = [
         {
           text: 'Guide',
-          link: '/guide/',
+          link: '/guide/getting-started',
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Core Concepts', link: '/guide/concepts' },
             { text: 'Drawing a Chart', link: '/guide/drawing-a-chart' },
             {
               text: 'Advanced',
-              link: '/guide/advanced/',
-              collapsed: true,
+              link: '/guide/advanced/data',
+              collapsed: false,
               items: [
                 { text: 'Loading and Updating Data', link: '/guide/advanced/data' },
                 { text: 'Controlling Views', link: '/guide/advanced/views' },
@@ -76,9 +77,10 @@ export default defineConfig({
             },
             {
               text: 'Framework Bindings',
-              link: '/guide/advanced/frameworks',
-              collapsed: true,
+              link: '/guide/advanced/frameworks/overview',
+              collapsed: false,
               items: [
+                { text: 'Overview', link: '/guide/advanced/frameworks/overview' },
                 { text: 'Vue', link: '/guide/advanced/frameworks/vue' },
                 { text: 'React', link: '/guide/advanced/frameworks/react' },
                 { text: 'Svelte', link: '/guide/advanced/frameworks/svelte' },
@@ -90,14 +92,15 @@ export default defineConfig({
         },
         {
           text: 'Examples',
+          link: '/examples/gallery',
           items: [
-            { text: 'Gallery', link: '/guide/examples/' },
-            { text: 'Playground', link: '/guide/examples/playground' },
+            { text: 'Gallery', link: '/examples/gallery' },
+            { text: 'Playground', link: '/examples/playground' },
           ],
         },
         {
           text: 'API Reference',
-          link: '/api/',
+          link: '/api/timescope',
           items: [
             { text: 'Timescope', link: '/api/timescope' },
             { text: 'Timescope Options', link: '/api/timescope-options' },
@@ -109,6 +112,7 @@ export default defineConfig({
       ];
       return {
         '/guide/': shared,
+        '/examples/': shared,
         '/api/': shared,
       };
     })(),

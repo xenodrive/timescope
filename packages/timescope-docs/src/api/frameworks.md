@@ -30,7 +30,7 @@ The `@timescope/*` packages wrap a Timescope instance in a component for each su
 | `renderThread`   | `'main' \| 'worker'`                                                                           | Creation-only; automatic when omitted                                      |
 | `fonts`          | `(string \| { family: string, source: string \| BufferSource, desc?: FontFaceDescriptors })[]` | Creation-only; [font inputs](/api/timescope#fonts)                         |
 
-`initialFit` requires creation-time `time` and `zoom` to be undefined; incompatible with `initialTime` / `initialZoom`. [Configuration and lifecycle](/guide/advanced/frameworks).
+`initialFit` requires creation-time `time` and `zoom` to be undefined; incompatible with `initialTime` / `initialZoom`. [Configuration and lifecycle](/guide/advanced/frameworks/overview).
 
 ## Reactive inputs
 
@@ -42,7 +42,7 @@ The `@timescope/*` packages wrap a Timescope instance in a component for each su
 | Svelte    | CSS-string `style`; string `class`                      |
 | Luna      | CSS-string `style`; string `class`; values or accessors |
 
-Host styling applies to the target element. [Styling components](/guide/advanced/frameworks#lifecycle).
+Host styling applies to the target element. [Styling components](/guide/advanced/frameworks/overview#lifecycle).
 
 | Framework | State input                                               | Options updates                        |
 | --------- | --------------------------------------------------------- | -------------------------------------- |

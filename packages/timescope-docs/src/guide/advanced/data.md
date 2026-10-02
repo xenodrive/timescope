@@ -146,7 +146,7 @@ Templated URLs and range loaders use the same response contract. Return complete
 | Intervals                  | All intersecting rows, without trimming their times                             |
 | Recommended Link neighbors | One on each side for lines/steps; two for curves, including empty ranges        |
 
-[Loading options](/api/timescope-options#source-options) · [Resolution](/api/timescope-options#resolution) · [Dynamic Loader example](/guide/examples/#dynamic-loader)
+[Loading options](/api/timescope-options#source-options) · [Resolution](/api/timescope-options#resolution) · [Dynamic Loader example](/examples/gallery#dynamic-loader)
 
 ## Refresh changed data
 
@@ -201,11 +201,11 @@ timescope.setPlaybackTime(2);
 | Promise completion   | Data updated; drawing may still be pending                                  |
 | Snapshot replacement | `invalidate()` discards appends absent from the original input              |
 
-[Appending Points](/api/timescope-options#appending-points) · [Live Stream example](/guide/examples/#live-stream)
+[Appending Points](/api/timescope-options#appending-points) · [Live Stream example](/examples/gallery#live-stream)
 
 ## Reuse a DataSource {#reuse-a-source}
 
-When replacing configuration, keep the same DataSource instance to retain loaded data. This also applies to [framework `options` updates](/guide/advanced/frameworks#configuration-and-state): do not recreate the DataSource for an appearance-only change.
+When replacing configuration, keep the same DataSource instance to retain loaded data. This also applies to [framework `options` updates](/guide/advanced/frameworks/overview#configuration-and-state): do not recreate the DataSource for an appearance-only change.
 
 ```ts
 timescope.setOptions({

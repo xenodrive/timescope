@@ -75,4 +75,4 @@ To fit the data without binding time and zoom:
 | Handle readiness                | `onReady={onReady}`                                                                                              |
 | Preview time during interaction | `onTimeChanging={setPreview}`                                                                                    |
 
-[Shared component behavior](/guide/advanced/frameworks#configuration-and-state) · [Props, callbacks, and ref methods](/api/frameworks) · [Data updates](/guide/advanced/data)
+[Shared component behavior](/guide/advanced/frameworks/overview#configuration-and-state) · [Props, callbacks, and ref methods](/api/frameworks) · [Data updates](/guide/advanced/data)

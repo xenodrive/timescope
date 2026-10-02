@@ -143,4 +143,4 @@ stop(); // End only this subscription; keep the chart active.
 
 Neither unsubscribing nor disposing cancels event callbacks already queued for delivery. `unmount()` is not disposal: it retains instance listeners for a later mount.
 
-[Framework components](/guide/advanced/frameworks#lifecycle) handle instance disposal, including its listeners, automatically; do not duplicate that disposal. When HMR or in-page teardown requires cleanup, clean up application-owned timers, data producers, and listeners registered on external objects (such as `window` or a media element) yourself, whether using a framework component or a directly owned instance.
+[Framework components](/guide/advanced/frameworks/overview#lifecycle) handle instance disposal, including its listeners, automatically; do not duplicate that disposal. When HMR or in-page teardown requires cleanup, clean up application-owned timers, data producers, and listeners registered on external objects (such as `window` or a media element) yourself, whether using a framework component or a directly owned instance.

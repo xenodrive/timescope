@@ -6,8 +6,8 @@ import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, r
 import { data as examplesCode } from './gallery-code.data';
 import { highlight } from './gallery-highlight';
 import { withBase } from 'vitepress';
-import { presets } from '../../../src/guide/playground/presets.js';
-import { buildOptions, optionsCode } from '../../../src/guide/playground/options.js';
+import { presets } from '../../../src/examples/playground/presets.js';
+import { buildOptions, optionsCode } from '../../../src/examples/playground/options.js';
 import PresetPreview from './PresetPreview.vue';
 
 const props = defineProps<{
@@ -19,8 +19,8 @@ const props = defineProps<{
   preset?: string;
 }>();
 defineEmits(['open', 'close']);
-const modules = import.meta.glob<Component>('../../../src/guide/examples/*.vue', { import: 'default' });
-const demo = props.preset ? undefined : defineAsyncComponent(modules[`../../../src/guide/examples/${props.name}.vue`]);
+const modules = import.meta.glob<Component>('../../../src/examples/*.vue', { import: 'default' });
+const demo = props.preset ? undefined : defineAsyncComponent(modules[`../../../src/examples/${props.name}.vue`]);
 const code = computed(() => examplesCode[props.name]);
 const file = ref<'javascript' | 'html'>('javascript');
 const copied = ref(false);
@@ -129,7 +129,7 @@ async function copy() {
         <h2>{{ title }}</h2>
       </div>
       <div class="example-panel-actions">
-        <a v-if="preset" class="example-code-button" :href="withBase(`/guide/examples/playground?preset=${preset}`)"
+        <a v-if="preset" class="example-code-button" :href="withBase(`/examples/playground?preset=${preset}`)"
           >→ Playground</a
         >
         <button

@@ -61,4 +61,4 @@ To fit the data without binding time and zoom:
 | Handle readiness                | `@ready="onReady"`                                                                  |
 | Preview time during interaction | `@timechanging="value => preview = value"`; the handler receives the value directly |
 
-[Shared component behavior](/guide/advanced/frameworks#configuration-and-state) · [Props, events, and ref methods](/api/frameworks) · [Data updates](/guide/advanced/data)
+[Shared component behavior](/guide/advanced/frameworks/overview#configuration-and-state) · [Props, events, and ref methods](/api/frameworks) · [Data updates](/guide/advanced/data)

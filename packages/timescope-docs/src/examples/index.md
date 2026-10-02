@@ -7,4 +7,4 @@ layout: false
 import Redirect from '../../.vitepress/theme/components/Redirect.vue';
 </script>
 
-<Redirect to="/guide/getting-started" />
+<Redirect to="/examples/gallery" />

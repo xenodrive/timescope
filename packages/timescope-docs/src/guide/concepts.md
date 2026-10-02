@@ -108,4 +108,4 @@ A Domain can follow visible data. Unspecified bounds adjust automatically; [**`e
 
 ## Next steps
 
-Follow [Drawing a Chart](/guide/drawing-a-chart) to turn these concepts into code, then explore more combinations in the [Examples](/guide/examples/).
+Follow [Drawing a Chart](/guide/drawing-a-chart) to turn these concepts into code, then explore more combinations in the [Examples](/examples/gallery).

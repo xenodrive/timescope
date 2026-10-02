@@ -1,8 +1,8 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { Timescope } from 'timescope';
-import { presets } from '../../../src/guide/playground/presets.js';
-import { buildOptions } from '../../../src/guide/playground/options.js';
+import { presets } from '../../../src/examples/playground/presets.js';
+import { buildOptions } from '../../../src/examples/playground/options.js';
 
 const props = defineProps({ preset: { type: String, required: true } });
 const target = ref();

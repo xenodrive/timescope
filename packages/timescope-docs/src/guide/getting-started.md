@@ -69,7 +69,7 @@ timescope.fitTo([0, 30]);
 
 - Learn the [Core Concepts](/guide/concepts)
 - Add data, lines, curves, and points with [Drawing a Chart](/guide/drawing-a-chart)
-- Connect remote data and application controls with [Advanced guides](/guide/advanced/)
-- Use a [framework binding](/guide/advanced/frameworks)
-- Explore [Examples](/guide/examples/)
+- Connect remote data and application controls with [Loading and Updating Data](/guide/advanced/data)
+- Use a [framework binding](/guide/advanced/frameworks/overview)
+- Explore [Examples](/examples/gallery)
 - Look up signatures and options in the [API Reference](/api/timescope)

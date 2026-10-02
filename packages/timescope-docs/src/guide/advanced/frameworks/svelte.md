@@ -58,4 +58,4 @@ To fit the data without binding time and zoom:
 | Handle readiness                | `on:ready={onReady}`                                                                 |
 | Preview time during interaction | `on:timechanging={event => preview = event.detail}`; events carry values in `detail` |
 
-[Shared component behavior](/guide/advanced/frameworks#configuration-and-state) · [Props, events, and ref methods](/api/frameworks) · [Data updates](/guide/advanced/data)
+[Shared component behavior](/guide/advanced/frameworks/overview#configuration-and-state) · [Props, events, and ref methods](/api/frameworks) · [Data updates](/guide/advanced/data)

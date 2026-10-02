@@ -16,7 +16,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: View Examples
-      link: /guide/examples/
+      link: /examples/gallery
     - theme: alt
       text: API Reference
       link: /api/timescope
