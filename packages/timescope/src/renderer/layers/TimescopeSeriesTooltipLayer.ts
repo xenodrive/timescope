@@ -1,5 +1,3 @@
-import { bisectRight } from '#src/core/bisect';
-import type { Decimal } from '#src/core/decimal';
 import { Vector2f } from '#src/core/vector';
 import { DEFAULT_FONT_FAMILY, resolveFont } from '#src/main/fontStyle';
 import { disperse } from '#src/renderer/layers/disperse';
@@ -15,20 +13,11 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
     this.#renderTooltips(timescope);
   }
 
-  #readByTime(data: TimescopeSeriesTooltipData['data'], t: Decimal) {
-    if (!data) return;
-    const idx = bisectRight(data.t, t);
-    if (0 < idx && idx <= data.t.length) return idx - 1;
-    return undefined;
-  }
-
   #renderTooltips(timescope: TimescopeRenderingContext) {
     if (timescope.timeAxis.animating) return;
     if (!timescope.options.series) return;
 
-    const cursor = timescope.timeAxis.cursor;
-    const cursorDecimal = cursor.time ?? timescope.timeAxis.now;
-    const cursorX = cursor.p;
+    const cursorX = timescope.timeAxis.cursor.p;
 
     // group by tracks
     forEachTrack(timescope, (_trackId, track) => {
@@ -58,9 +47,9 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
           data: { data: tooltipData, meta },
         } = cache;
 
-        const idx = this.#readByTime(tooltipData, cursorDecimal);
-        if (idx == null) continue;
-
+        // The provider already selected the instantaneous sample. Keep showing it
+        // when a backward pan moves the cursor before its time, until the cache updates.
+        const idx = 0;
         const time = tooltipData.t[idx];
         if (!time) continue;
         const x = timescope.timeAxis.p(time);

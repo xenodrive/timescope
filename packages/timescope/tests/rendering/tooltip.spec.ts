@@ -15,9 +15,12 @@ describe('tooltip label placement', () => {
     { x: 70, edges: [120, 90, 120, 120, 90], positions: [125.5, 95.5, 125.5, 125.5, 95.5], flipped: 'left' },
     { x: 130, edges: [110, 80, 110, 110, 80], positions: [103.5, 73.5, 103.5, 103.5, 73.5], flipped: 'right' },
     { x: 80, edges: [120, 60, 120, 120, 60], positions: [125.5, 53.5, 125.5, 125.5, 53.5], live: true },
-  ])('places labels at x=$x, live=$live', ({ x, edges, positions, flipped, live }) => {
+    { x: 120, edges: [140, 80, 140, 140, 80], positions: [145.5, 73.5, 145.5, 145.5, 73.5], backward: true },
+  ])('renders cached samples at x=$x', ({ x, edges, positions, flipped, live, backward }) => {
     const drawn: string[] = [];
+    const texts: string[] = [];
     const labelXs: number[] = [];
+    let sampleX = x;
     const moveTo = vi.fn();
     const lineTo = vi.fn();
     const ctx = new Proxy(
@@ -27,8 +30,9 @@ describe('tooltip label placement', () => {
         measureText: () => ({ width: 20, fontBoundingBoxAscent: 8, fontBoundingBoxDescent: 2 }),
         moveTo,
         lineTo,
-        fillText(_text: string, x: number) {
+        fillText(text: string, x: number) {
           drawn.push(this.textAlign);
+          texts.push(text);
           labelXs.push(x);
         },
       },
@@ -51,17 +55,18 @@ describe('tooltip label placement', () => {
           `series:${key}:tooltip`,
           {
             data: {
-              data: { t: [Decimal(0), Decimal(2)], y: [20 + index * 35, 999], text: [key, 'future'] },
+              data: { t: [Decimal(0)], y: [20 + index * 35], text: [key] },
               meta: { color: '#0284c7', projection: { domainId: 'amplitude' } },
             },
           },
         ]),
       ),
       timeAxis: {
-        cursor: { time: live ? null : Decimal(1), p: 100 },
+        cursor: { time: live ? null : Decimal(backward ? -1 : 1), p: 100 },
         now: Decimal(1),
-        p: (time: Decimal) => (time.eq(1) ? 100 : x),
+        p: (time: Decimal) => (time.eq(1) ? 100 : sampleX),
         animating: false,
+        editing: !!backward,
       },
     } as unknown as TimescopeRenderingContext;
     const layer = new TimescopeSeriesTooltipLayer();
@@ -78,6 +83,20 @@ describe('tooltip label placement', () => {
       expect(lineTo.mock.calls).toEqual([0, 1, 2, 3, 4].map((index) => [x, 20 + index * 35]));
       // Boundary overlap switches the label side; leader lines follow its nearest edge.
       expect(moveTo.mock.calls.map(([edgeX]) => edgeX)).toEqual(edges.map((edge) => expect.closeTo(edge, 1)));
+      if (backward) {
+        // The replacement snapshot catches up with the backward-moving cursor.
+        for (const key of keys) {
+          const data = rendering.dataCaches[`series:${key}:tooltip`].data.data;
+          data.t[0] = Decimal(-2);
+          data.text[0] = `${key} updated`;
+        }
+        sampleX = 80;
+        texts.length = 0;
+        lineTo.mockClear();
+        layer.postRender(rendering);
+        expect(texts).toEqual(keys.map((key) => `${key} updated`));
+        expect(lineTo.mock.calls).toEqual([0, 1, 2, 3, 4].map((index) => [80, 20 + index * 35]));
+      }
     } finally {
       layer.dispose();
     }
