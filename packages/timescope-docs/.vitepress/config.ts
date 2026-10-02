@@ -2,6 +2,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitepress';
 import { apiMarkdown } from './api-markdown.ts';
+import { docSections } from './doc-sections.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = resolve(__dirname, '..');
@@ -37,7 +38,10 @@ export default defineConfig({
   lastUpdated: false,
   markdown: {
     math: true,
-    config: apiMarkdown,
+    config(md) {
+      apiMarkdown(md);
+      docSections(md);
+    },
     //lineNumbers: true,
     theme: {
       light: 'github-light',

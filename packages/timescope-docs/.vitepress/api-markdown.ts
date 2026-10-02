@@ -4,18 +4,9 @@ import { defineApiMember } from './api-members.ts';
 /** Render API Markdown through shared components; keep content in the Markdown pages. */
 export function apiMarkdown(md: MarkdownRenderer) {
   const attribute = (value: unknown) => md.utils.escapeHtml(JSON.stringify(value));
-  const objectHeadingLevels: Record<string, number> = {
-    'api/classes.md': 2,
-    'api/interfaces.md': 2,
-    'api/types.md': 3,
-    'api/utilities.md': 2,
-  };
-
   md.core.ruler.push('api-reference', (state) => {
     if (!state.env.relativePath?.startsWith('api/')) return;
     const output: typeof state.tokens = [];
-    const objectHeadingLevel = objectHeadingLevels[state.env.relativePath];
-    let inObject = false;
     let owner = '';
     let kind = 'Method';
     const anchors = new Set<string>();
@@ -31,15 +22,7 @@ export function apiMarkdown(md: MarkdownRenderer) {
       const token = state.tokens[index];
       if (token.type === 'heading_open') {
         const level = Number(token.tag.slice(1));
-        if (inObject && level <= objectHeadingLevel) {
-          output.push(html('</section>\n'));
-          inObject = false;
-        }
-        if (level === objectHeadingLevel) {
-          output.push(html('<section class="api-object">\n'));
-          token.attrJoin('class', 'api-object-heading');
-          inObject = true;
-        } else if (level > 1) {
+        if (level > 1) {
           token.attrJoin('class', 'api-section-heading');
         }
       }
@@ -140,7 +123,6 @@ export function apiMarkdown(md: MarkdownRenderer) {
         output.push(open, ...body, html('</ApiTable>\n'));
       }
     }
-    if (inObject) output.push(html('</section>\n'));
     state.tokens = output;
   });
 

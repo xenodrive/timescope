@@ -8,7 +8,11 @@ import WarpBackground from './WarpBackground.vue';
 import './style.css';
 import './landing.css';
 import './api.css';
+import './doc-sections.css';
 import './print.css';
+import { useStickyGroups } from './useStickyGroups';
+
+useStickyGroups();
 
 const Layout = DefaultTheme.Layout;
 </script>
