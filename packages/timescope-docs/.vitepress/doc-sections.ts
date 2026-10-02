@@ -6,6 +6,14 @@ export function docSections(md: MarkdownRenderer) {
     const { frontmatter = {}, relativePath = '' } = state.env;
     if (frontmatter.layout && frontmatter.layout !== 'doc') return;
     if (frontmatter.stickyHeadings === false) return;
+    // VitePress may process the same tokens again; never nest generated sections twice.
+    if (
+      state.tokens.some(
+        (token) =>
+          token.type === 'heading_open' && /\bdoc-(section|group)-heading\b/.test(token.attrGet('class') ?? ''),
+      )
+    )
+      return;
 
     const headingLevel = relativePath === 'api/types.md' ? 3 : 2;
     const output: typeof state.tokens = [];

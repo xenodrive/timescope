@@ -17,22 +17,22 @@
 }
 
 .vp-doc .doc-group {
-  --doc-group-offset: 0px;
+  --doc-group-offset: 0.375rem;
   display: flex;
   flex-direction: column;
-  margin: 2.5rem 0;
+  margin: 1.5rem 0;
 }
 
 .vp-doc .doc-group > .doc-group-heading {
   box-sizing: border-box;
-  height: 4rem;
+  height: 3rem;
   flex-shrink: 0;
   position: sticky;
   top: var(--doc-sticky-top);
   z-index: 11;
   margin: 0;
   border: 0;
-  padding: 1rem 0;
+  padding: 0.5rem 0;
   background: var(--vp-c-bg);
   color: var(--vp-c-text-1);
   font-size: 1.75rem;
@@ -46,18 +46,22 @@
 }
 
 .vp-doc .doc-group-heading .header-anchor {
-  top: 1rem;
+  top: 0.5rem;
 }
 
 .vp-doc .doc-group.is-stuck > .doc-group-heading {
-  padding: 0;
+  padding: 0.375rem 0 0;
   font-size: 0.875rem;
   line-height: 1;
-  background: linear-gradient(to bottom, var(--vp-c-bg) 0.875rem, transparent 0.875rem);
+  background: linear-gradient(to bottom, var(--vp-c-bg) 1.25rem, transparent 1.25rem);
 }
 
 .vp-doc .doc-group.is-stuck > .doc-group-heading .header-anchor {
-  top: 0;
+  top: 0.375rem;
+}
+
+.vp-doc .doc-group > .doc-section {
+  margin: 0.5rem 0 1.5rem;
 }
 
 .vp-doc .doc-group > .doc-section + .doc-section {
@@ -96,6 +100,10 @@
   content: '';
 }
 
+.vp-doc .doc-group .doc-section-heading {
+  margin-bottom: 0.5rem;
+}
+
 .vp-doc .doc-section-heading .header-anchor {
   top: 0.875rem;
 }
@@ -121,7 +129,7 @@
 
 @media print {
   .vp-doc .doc-group.is-stuck > .doc-group-heading {
-    padding: 1rem 0;
+    padding: 0.5rem 0;
     font-size: 1.75rem;
     line-height: 2rem;
   }

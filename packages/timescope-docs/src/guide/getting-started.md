@@ -10,7 +10,7 @@ import ExampleSimple from './getting-started-demo.vue'
 npm install timescope
 ```
 
-## Create a time navigator
+## Create your first Timescope
 
 ```html
 <div id="timescope"></div>

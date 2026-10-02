@@ -49,6 +49,9 @@ export default defineConfig({
     },
   },
   themeConfig: {
+    search: {
+      provider: 'local',
+    },
     logo: '/logo.svg',
     outline: 'deep',
     nav: [
@@ -85,7 +88,7 @@ export default defineConfig({
             {
               text: 'Framework Bindings',
               link: '/guide/advanced/frameworks/overview',
-              collapsed: false,
+              collapsed: true,
               items: [
                 { text: 'Overview', link: '/guide/advanced/frameworks/overview' },
                 { text: 'Vue', link: '/guide/advanced/frameworks/vue' },
