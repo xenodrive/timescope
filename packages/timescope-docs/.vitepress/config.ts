@@ -1,7 +1,6 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitepress';
-import { examples } from '../src/guide/examples/catalog.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkgRoot = resolve(__dirname, '..');
@@ -91,10 +90,8 @@ export default defineConfig({
         },
         {
           text: 'Examples',
-          link: '/guide/examples/',
-          collapsed: true,
           items: [
-            ...examples.map(({ name, title }) => ({ text: title, link: `/guide/examples/#${name}` })),
+            { text: 'Gallery', link: '/guide/examples/' },
             { text: 'Playground', link: '/guide/examples/playground' },
           ],
         },

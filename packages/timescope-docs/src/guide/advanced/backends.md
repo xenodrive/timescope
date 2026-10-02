@@ -90,7 +90,7 @@ Reuse the same `options` and completion sequence. Supply a `Canvas` from `skia-c
 npm install timescope skia-canvas
 ```
 
-```ts
+```ts {6-7}
 import { Canvas } from 'skia-canvas';
 import { Timescope } from 'timescope';
 

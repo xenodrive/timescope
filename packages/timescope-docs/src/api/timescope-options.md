@@ -4,6 +4,8 @@ titleTemplate: Timescope API
 
 # Timescope Options
 
+Timescope options configure a chart's data, drawing, value scales, layout, and appearance. Use the same settings in the constructor, `setOptions()`, or a framework component's `options` prop; use `updateOptions()` for partial changes.
+
 | Type / helper                     | Accepted by / result                                                                 |
 | --------------------------------- | ------------------------------------------------------------------------------------ |
 | `TimescopeOptions`                | `setOptions()` and framework `options` props                                         |
@@ -242,17 +244,17 @@ type TimescopeRangeLoader<T = unknown> = (request: TimescopeLoadRequest) => T | 
 
 ## Series
 
-| Key                  | Type                                                             | Contract                                           |
-| -------------------- | ---------------------------------------------------------------- | -------------------------------------------------- |
-| `data.source`        | `string`                                                         | Required; name in `options.sources`                |
-| `data.name`          | `string`                                                         | Display name                                       |
-| `data.color`         | `string`                                                         | Default Chart color                                |
-| `data.domain`        | `string \| TimescopeDomainOptions`                               | Shared Domain name or inline Domain                |
-| `data.resolution`    | `TimescopeDataResolution`                                        | [Data-resolution selection](#resolution)           |
-| `data.instantaneous` | `false \| { using?, zoom?, resolution? }`                        | [Cursor sampling](#instantaneous-values)           |
-| `chart`              | `TimescopeChartType \| { marks?, links? }`                       | Preset or custom primitives                        |
-| `tooltip`            | `boolean \| { label?: string, round?: TimescopeRound, format? }` | Tooltip settings; `false` disables cursor sampling |
-| `track`              | `string`                                                         | Track name                                         |
+| Key                  | Type                                                                                       | Contract                                           |
+| -------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| `data.source`        | `string`                                                                                   | Required; name in `options.sources`                |
+| `data.name`          | `string`                                                                                   | Display name                                       |
+| `data.color`         | `string`                                                                                   | Default Chart color                                |
+| `data.domain`        | `string \| TimescopeDomainOptions`                                                         | Shared Domain name or inline Domain                |
+| `data.resolution`    | `TimescopeDataResolution`                                                                  | [Data-resolution selection](#resolution)           |
+| `data.instantaneous` | `false \| { using?, zoom?, resolution? }`                                                  | [Cursor sampling](#instantaneous-values)           |
+| `chart`              | `TimescopeChartType \| { marks?, links? }`                                                 | Preset or custom primitives                        |
+| `tooltip`            | `boolean \| { label?: string, side?: 'left' \| 'right', round?: TimescopeRound, format? }` | Tooltip settings; `false` disables cursor sampling |
+| `track`              | `string`                                                                                   | Track name                                         |
 
 ### Resolution
 
@@ -290,8 +292,11 @@ Defaults: display resolution, `'nearest'` snap. Candidates: source hints, otherw
 | Field    | Type                  | Contract                                                                     |
 | -------- | --------------------- | ---------------------------------------------------------------------------- |
 | `label`  | `string`              | Tooltip label override                                                       |
+| `side`   | `'left' \| 'right'`   | Preferred label side relative to the sample; default: `'right'`.             |
 | `round`  | `TimescopeRound`      | Number rounding and label; unspecified: decimal without fixed rounding       |
 | `format` | `(context) => string` | Complete tooltip formatter; overrides the default display, including `round` |
+
+Labels stay at least 20 pixels from the axis on the sample's side of the cursor, or from the cursor on the opposite side. If this boundary placement overlaps the sample's 20-pixel gap, the label switches to the side away from the axis. Placement is mirrored for samples to the right of the cursor. Leader lines connect the nearest label edge to the actual sample position, including off-screen samples.
 
 | Formatter context field | Type                  |
 | ----------------------- | --------------------- |

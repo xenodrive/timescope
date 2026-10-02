@@ -55,7 +55,7 @@ With `tracks` and `data.domain` omitted, this uses the implicit `default` Track 
 
 Use `chart: 'curves'` to join samples with a monotone cubic curve rather than straight segments. Replace the basic configuration with the following response-time example:
 
-```ts
+```ts {19}
 const response = Array.from({ length: 16 }, (_, index) => {
   const time = index * 4;
   const decay = 10 ** (4 - time / 12);
@@ -91,24 +91,55 @@ The curve changes only the connections, not the samples or the Series' [instanta
 
 ## Log Scale
 
-The response values span several orders of magnitude. A linear scale makes the small bump near 44 seconds hard to see. On the instance created above, switch to a logarithmic scale and use powers of ten for axis and tooltip labels:
+The response values span several orders of magnitude. A linear scale makes the small bump near 44 seconds hard to see. On the instance created above, switch to a logarithmic scale:
 
-```ts
+```ts {6}
 timescope.updateOptions({
   series: {
     response: {
-      data: { domain: { scale: 'log', axis: { round: 'pow10' } } },
-      tooltip: { round: 'pow10' },
+      data: {
+        domain: {
+          scale: 'log',
+        },
+      },
     },
   },
 });
 ```
 
-<ClientOnly><PresetPreview preset="log-scale" /></ClientOnly>
-
 `updateOptions()` merges the change, keeping the DataSource, curve, unit, and other value-axis settings. For an initially logarithmic Chart, put these settings in the constructor instead.
 
-**Logarithmic Domains draw positive values only.** Any specified bounds must also be positive. Equal vertical distances now represent equal ratios rather than equal differences; time and the row values themselves are unchanged.
+> [!WARNING]
+> Logarithmic Domains draw positive values only. Any specified bounds must also be positive.
+
+Equal vertical distances now represent equal ratios rather than equal differences; time and the row values themselves are unchanged.
+
+### Format axis and tooltip labels
+
+Logarithmic scaling does not require a particular number format. To display powers of ten in the labels, configure the Domain's `axis.round` and the Series' `tooltip.round` separately from `scale`:
+
+```ts
+timescope.updateOptions({
+  series: {
+    response: {
+      data: {
+        domain: {
+          axis: {
+            round: 'pow10',
+          },
+        },
+      },
+      tooltip: {
+        round: 'pow10',
+      },
+    },
+  },
+});
+```
+
+These settings control label formatting independently of the scale and do not change the source values. See [Number formatting](/guide/advanced/styling#number-formatting) for other formats.
+
+<ClientOnly><PresetPreview preset="log-scale" /></ClientOnly>
 
 [Log Scale example](/guide/examples/#log-scale) · [Edit in Playground](/guide/examples/playground?preset=log-scale)
 
@@ -126,7 +157,7 @@ const measurements = Array.from({ length: 121 }, (_, index) => {
 
 Compose the Chart from Marks and Links rather than using a string preset:
 
-```ts
+```ts {9-10}
 const timescope = new Timescope({
   target: '#timescope',
   fit: [0, 60],
@@ -158,7 +189,7 @@ Other combinations work the same way: use `curve-area` and `curve` for a smooth 
 
 ## Next steps
 
-- Compare shared Domains and separate Tracks in [Multiple Charts](/guide/examples/#multiple-charts) and [Multiple Tracks](/guide/examples/#multiple-tracks).
+- Compare shared Domains and separate Tracks in [Multiple Series](/guide/examples/#multiple-series) and [Multiple Tracks](/guide/examples/#multiple-tracks).
 - Open an example's **Options** popup for its configuration, or use [Playground](/guide/examples/playground) to edit it.
 - Connect remote history, chunk loading, and live samples with [Loading and Updating Data](/guide/advanced/data).
 - Look up all [Chart presets](/api/timescope-options#chart-presets), [Links](/api/timescope-options#links), [Marks](/api/timescope-options#marks), and [`using` selectors](/api/timescope-options#using-selectors).

@@ -1,5 +1,5 @@
 import { bisectRight } from '#src/core/bisect';
-import { Decimal } from '#src/core/decimal';
+import type { Decimal } from '#src/core/decimal';
 import { Vector2f } from '#src/core/vector';
 import { DEFAULT_FONT_FAMILY, resolveFont } from '#src/main/fontStyle';
 import { disperse } from '#src/renderer/layers/disperse';
@@ -7,12 +7,6 @@ import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
 import { forEachTrack } from '#src/renderer/rendering';
 import type { TimescopeRenderingContext, TimescopeSeriesTooltipData } from '#src/renderer/types';
 import type { TimescopeDataCache } from '../TimescopeDataCache.ts';
-
-export function tooltipXPlacement(x: number, left: number, right: number, sideX: number) {
-  if (x < left) return { x: left, sideX: 1, sticky: true };
-  if (x > right) return { x: right, sideX: -1, sticky: true };
-  return { x, sideX, sticky: false };
-}
 
 export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
   postRender(timescope: TimescopeRenderingContext): void {
@@ -32,15 +26,15 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
     if (timescope.timeAxis.animating) return;
     if (!timescope.options.series) return;
 
-    const cursorTime = timescope.timeAxis.cursor.time;
-    const cursorDecimal = cursorTime ?? Decimal(Date.now() / 1000)!;
+    const cursor = timescope.timeAxis.cursor;
+    const cursorDecimal = cursor.time ?? timescope.timeAxis.now;
+    const cursorX = cursor.p;
 
     // group by tracks
     forEachTrack(timescope, (_trackId, track) => {
       const ctx = timescope.ctx;
 
       const labels = [];
-      let sideX = 1;
 
       ctx.font = resolveFont(
         undefined,
@@ -70,12 +64,7 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
         const time = tooltipData.t[idx];
         if (!time) continue;
         const x = timescope.timeAxis.p(time);
-        const placement = tooltipXPlacement(x, 5, timescope.size.width - 5, sideX);
-
-        /*
-        if (s.options.label === false) continue;
-        if (s.options.label?.side) sideX = s.options.label.side === 'right' ? 1 : -1;
-        */
+        const side = typeof series.tooltip === 'object' ? series.tooltip.side : undefined;
 
         const point_y = tooltipData.y[idx];
         const text = tooltipData.text[idx];
@@ -95,14 +84,12 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
         labels.push({
           id: labels.length,
 
-          cx: placement.x,
+          cx: x,
           cy: y,
           point: new Vector2f(0, y),
           color,
           metrics,
-          sticky: placement.sticky,
-
-          sideX: placement.sideX,
+          sideX: side === 'left' ? -1 : 1,
 
           text: {
             dx: paddingX,
@@ -117,21 +104,44 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
             height: paddingY * 2 + metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent,
           },
         });
-
-        sideX = -sideX;
       }
 
       disperse(labels, 5, timescope.size.height - 5);
 
+      const labelGap = 20;
       for (const p of labels) {
-        p.point.x = p.sticky ? p.cx : p.cx + p.sideX * (p.point.x + 20);
+        const sampleOnLeft = p.cx <= cursorX;
+        p.point.x = p.cx + p.sideX * (p.point.x + labelGap) - p.box.dx;
+        const sampleEdge = p.point.x + p.box.dx;
+        const sampleLeft = Math.min(sampleEdge, sampleEdge + p.sideX * p.box.width);
+        const sampleRight = Math.max(sampleEdge, sampleEdge + p.sideX * p.box.width);
+        if (sampleOnLeft) {
+          const boundary = (p.sideX < 0 ? 0 : cursorX) + labelGap;
+          p.point.x += Math.max(0, boundary - sampleLeft);
+        } else {
+          const boundary = (p.sideX < 0 ? cursorX : timescope.size.width) - labelGap;
+          p.point.x += Math.min(0, boundary - sampleRight);
+        }
+
+        const edgeX = p.point.x + p.box.dx;
+        // Include the gap in the label's exclusion region before checking overlap.
+        const left = Math.min(edgeX, edgeX + p.sideX * p.box.width) - labelGap;
+        const right = Math.max(edgeX, edgeX + p.sideX * p.box.width) + labelGap;
+        const top = p.point.y + p.box.dy - labelGap;
+        const bottom = p.point.y + p.box.dy + p.box.height + labelGap;
+        if (p.cx > left && p.cx < right && p.cy > top && p.cy < bottom) {
+          p.sideX = sampleOnLeft ? 1 : -1;
+          p.point.x = p.cx + p.sideX * labelGap - p.box.dx;
+        }
       }
 
-      for (const { cx, cy, point, color, sticky } of labels) {
-        if (sticky) continue;
+      for (const { cx, cy, point, color, box, sideX } of labels) {
+        const nearEdge = point.x + box.dx;
+        const farEdge = nearEdge + sideX * box.width;
+        const edgeX = Math.abs(cx - nearEdge) <= Math.abs(cx - farEdge) ? nearEdge : farEdge;
         ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(point.x, point.y);
+        ctx.moveTo(edgeX, point.y + box.dy + box.height / 2);
+        ctx.lineTo(cx, cy);
         ctx.strokeStyle = 'white';
         ctx.lineWidth = 3;
         ctx.stroke();
@@ -142,15 +152,13 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
         ctx.setLineDash([]);
       }
 
-      for (const { cx, cy, point, sideX, text, color, box, sticky } of labels) {
-        if (!sticky) {
-          ctx.beginPath();
-          ctx.arc(cx, cy, 3, 0, Math.PI * 2);
-          ctx.fillStyle = color;
-          ctx.fill();
-          ctx.strokeStyle = 'white';
-          ctx.stroke();
-        }
+      for (const { cx, cy, point, sideX, text, color, box } of labels) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = 'white';
+        ctx.stroke();
 
         ctx.beginPath();
         ctx.roundRect(point.x + box.dx, point.y + box.dy, box.width * sideX, box.height, 4);

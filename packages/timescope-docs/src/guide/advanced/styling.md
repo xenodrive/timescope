@@ -54,7 +54,10 @@ document.documentElement.classList.toggle('dark', darkModeEnabled);
 
 Labels follow the changed CSS color without recreating the chart. In Node.js, set label colors explicitly when needed; the default is black.
 
-Leave label colors unspecified to follow the host. An explicit time-axis `labels.color` or value-axis `color` takes precedence. Set inheritance and CSS variables on the host; canvas color options should contain concrete colors, not `inherit` or unresolved `var(...)` expressions.
+Leave label colors unspecified to follow the host. An explicit time-axis `labels.color` or value-axis `color` takes precedence.
+
+> [!IMPORTANT]
+> Set inheritance and CSS variables on the host; canvas color options should contain concrete colors, not `inherit` or unresolved `var(...)` expressions.
 
 ## Drawing colors
 

@@ -446,6 +446,8 @@ export abstract class TimescopeRenderer extends TimescopeObservable<
             const seriesOptions: (typeof seriesForWorker)[string] = {};
             if (series.track !== undefined) seriesOptions.track = series.track;
             if (series.tooltip === false || series.data.instantaneous === false) seriesOptions.tooltip = false;
+            else if (typeof series.tooltip === 'object' && series.tooltip.side !== undefined)
+              seriesOptions.tooltip = { side: series.tooltip.side };
             seriesForWorker[key] = seriesOptions;
           }
           optionsForWorker.series = seriesForWorker;

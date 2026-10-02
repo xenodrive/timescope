@@ -1,5 +1,7 @@
 # API Reference
 
+This reference lists API inputs, defaults, return values, and contracts. For step-by-step setup and examples, start with [Getting Started](/guide/getting-started) and the guides.
+
 | Reference                                   | Contents                                                |
 | ------------------------------------------- | ------------------------------------------------------- |
 | [Timescope](/api/timescope)                 | Constructor, state, methods, prepared views, events     |

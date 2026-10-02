@@ -56,7 +56,7 @@ const measurements = createDataSource({ url: '/samples.json' });
 
 Use a `loader` callback for application logic such as authentication or an SDK call. A **snapshot loader** takes no arguments and returns the complete dataset; set `chunked: false`:
 
-```ts
+```ts {2-3}
 const measurements = createDataSource({
   chunked: false,
   loader: async () => {
@@ -115,7 +115,7 @@ Timescope substitutes the placeholders as the user pans and zooms. The endpoint 
 
 A **range loader** receives the requested range and data resolution. Function loaders use this mode by default (`chunked: true`):
 
-```ts
+```ts {4}
 import { createDataSource } from 'timescope';
 
 const history = createDataSource({
@@ -162,7 +162,8 @@ Invalidate a DataSource when previously loaded data has changed. Use a range for
 
 Include late-arriving samples in the invalidated range. A snapshot is reacquired as a whole, even if you pass a range. Input-array mutations are not observed until invalidation.
 
-Neither `invalidate()` nor `await reload()` waits for replacement data and drawing. Before export, [wait for data and drawing](/guide/advanced/views#wait-for-data-and-drawing).
+> [!IMPORTANT]
+> Neither `invalidate()` nor `await reload()` waits for replacement data and drawing. Before export, [wait for data and drawing](/guide/advanced/views#wait-for-data-and-drawing).
 
 ## Append live points
 

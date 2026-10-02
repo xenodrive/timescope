@@ -44,6 +44,7 @@ export type TimescopeSeriesInput<
     | boolean
     | {
         label?: string;
+        side?: 'left' | 'right';
         round?: TimescopeRound;
         format?: (opts: { time: Decimal; value: Decimal | null; name: string | undefined; unit: string }) => string;
       };

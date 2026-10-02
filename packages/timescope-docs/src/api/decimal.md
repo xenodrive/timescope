@@ -8,7 +8,9 @@ titleTemplate: Timescope API
 import { Decimal, type DecimalLike } from 'timescope';
 ```
 
-Re-export: [`@kikuchan/decimal`](https://www.npmjs.com/package/@kikuchan/decimal).
+`Decimal` is the arbitrary-precision decimal type used by Timescope for time coordinates, loader ranges, and data values. It preserves decimal precision in calculations where JavaScript's `number` would lose significant digits.
+
+Timescope re-exports `Decimal` and `DecimalLike` from [`@kikuchan/decimal`](https://www.npmjs.com/package/@kikuchan/decimal), rather than providing a separate implementation. Import them from `timescope` to work directly with values returned by its APIs. Use string inputs for exact decimal values; converting an already-rounded `number` cannot recover the lost digits.
 
 ## Constructor
 

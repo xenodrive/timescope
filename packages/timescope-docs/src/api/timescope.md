@@ -4,6 +4,8 @@ titleTemplate: Timescope API
 
 # Timescope
 
+`Timescope` manages a time navigator or time-series visualization on a canvas. Create an instance to mount a view, use its methods to control navigation and configuration, and subscribe to events to synchronize application state.
+
 ```ts
 import { Timescope } from 'timescope';
 ```
@@ -127,7 +129,7 @@ Browser-only loading; Skia Canvas ignores `fonts`. The bundled Timescope font is
 | `redraw()`                                             | `Promise<void>`         | Request drawing; no data fetch                                                   |
 | `nextFrame()`                                          | `Promise<void>`         | Wait for a drawable mount and completed drawing; no data fetch                   |
 | `mount(target?: Element \| string \| TimescopeCanvas)` | `this`                  | Mount on a compatible target; built-in backends require a target                 |
-| `unmount()`                                            | `void`                  | Release the mount; retain instance listeners and externally supplied canvas       |
+| `unmount()`                                            | `void`                  | Release the mount; retain instance listeners and externally supplied canvas      |
 | `dispose()`                                            | `void`                  | Release the instance, including its event listeners                              |
 | `on(event, handler)`                                   | `() => void`            | Subscribe; returned function unsubscribes                                        |
 

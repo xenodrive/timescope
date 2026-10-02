@@ -48,7 +48,7 @@ export type TimescopeRenderEngineOptions = {
   selection?: TimescopeOptionsSelection;
   selectionReset?: boolean;
   selectionRange?: [Decimal, Decimal] | null;
-  series?: Record<string, { track?: string; tooltip?: false }>;
+  series?: Record<string, { track?: string; tooltip?: false | { side?: 'left' | 'right' } }>;
   tracks?: Record<
     string,
     {

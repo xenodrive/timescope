@@ -8,7 +8,9 @@ titleTemplate: Timescope API
 import { Calendar } from 'timescope';
 ```
 
-Re-export: [`@kikuchan/calendar`](https://www.npmjs.com/package/@kikuchan/calendar).
+`Calendar` represents an instant as arbitrary-precision Unix epoch seconds and provides calendar components, time-zone conversions, formatting, and calendar-boundary alignment. Timescope uses it to parse date strings and generate calendar time-axis ticks.
+
+Timescope re-exports `Calendar` from [`@kikuchan/calendar`](https://www.npmjs.com/package/@kikuchan/calendar), rather than providing a separate implementation. Use `Calendar.fromEpoch()` to turn a concrete Timescope time into a calendar date, and `.epoch()` to pass that date back to Timescope as a [`Decimal`](/api/decimal). Numeric epoch inputs use seconds, not JavaScript `Date`'s milliseconds.
 
 ## Constructor
 

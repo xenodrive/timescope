@@ -4,6 +4,8 @@ titleTemplate: Timescope API
 
 # Framework Components
 
+The `@timescope/*` packages wrap a Timescope instance in a component for each supported framework. They manage mounting and disposal, and expose chart configuration, reactive state, and change notifications through props and framework bindings.
+
 | Package             | Component   | Usage                                       |
 | ------------------- | ----------- | ------------------------------------------- |
 | `@timescope/vue`    | `Timescope` | [Vue](/guide/advanced/frameworks/vue)       |

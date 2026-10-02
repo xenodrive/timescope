@@ -102,7 +102,8 @@ try {
 }
 ```
 
-Navigation, option changes, resizing, or unmounting cancel an active fetch with `AbortError`. Keep the view, clock, and canvas size stable during export.
+> [!WARNING]
+> Navigation, option changes, resizing, or unmounting cancel an active fetch with `AbortError`. Keep the view, clock, and canvas size stable during export.
 
 [Prepared-view methods and cancellation](/api/timescope#prepared-views) · [Browser PNG export](/guide/advanced/backends#render-a-png-in-the-browser) · [Node.js PNG export](/guide/advanced/backends#render-a-png-in-node-js)
 

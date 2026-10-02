@@ -7,7 +7,7 @@ export const examples = [
   { name: 'ribbon-points', title: 'Marks & Links', tag: 'Drawing', preset: 'ribbon-points' },
   { name: 'annotations', title: 'Annotations', tag: 'Drawing', preset: 'annotations' },
   { name: 'intervals', title: 'Intervals', tag: 'Drawing', preset: 'intervals' },
-  { name: 'multiple-charts', title: 'Multiple Charts', tag: 'Data', preset: 'multiple-charts' },
+  { name: 'multiple-series', title: 'Multiple Series', tag: 'Data', preset: 'multiple-series' },
   { name: 'multiple-tracks', title: 'Multiple Tracks', tag: 'Data', preset: 'multiple-tracks' },
   { name: 'decimation', title: 'Decimation', tag: 'Data' },
   { name: 'dynamic-loader', title: 'Dynamic Loader', tag: 'Data' },

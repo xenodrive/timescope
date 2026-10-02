@@ -88,10 +88,10 @@ const definitions = [
     },
   },
   {
-    id: 'multiple-charts',
-    name: 'Multiple charts',
+    id: 'multiple-series',
+    name: 'Multiple Series',
     description:
-      'Wide-ranging signals share an automatic left scale; a changing activity curve uses an independent linear right axis. Zoom and pan to explore quiet, impact, and positive/negative sections.',
+      'Wide-ranging signals and a sine wave share an automatic left scale; a changing activity curve uses an independent linear right axis. Zoom and pan to explore quiet, impact, and positive/negative sections.',
     create() {
       const state = chartState(320);
       state.range = [0, 500];
@@ -99,17 +99,28 @@ const definitions = [
         { ...newDomain('sharedAmplitude'), axis: 'left' },
         { ...newDomain('activity'), axis: 'right' },
       ];
-      state.series = ['value', 'comparison'].map((field, index) => {
+      state.series = [
+        { field: 'value', name: 'Signal', color: '#0284c7', style: {} },
+        { field: 'comparison', name: 'Comparison', color: '#d97706', style: { stroke: 'dashed' } },
+        { field: 'sine', name: 'Sine wave', color: '#0d9488', style: {} },
+      ].map(({ field, name, color, style }) => {
         const series = newSeries(field, 'default', 'sharedAmplitude');
-        series.name = index === 0 ? 'Signal · shared scale' : 'Comparison · shared scale';
+        series.name = name;
+        series.tooltipSide = 'left';
         series.source = 'autoRange';
         series.field = field;
-        series.color = index === 0 ? '#0284c7' : '#d97706';
-        series.layers[0] = { ...newLayer('link'), from: field, color: series.color };
+        series.color = color;
+        series.layers[0] = {
+          ...newLayer('link'),
+          from: field,
+          color: series.color,
+          ...style,
+        };
         return series;
       });
       const activity = newSeries('activity', 'default', 'activity');
-      activity.name = 'Activity · independent scale';
+      activity.name = 'Activity';
+      activity.tooltipSide = 'right';
       activity.source = 'autoRange';
       activity.field = 'activity';
       activity.color = '#8b5cf6';
@@ -121,7 +132,6 @@ const definitions = [
           to: '#zero',
           color: activity.color,
           opacity: 0.12,
-          width: 0,
         },
         { ...newLayer('link'), draw: 'curve', from: 'activity', color: activity.color },
       ];

@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/vue';
 import codeTags from '@iconify-icons/mdi/code-tags';
 import contentCopy from '@iconify-icons/mdi/content-copy';
-import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch, type Component } from 'vue';
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue';
 import { data as examplesCode } from './gallery-code.data';
 import { highlight } from './gallery-highlight';
 import { withBase } from 'vitepress';
@@ -24,6 +24,7 @@ const demo = props.preset ? undefined : defineAsyncComponent(modules[`../../../s
 const code = computed(() => examplesCode[props.name]);
 const file = ref<'javascript' | 'html'>('javascript');
 const copied = ref(false);
+const panel = ref<HTMLElement>();
 const wheelEnabled = ref(false);
 const contentType = computed(() => (props.preset ? 'Options' : 'Code'));
 const presetState = computed(() => {
@@ -59,10 +60,26 @@ watch([() => props.active, displayedCode], () => {
   copied.value = false;
   clearTimeout(copyTimer);
 });
-onBeforeUnmount(() => clearTimeout(copyTimer));
+onMounted(() => {
+  document.addEventListener('pointerdown', outsidePointerDown, true);
+  window.addEventListener('scroll', disableWheel, { passive: true });
+});
+onBeforeUnmount(() => {
+  clearTimeout(copyTimer);
+  document.removeEventListener('pointerdown', outsidePointerDown, true);
+  window.removeEventListener('scroll', disableWheel);
+});
+
+function disableWheel() {
+  wheelEnabled.value = false;
+}
+
+function outsidePointerDown(event: PointerEvent) {
+  if (event.target instanceof Node && !panel.value?.contains(event.target)) disableWheel();
+}
 
 function pointerDown(event: PointerEvent) {
-  if (event.pointerType === 'mouse' || event.pointerType === 'pen') wheelEnabled.value = true;
+  if (event.button === 0 && (event.pointerType === 'mouse' || event.pointerType === 'pen')) wheelEnabled.value = true;
 }
 
 function wheel(event: WheelEvent) {
@@ -101,9 +118,10 @@ async function copy() {
 <template>
   <article
     :id="name"
+    ref="panel"
     class="example-panel"
+    :class="{ 'example-panel-wheel-enabled': wheelEnabled }"
     @pointerdown="pointerDown"
-    @pointerleave="wheelEnabled = false"
     @wheel.capture="wheel">
     <header class="example-panel-header">
       <div>
@@ -196,6 +214,10 @@ async function copy() {
   border-radius: 14px;
   background: var(--vp-c-bg);
   scroll-margin-top: 96px;
+}
+.example-panel-wheel-enabled {
+  border-color: var(--vp-c-brand-1);
+  box-shadow: 0 0 0 1px var(--vp-c-brand-1);
 }
 .example-panel-header {
   display: flex;

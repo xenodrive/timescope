@@ -145,7 +145,9 @@ export function buildOptions(state) {
             marks: series.layers.filter((layer) => layer.kind === 'mark').map(layerOptions),
             links: series.layers.filter((layer) => layer.kind === 'link').map(layerOptions),
           },
-          tooltip: series.tooltip ? { round: series.tooltipRound ?? 2 } : false,
+          tooltip: series.tooltip
+            ? { round: series.tooltipRound ?? 2, ...(series.tooltipSide ? { side: series.tooltipSide } : {}) }
+            : false,
         },
       ]),
     ),
@@ -286,6 +288,11 @@ function compactSeries(series, firstTrack) {
       else chart[key] = chart[key].map((layer) => compactLayer(layer, kind, series.data.color));
     }
     setNonempty(result, 'chart', chart);
+    if (Object.keys(chart).length === 1 && chart.links?.length === 1) {
+      const [link] = chart.links;
+      if (Object.keys(link).length === 1 && ['line', 'curve'].includes(link.draw))
+        result.chart = link.draw === 'line' ? 'lines' : 'curves';
+    }
   }
   return result;
 }

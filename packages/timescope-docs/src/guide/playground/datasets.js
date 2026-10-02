@@ -16,7 +16,7 @@ export const datasets = {
     }),
   },
   autoRange: {
-    fields: ['value', 'comparison', 'activity'],
+    fields: ['value', 'comparison', 'sine', 'activity'],
     data: Array.from({ length: 1001 }, (_, index) => {
       const time = index / 2;
       const section = Math.min(4, Math.floor(time / 100));
@@ -28,7 +28,12 @@ export const datasets = {
         time,
         values: {
           value,
-          comparison: value * 0.65 + 2,
+          comparison:
+            base * 0.65 +
+            2 +
+            3 * Math.sin(time * 0.17 + 1.2) +
+            (section === 1 ? 28 * Math.exp(-(((local - 62) / 9) ** 2)) : 0),
+          sine: 22 * Math.sin((2 * Math.PI * time) / 80),
           activity:
             35 + 18 * Math.sin(time / 28) + 9 * Math.cos(time / 11) + 20 * Math.exp(-(((time - 235) / 45) ** 2)),
         },
