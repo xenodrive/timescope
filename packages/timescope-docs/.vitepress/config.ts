@@ -75,14 +75,13 @@ export default defineConfig({
             { text: 'Drawing a Chart', link: '/guide/drawing-a-chart' },
             {
               text: 'Advanced',
-              link: '/guide/advanced/data',
+              link: '/guide/advanced/',
               collapsed: false,
               items: [
-                { text: 'Loading and Updating Data', link: '/guide/advanced/data' },
-                { text: 'Controlling Views', link: '/guide/advanced/views' },
-                { text: 'Numbers and Calendar Time', link: '/guide/advanced/numbers-and-time' },
-                { text: 'Rendering Backends', link: '/guide/advanced/backends' },
                 { text: 'Styling', link: '/guide/advanced/styling' },
+                { text: 'Chunk Loading', link: '/guide/advanced/chunk-loading' },
+                { text: 'Live Streaming', link: '/guide/advanced/live-streaming' },
+                { text: 'Running on Node.js', link: '/guide/advanced/running-on-node' },
               ],
             },
             {

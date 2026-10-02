@@ -72,4 +72,4 @@ To synchronize a selection, pass `selectionRange={selection()}` and `onSelection
 
 Use `onTimeChanging={setPreview}` to preview time during interaction; it receives the time value directly. `onReady={onReady}` tells you when the canvas is mounted and drawable.
 
-[Shared component behavior](/guide/advanced/frameworks/overview#configuration-and-state) · [Props and callbacks](/api/frameworks) · [Data updates](/guide/advanced/data)
+[Shared component behavior](/guide/advanced/frameworks/overview#configuration-and-state) · [Props and callbacks](/api/frameworks) · [Live Streaming](/guide/advanced/live-streaming)

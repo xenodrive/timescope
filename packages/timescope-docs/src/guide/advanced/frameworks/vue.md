@@ -58,4 +58,4 @@ Bind a selection with `v-model:selection-range="selection"`, just as you bind ti
 
 Vue event handlers receive the changed value directly. Use `@timechanging="value => preview = value"` to preview time during interaction, and `@ready="onReady"` when you need to know that the canvas is mounted and drawable.
 
-[Shared component behavior](/guide/advanced/frameworks/overview#configuration-and-state) · [Props, events, and ref methods](/api/frameworks) · [Data updates](/guide/advanced/data)
+[Shared component behavior](/guide/advanced/frameworks/overview#configuration-and-state) · [Props, events, and ref methods](/api/frameworks) · [Live Streaming](/guide/advanced/live-streaming)

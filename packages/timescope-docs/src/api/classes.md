@@ -63,7 +63,9 @@ new Timescope(options?: TimescopeOptionsInitial)
 | `on(event: string, handler: (event: object \| string) => void)`                         | `() => void`            | Subscribes to an event; its name determines the handler payload.                   | —                                                             | Unsubscribe function.                                                                         |
 | `un(event: string, handler: (event: object \| string) => void)`                         | `void`                  | Removes a registered event handler.                                                | —                                                             | —                                                                                             |
 
-[View control](/guide/advanced/views) · [Data refresh](/guide/advanced/data#refresh-changed-data) · [Rendering](/guide/advanced/backends) · [Cleanup](/guide/advanced/views#cleanup)
+`dispose()` also removes instance event listeners; `unmount()` retains them for a later mount. The unsubscribe function returned by `on()` ends an individual subscription while keeping the instance alive.
+
+[View control](/guide/getting-started#view-control) · [Data refresh](/guide/advanced/live-streaming#refresh-changed-data) · [Node.js](/guide/advanced/running-on-node) · [Cleanup](/guide/getting-started#cleanup)
 
 ### Events {#timescope-events}
 
@@ -86,7 +88,9 @@ new Timescope(options?: TimescopeOptionsInitial)
 | `resize`                 | `'resize'`                                                                                    | Canvas size or device pixel ratio changes.                    |
 | `change`                 | `'change'`                                                                                    | Observable state changes.                                     |
 
-[Guide](/guide/advanced/views#observe-view-changes)
+Navigation values have committed (`time`, `zoom`), interaction (`timeChanging`, `zoomChanging`), and animation (`timeAnimating`, `zoomAnimating`) phases. Value events contain `{ type, value, origin? }`; lifecycle events carry their event-name string. Mount readiness does not imply data acquisition or drawing completion; use a [prepared view](/api/interfaces#timescopepreparedview) and `nextFrame()` when reading pixels.
+
+[Guide](/guide/getting-started#accessing-the-selected-time)
 
 ## TimescopeDataLoader
 
@@ -96,7 +100,11 @@ new Timescope(options?: TimescopeOptionsInitial)
 new TimescopeDataLoader(options: TimescopeDataLoaderOptions)
 ```
 
-[Options](/api/types#timescopedataloaderoptions) · [Factory](/api/utilities#createdataloader) · [Guide](/guide/advanced/data#reuse-a-dataloader)
+Each `load()` performs acquisition again; a DataLoader does not cache results. Sharing an instance shares acquisition and conversion settings, not DataSource caches or invalidation state. Configure transforms on the loader, not on a DataSource receiving it.
+
+`ranged` is `true` for templated URLs or function loaders without `chunked: false`. A snapshot DataLoader requires `chunked: false` when supplied to a DataSource.
+
+[Options](/api/types#timescopedataloaderoptions) · [Factory](/api/utilities#createdataloader)
 
 ### Properties {#timescopedataloader-properties}
 
@@ -125,7 +133,7 @@ abstract class TimescopeDataSourceBase implements TimescopeDataSource
 constructor(options?: TimescopeSourceCommonOptions)
 ```
 
-[Options](/api/types#timescopesourcecommonoptions) · [Guide](/guide/advanced/data#custom-datasources)
+[Options](/api/types#timescopesourcecommonoptions) · [DataSource contract](/api/interfaces#timescopedatasource)
 
 ### Properties {#timescopedatasourcebase-properties}
 
@@ -155,7 +163,7 @@ constructor(options?: TimescopeSourceCommonOptions)
 
 ## Decimal
 
-[`@kikuchan/decimal`](https://www.npmjs.com/package/@kikuchan/decimal) · [Guide](/guide/advanced/numbers-and-time#decimal-arithmetic)
+[`@kikuchan/decimal`](https://www.npmjs.com/package/@kikuchan/decimal)
 
 ### Constructor {#decimal-constructor}
 
@@ -167,6 +175,8 @@ Decimal(value: undefined): undefined
 
 [Numeric inputs](/api/types#number-and-time-inputs)
 
+Accepts decimal and scientific-notation strings, numbers, `bigint`, Decimal values, and coefficient/scale objects. For example, `{ coeff: 123n, digits: 2 }` represents `1.23`. `digits` may be negative. Nullish inputs are preserved.
+
 ### Properties {#decimal-properties}
 
 | Property | Type     | Description                                |
@@ -175,6 +185,22 @@ Decimal(value: undefined): undefined
 | `digits` | `number` | Decimal scale; a safe integer.             |
 
 ### Methods {#decimal-methods}
+
+Numeric methods return new values; their `$` variants mutate the receiver. Use non-mutating methods on values received from Timescope.
+
+| Operation                                     | Semantics                                                                                                                                                                                                                                                         |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `round`, `floor`, `ceil`, `trunc`             | Decimal places, default `0`; negative places round to powers of ten. Nearest ties round away from zero; floor and ceil round toward negative and positive infinity; trunc rounds toward zero. `force: true` preserves scale, including trailing zeros.            |
+| `roundBy`, `floorBy`, `ceilBy`, `truncBy`     | Round to a multiple of the supplied step. `roundBy` defaults to nearest rounding.                                                                                                                                                                                 |
+| `div`, `divExact`                             | `precision` counts significant digits and must be a positive safe integer. `div` is exact for terminating results when precision is omitted; otherwise it rounds, defaulting to `18`. `divExact` throws for non-terminating results without a fallback precision. |
+| `divRound`, `divFloor`, `divCeil`, `divTrunc` | Round division results to decimal places.                                                                                                                                                                                                                         |
+| `pow`, `sqrt`, `root`                         | Exact when possible with precision omitted; otherwise precision `18`. Fractional exponents are supported.                                                                                                                                                         |
+| `log`, `inverse`                              | `log` defaults to precision `18`; `inverse` follows division precision rules.                                                                                                                                                                                     |
+| `mod`, `modPositive`                          | JavaScript remainder sign rules, or a nonnegative remainder respectively.                                                                                                                                                                                         |
+| `between`, `isCloseTo`                        | Inclusive bounds, or absolute-difference tolerance respectively.                                                                                                                                                                                                  |
+| `split`, `splitBy`                            | Return the rounded part and remainder; default mode `'floor'`. `split` defaults to `digits: 0`; `splitBy` uses step multiples.                                                                                                                                    |
+| `rescale`, `toFixed`, `number`, `integer`     | Set decimal scale (omitting scale removes trailing fractional zeros), format rounded fixed decimal places, convert with possible precision loss, or truncate toward zero respectively.                                                                            |
+| `neg`                                         | Negates by default; `false` preserves the sign.                                                                                                                                                                                                                   |
 
 | Signature                                                                                                        | Returns              |
 | ---------------------------------------------------------------------------------------------------------------- | -------------------- |
@@ -225,6 +251,8 @@ Decimal(value: undefined): undefined
 
 ### Static Methods {#decimal-static-methods}
 
+`min`, `max`, and `minmax` ignore nullish values and return `null` for an extremum when no values remain. `isDecimal` checks for a Decimal instance, `isDecimalLike` for accepted input, and `isDecimalType` for a Decimal or coefficient/scale object.
+
 | Signature                                                                                  | Returns                              |
 | ------------------------------------------------------------------------------------------ | ------------------------------------ |
 | `Decimal.isDecimal(value: unknown)`                                                        | `value is Decimal`                   |
@@ -238,7 +266,9 @@ Decimal(value: undefined): undefined
 
 ## Calendar
 
-[`@kikuchan/calendar`](https://www.npmjs.com/package/@kikuchan/calendar) · [Guide](/guide/advanced/numbers-and-time#calendar-time)
+[`@kikuchan/calendar`](https://www.npmjs.com/package/@kikuchan/calendar)
+
+Calendar instants use Unix epoch seconds, including fractional seconds; `Date` inputs convert from milliseconds. The initial display zone is `'local'`. Zones accept `'local'`, `'utc'`, or IANA names; changing the zone preserves the instant. Factory methods preserve `null` and `undefined`.
 
 ### Constructor {#calendar-constructor}
 
@@ -273,6 +303,10 @@ No arguments: current time. `hour`, `minutes`, `seconds`: `0`.
 | `Calendar.parse(value: string, format?: string, inputZone?: string)`                                                                                                           | `Calendar` | Parses a calendar date; explicit offsets take precedence over the input zone. | `format`: ISO 8601; `inputZone`: `'local'`.                                      |
 
 ### Methods {#calendar-methods}
+
+Component getters use the display zone: months `1`–`12`, days `1`–`31`, hours `0`–`23`, minutes `0`–`59`, weekdays Sunday `0` through Saturday `6`. Component setters and zone-changing methods return new instances; `$` variants mutate the receiver. The `zone` argument to `fromComponents()` determines component interpretation, not the initial display zone.
+
+Day/month/year alignment methods return new instances at midnight in the current zone. `alignToSecond(step)` aligns to a seconds interval within the day.
 
 | Signature                                                                                                                                                                          | Returns                                                                                                          | Description                                                                      | Defaults     |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------ |
@@ -323,4 +357,4 @@ No arguments: current time. `hour`, `minutes`, `seconds`: `0`.
 | `[text]`                    | Literal text                                  | Literal text                                                          |
 | Backslash + character       | Literal next character                        | Literal next character                                                |
 
-[Parsing and formatting guide](/guide/advanced/numbers-and-time#parse-and-format-dates)
+Custom parse formats require year and month; omitted components default to day `1` and midnight. Invalid dates throw. Formatting uses the current display zone. Year widths are minimum widths and never truncate; astronomical year `0` is 1 BC and `-1` is 2 BC, while era-year tokens use positive era years. Characters other than recognized tokens and escapes, including fractional separators, are literal.

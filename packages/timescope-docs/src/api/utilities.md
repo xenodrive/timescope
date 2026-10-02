@@ -12,7 +12,9 @@ Public functions and default values exported from `timescope`.
 defineTimescopeOptions(options: TimescopeOptions): TimescopeOptions
 ```
 
-[TimescopeOptions](/api/types#timescopeoptions) · [Guide](/guide/advanced/views#typed-configuration)
+Returns the same object, preserving inferred source names, row fields, metadata, and Track names while checking their references.
+
+[TimescopeOptions](/api/types#timescopeoptions) · [Shared configuration](/guide/advanced/running-on-node#share-chart-configuration-and-loaders)
 
 ## createDefineTimescopeOptions
 
@@ -20,7 +22,7 @@ defineTimescopeOptions(options: TimescopeOptions): TimescopeOptions
 createDefineTimescopeOptions(wrapper?: (options: object) => object): typeof defineTimescopeOptions
 ```
 
-[Guide](/guide/advanced/views#typed-configuration)
+Creates a typed options helper around a wrapper such as a framework's reactive helper. Returns the wrapper's result with the input's inferred type; the wrapper must preserve the options structure and value types. Without a wrapper, returns the input unchanged.
 
 ## createDataLoader
 
@@ -28,7 +30,9 @@ createDefineTimescopeOptions(wrapper?: (options: object) => object): typeof defi
 createDataLoader(options: TimescopeDataLoaderOptions): TimescopeDataLoader
 ```
 
-[Options](/api/types#timescopedataloaderoptions) · [TimescopeDataLoader](/api/classes#timescopedataloader) · [Guide](/guide/advanced/data#reuse-a-dataloader)
+Infers snapshot or range mode and preserves a supplied loader's mode. A shared loader shares acquisition settings, not loaded data or invalidation state.
+
+[Options](/api/types#timescopedataloaderoptions) · [TimescopeDataLoader](/api/classes#timescopedataloader)
 
 ## createDataSource
 
@@ -38,7 +42,9 @@ createDataSource(input: TimescopeSourceOptions & { type: 'point-aggregate' }): T
 createDataSource(input: TimescopeSourceInput): TimescopeDataSource
 ```
 
-[Source inputs](/api/types#timescopesourceinput) · [TimescopeDataSource](/api/interfaces#timescopedatasource) · [Guide](/guide/advanced/data)
+Infers row and field types from input. A `'point-aggregate'` source supports appending; an already supplied DataSource is returned unchanged.
+
+[Source inputs](/api/types#timescopesourceinput) · [TimescopeDataSource](/api/interfaces#timescopedatasource) · [Live Streaming](/guide/advanced/live-streaming)
 
 ## defaultOptions
 
@@ -60,4 +66,4 @@ createDataSource(input: TimescopeSourceInput): TimescopeDataSource
 | `chartUsing`       | `Readonly<Record<'point' \| 'area' \| 'range' \| 'region', Readonly<Using>>>`                                                                      |
 | `source`           | `{ chunkSize: 256, chunkOrigin: 0, immediate: true, cacheSize: 1000 }`                                                                             |
 
-[Guide](/guide/advanced/views#reuse-default-values)
+Groups and arrays are frozen; copy individual groups when customizing. This is not a complete constructor configuration and contains no named DataSources, Series, Domains, or Tracks. Unspecified Track heights share available space, a Series uses the first Track, and primitive colors inherit the Series color; leaving those settings unspecified preserves their contextual defaults.

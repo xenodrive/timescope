@@ -17,6 +17,7 @@ const props = defineProps<{
   ready: boolean;
   active: boolean;
   preset?: string;
+  guide?: string;
 }>();
 defineEmits(['open', 'close']);
 const modules = import.meta.glob<Component>('../../../src/examples/*.vue', { import: 'default' });
@@ -129,6 +130,7 @@ async function copy() {
         <h2>{{ title }}</h2>
       </div>
       <div class="example-panel-actions">
+        <a v-if="guide" class="example-code-button" :href="withBase(guide)">Guide</a>
         <a v-if="preset" class="example-code-button" :href="withBase(`/examples/playground?preset=${preset}`)"
           >→ Playground</a
         >

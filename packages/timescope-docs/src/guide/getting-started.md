@@ -4,6 +4,10 @@ import ExampleSimple from './getting-started-demo.vue'
 
 # Getting Started
 
+Use Timescope as a time picker with just a target element. You can add time-series visualization whenever you need it.
+
+Using a framework? Start with its [binding](/guide/advanced/frameworks/overview) to integrate Timescope with your application's state and lifecycle.
+
 ## Installation
 
 ```bash
@@ -65,11 +69,16 @@ timescope.fitTo([0, 30]);
 
 [Method reference](/api/classes#timescope-methods)
 
+## Cleanup
+
+When removing a Timescope from a running application, call `timescope.dispose()` to release it and its event listeners. Register this with your application's teardown or HMR hook. [Framework components](/guide/advanced/frameworks/overview#lifecycle) handle instance disposal automatically.
+
+An instance that lives until the page closes needs no unload handler. Clean up application-owned timers, data producers, and external listeners separately when tearing down a view.
+
 ## Next steps
 
 - Learn the [Core Concepts](/guide/concepts)
-- Add data, lines, curves, and points with [Drawing a Chart](/guide/drawing-a-chart)
-- Connect remote data and application controls with [Loading and Updating Data](/guide/advanced/data)
-- Use a [framework binding](/guide/advanced/frameworks/overview)
+- Use snapshot data, chart presets, multiple Series, and decimation in [Drawing a Chart](/guide/drawing-a-chart)
+- Choose an [Advanced](/guide/advanced/) topic for custom drawing, chunk loading, live streaming, or Node.js
 - Explore [Examples](/examples/gallery)
 - Look up signatures and options in the [API Reference](/api/)

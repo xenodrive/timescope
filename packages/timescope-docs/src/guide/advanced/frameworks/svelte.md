@@ -55,4 +55,4 @@ Use `bind:selectionRange` to synchronize a selection, just as the example binds 
 
 Svelte events carry the changed value in `event.detail`. For example, `on:timechanging={event => preview = event.detail}` previews time during interaction. Use `on:ready={onReady}` when you need to know that the canvas is mounted and drawable.
 
-[Shared component behavior](/guide/advanced/frameworks/overview#configuration-and-state) · [Props, events, and ref methods](/api/frameworks) · [Data updates](/guide/advanced/data)
+[Shared component behavior](/guide/advanced/frameworks/overview#configuration-and-state) · [Props, events, and ref methods](/api/frameworks) · [Live Streaming](/guide/advanced/live-streaming)

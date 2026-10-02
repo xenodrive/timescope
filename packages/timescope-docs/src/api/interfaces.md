@@ -9,7 +9,7 @@ Public interfaces exported from `timescope`.
 
 ## TimescopePreparedView
 
-[`Timescope.prepareView()`](/api/classes#timescope-methods) · [Guide](/guide/advanced/views#wait-for-data-and-drawing)
+[`Timescope.prepareView()`](/api/classes#timescope-methods) · [Guide](/guide/advanced/running-on-node#wait-for-data-and-drawing)
 
 ### Properties {#timescopepreparedview-properties}
 
@@ -29,7 +29,7 @@ Public interfaces exported from `timescope`.
 
 ## TimescopeDataSource
 
-[`createDataSource()`](/api/utilities#createdatasource) · [`TimescopeDataSourceBase`](/api/classes#timescopedatasourcebase) · [Guide](/guide/advanced/data)
+[`createDataSource()`](/api/utilities#createdatasource) · [`TimescopeDataSourceBase`](/api/classes#timescopedatasourcebase) · [Chunk Loading](/guide/advanced/chunk-loading)
 
 ### Properties {#timescopedatasource-properties}
 
@@ -45,12 +45,12 @@ Public interfaces exported from `timescope`.
 
 ### Methods {#timescopedatasource-methods}
 
-| Signature                                                                                                    | Returns                                | Description                                                                                                                        | Defaults           | Return details                                                                                                                                                                                                        |
-| ------------------------------------------------------------------------------------------------------------ | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `query(request: TimescopeDataSourceQuery)`                                                                   | `Promise<readonly TimescopeDataRow[]>` | <span id="timescopedatasource-query-contract"></span>Queries a finite range at a positive resolution; no chunk alignment required. | —                  | Points: `start <= time && time < end`.<br>Intervals: `rowStart < end && start < rowEnd`, without trimming.<br>Aggregates return whole buckets; [response requirements](/guide/advanced/data#return-rows-for-a-range). |
-| `invalidate(range?: TimescopeRange<TimescopeTimeLike<undefined>>)`                                           | `void`                                 | Notifies consumers of changed data; `undefined` endpoints are unbounded.                                                           | `range`: all data. | Does not wait for replacement data or drawing.                                                                                                                                                                        |
-| `on('invalidate', handler: (event: { type: 'invalidate', value: TimescopeDataSourceInvalidation }) => void)` | `() => void`                           | Subscribes to source invalidation.                                                                                                 | —                  | Unsubscribe function.                                                                                                                                                                                                 |
-| `dispose?()`                                                                                                 | `void`                                 | Releases source resources.                                                                                                         | —                  | —                                                                                                                                                                                                                     |
+| Signature                                                                                                    | Returns                                | Description                                                                                                                        | Defaults           | Return details                                                                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------ | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `query(request: TimescopeDataSourceQuery)`                                                                   | `Promise<readonly TimescopeDataRow[]>` | <span id="timescopedatasource-query-contract"></span>Queries a finite range at a positive resolution; no chunk alignment required. | —                  | Points: `start <= time && time < end`.<br>Intervals: `rowStart < end && start < rowEnd`, without trimming.<br>Aggregates return whole buckets; [response requirements](/guide/advanced/chunk-loading#return-rows-for-a-range). |
+| `invalidate(range?: TimescopeRange<TimescopeTimeLike<undefined>>)`                                           | `void`                                 | Notifies consumers of changed data; `undefined` endpoints are unbounded.                                                           | `range`: all data. | Does not wait for replacement data or drawing.                                                                                                                                                                                 |
+| `on('invalidate', handler: (event: { type: 'invalidate', value: TimescopeDataSourceInvalidation }) => void)` | `() => void`                           | Subscribes to source invalidation.                                                                                                 | —                  | Unsubscribe function.                                                                                                                                                                                                          |
+| `dispose?()`                                                                                                 | `void`                                 | Releases source resources.                                                                                                         | —                  | —                                                                                                                                                                                                                              |
 
 #### Invalidation {#timescopedatasource-invalidation}
 
@@ -59,7 +59,9 @@ Public interfaces exported from `timescope`.
 | `range?`                                | `TimescopeRange<Decimal \| undefined>` | Affected range; omitted means all data, and `undefined` endpoints are unbounded. |
 | `revision`                              | `number`                               | Source revision after the change.                                                |
 
-[Refreshing data](/guide/advanced/data#refresh-changed-data) · [Source lifetime](/guide/advanced/data#reuse-a-source)
+Built-in sources reacquire invalidated data on demand; snapshot invalidation replaces the whole snapshot even when a range is supplied. Charts manage their DataSources' lifetime, including shared instances. Keep the same instance across configuration updates to retain loaded data; dispose a standalone source with `source.dispose?.()` when no longer needed.
+
+[Refreshing data](/guide/advanced/live-streaming#refresh-changed-data)
 
 ### Events {#timescopedatasource-events}
 
@@ -73,9 +75,11 @@ Public interfaces exported from `timescope`.
 interface TimescopeAppendOnlyDataSource extends TimescopeDataSource
 ```
 
-[Guide](/guide/advanced/data#append-live-points)
+[Guide](/guide/advanced/live-streaming#append-live-points)
 
 ### Methods {#timescopeappendonlydatasource-methods}
+
+Only `'point-aggregate'` sources support appending. Equal-time points retain insertion order. Later snapshot invalidation discards appended points absent from the original input.
 
 | Signature                                                                 | Returns         | Description                                                                                             | Return details                                                                                                             |
 | ------------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |

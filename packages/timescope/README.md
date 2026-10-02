@@ -71,7 +71,7 @@ new Timescope({
 
 ## Advanced rendering
 
-For Node.js PNG output, backend selection, and canvas ownership, see the [Backends guide](https://xenodrive.github.io/timescope/guide/advanced/backends).
+To share chart configuration and data loaders between the browser and server, see [Running on Node.js](https://xenodrive.github.io/timescope/guide/advanced/running-on-node).
 
 ## Documentation
 

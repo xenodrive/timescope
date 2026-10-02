@@ -17,7 +17,11 @@ type DecimalLike = TimescopeNumberLike | { coeff: bigint; digits: number | bigin
 type TimescopeTimeLike<N extends null | undefined = null> = TimescopeNumberLike | Date | N;
 ```
 
-[Guide](/guide/advanced/numbers-and-time#numeric-and-time-inputs)
+Numeric strings are decimal values, including scientific notation. JavaScript numbers have already been rounded to their native precision; use strings or `Decimal` to preserve exact digits.
+
+Time strings are calendar dates parsed by `Calendar`, not numeric strings. Numbers, `bigint`, and `Decimal` use the data's time units, seconds by default; `Date` converts to Unix epoch seconds. Navigation `null` follows the clock, and an `undefined` range endpoint is unbounded. `TimescopeTimeLike<never>` excludes both nullish values; `TimescopeTimeLike<undefined>` permits `undefined` instead of `null`.
+
+[Decimal](/api/classes#decimal) · [Calendar](/api/classes#calendar)
 
 ### Ranges and sizes {#ranges-and-sizes}
 
@@ -38,7 +42,7 @@ type TimescopeRange<T> = [start: T, end: T];
 | `animation?` | `boolean`                                 | `true`  | —      | Animates the fitted view.                                                              |
 | `padding?`   | `number \| [left: number, right: number]` | `0`     | CSS px | Space around the fitted range; finite and nonnegative. A scalar applies to both sides. |
 
-[Guide](/guide/advanced/views#fit-and-constrain-navigation)
+[Guide](/guide/getting-started#view-control)
 
 ### TimescopeAnimationInput
 
@@ -56,7 +60,9 @@ type TimescopeAnimationInput =
     };
 ```
 
-[Method defaults](/api/classes#timescope-methods) · [Guide](/guide/advanced/views#animate-navigation)
+`false` changes the value immediately. String presets use 500 ms: `'in-out'` starts and ends smoothly, `'linear'` has constant speed, and `'out'` slows toward the end. Object `lazy` commits the selected value after the animation; `tangent` controls the initial slope of an `'out'` animation.
+
+[Method defaults](/api/classes#timescope-methods)
 
 ## Data
 
@@ -71,7 +77,7 @@ type TimescopeSourceInput =
   | TimescopeDataSource;
 ```
 
-[Guide](/guide/advanced/data)
+[Snapshot guide](/guide/drawing-a-chart#snapshot-data) · [Chunk Loading](/guide/advanced/chunk-loading)
 
 ### TimescopeSourceOptions
 
@@ -88,7 +94,7 @@ type TimescopeSourceInput =
 | `'point-aggregate'`  | Snapshot         | Points             | `#avg`, `#first`, `#last`, `#min`, `#max`                 | `#avg`                |
 | `'point-percentile'` | Snapshot         | Points             | `#first`, `#last`, `#min`, `#max`, `#p50`, `#p90`, `#p95` | `percentiles.primary` |
 
-[Guide](/guide/advanced/data#aggregate-snapshot-points)
+[Decimation guide](/guide/drawing-a-chart#decimation)
 
 #### Common source options {#timescopesourcecommonoptions}
 
@@ -101,7 +107,7 @@ type TimescopeSourceInput =
 | `zoomLevels?`                        | `readonly number[]`                           | —       | Range-loader resolution hints expressed as zoom levels.                       |
 | `cacheSize?`                         | `number`                                      | `1000`  | Inactive query results retained; nonnegative integer, `0` disables retention. |
 
-[Guide](/guide/advanced/data#chunk-loading)
+[Guide](/guide/advanced/chunk-loading#chunk-size)
 
 #### Percentiles {#percentiles}
 
@@ -121,7 +127,9 @@ type TimescopeSourceInput =
 | `decoder?`  | `TimescopeDataDecoder`                                                   | Converts a payload or fetched response to rows.         | Mutually exclusive with `mappings`.                                                     |
 | `mappings?` | `TimescopeMappings`                                                      | Maps record-array fields to row coordinates.            | Mutually exclusive with `decoder`.                                                      |
 
-[Guide](/guide/advanced/data#snapshot-loading)
+Without a transform, inline data and callback results must be row arrays; URL responses are read as JSON. `decoder` receives the inline payload, fetched `Response`, or loader result. URL responses with `mappings` are read as JSON before mapping. Snapshot sources retain data until invalidation.
+
+[Snapshot guide](/guide/drawing-a-chart#snapshot-data) · [Range loader guide](/guide/advanced/chunk-loading#use-an-application-loader)
 
 #### URL Placeholders
 
@@ -139,7 +147,7 @@ type TimescopeSourceInput =
 | `range`                                                   | `TimescopeRange<Decimal>` | Finite; `start <= end` |
 | `resolution`                                              | `Decimal`                 | `> 0`                  |
 
-[Guide](/guide/advanced/data#return-rows-for-a-range)
+[Response requirements](/guide/advanced/chunk-loading#return-rows-for-a-range)
 
 ### Loader callbacks {#loader-callbacks}
 
@@ -151,7 +159,7 @@ type TimescopeDataDecoder = (
 ) => readonly TimescopeDataRowInput[] | Promise<readonly TimescopeDataRowInput[]>;
 ```
 
-[Guide](/guide/advanced/data#convert-a-response-to-rows)
+[Acquisition and transforms](#timescopedataloaderoptions)
 
 ### Data rows {#data-rows}
 
@@ -182,7 +190,7 @@ type TimescopeDataRowInput = (
 | `times`                   | `Record<string, string>` | Time names mapped to payload paths.  |
 | `values`                  | `Record<string, string>` | Value names mapped to payload paths. |
 
-[Guide](/guide/advanced/data#convert-a-response-to-rows)
+[Acquisition and transforms](#timescopedataloaderoptions)
 
 ## Configuration
 
@@ -199,7 +207,9 @@ type TimescopeDataRowInput = (
 | `tracks?`    | `TimescopeOptionsTracks`                              | Implicit `default` Track | Named drawing regions; an empty object is invalid. |
 | `selection?` | `TimescopeOptionsSelection`                           | `true`                   | Selection interaction and overlay settings.        |
 
-[Guide](/guide/drawing-a-chart#basic-chart) · [Typed configuration](/guide/advanced/views#typed-configuration)
+Referenced DataSources, Tracks, and named Domains must exist. Omitting `tracks` creates an implicit `default` Track; an empty Track object is invalid.
+
+[Guide](/guide/drawing-a-chart#basic-chart) · [Typed configuration](/api/utilities#definetimescopeoptions)
 
 ### TimescopeOptionsInitial
 
@@ -220,7 +230,9 @@ type TimescopeDataRowInput = (
 | `wheelSensitivity?` | `number`                                                                                                                                | `200`                    | Wheel delta per zoom level.                                          | —                                                                                         |
 | `selection.range?`  | `TimescopeRange<TimescopeTimeLike<never>> \| null`                                                                                      | `null`                   | Initial selected range.                                              | —                                                                                         |
 
-[View control](/guide/advanced/views#fit-and-constrain-navigation) · [Rendering and fonts](/guide/advanced/backends)
+`backend`, `renderThread`, and `fonts` are creation-only. Automatic backend selection normally uses Canvas in browsers and Skia Canvas in Node.js; an array selects the first compatible backend. Automatic thread selection can be overridden with `'main'` or `'worker'`; requiring a Worker needs Worker support and a compatible target. `fonts: []` disables additional font loading; omitted `fonts` loads accessible document `@font-face` rules.
+
+[View control](/guide/getting-started#view-control) · [Fonts](/guide/advanced/styling#fonts) · [Node.js](/guide/advanced/running-on-node)
 
 ### TimescopeUpdateOptions
 
@@ -235,7 +247,9 @@ type TimescopeDataRowInput = (
 | `tracks?`    | `Record<string, { height?: number, symmetric?: boolean, timeAxis?: boolean \| TimescopeTimeAxisOptions } \| null>` |
 | `selection?` | `TimescopeOptionsSelection`                                                                                        |
 
-[Guide](/guide/advanced/views#update-chart-configuration)
+`updateOptions()` merges objects; arrays and source inputs replace their previous values. Named entries accept `null` for deletion. Remove dependent Series in the same update when deleting a source. `setOptions()` replaces the entire configuration, restoring defaults for omitted settings. Both preserve time and zoom, and clear selection only when it is disabled.
+
+[Update methods](/api/classes#timescope-methods)
 
 ### TimescopeSeriesInput
 
@@ -262,6 +276,8 @@ type TimescopeDataRowInput = (
 | `resolution?` | `TimescopeNumberLike` | —         | Sampling resolution.         |
 
 [Guide](/guide/concepts#instantaneous-value)
+
+The default sample is the latest row at or before the cursor, without interpolation. `zoom` or `resolution` chooses sampling granularity independently of the Chart. Set `data.instantaneous: false` or `tooltip: false` to disable cursor sampling.
 
 #### Tooltip
 
@@ -292,7 +308,9 @@ type TimescopeDataResolution =
 | `resolve?` | `TimescopeResolutionResolver` | Display resolution | Preferred data interval; resolved values must be positive.  |
 | `snap?`    | `TimescopeResolutionSnap`     | `'nearest'`        | Snapping mode for source hints or integer-zoom resolutions. |
 
-[Guide](/guide/advanced/data#select-data-resolution)
+`'nearest'` snaps on the logarithmic zoom scale. `'floor'` chooses the largest interval at or below the preference; `'ceil'` chooses the smallest at or above it. Both clamp to the available endpoints. Source hints apply to range loaders, not snapshots, and do not restrict direct `query()` calls.
+
+[Guide](/guide/advanced/chunk-loading#select-data-resolution)
 
 #### Resolver context {#resolution-context}
 
@@ -326,6 +344,8 @@ type TimescopeRound =
 | `'pow10'`      | `{ mode: 'pow10', digits: 2, label: 'pow10' }`     |
 
 [Guide](/guide/advanced/styling#number-formatting)
+
+Object `mode` is inferred from a string `label`, otherwise it defaults to `'decimal'`; an omitted `label` uses the mode. `digits` must be a safe integer and cannot be negative in `'pow10'` mode. Incompatible mode/label pairs are rejected.
 
 #### Formatter context {#round-context}
 
@@ -387,7 +407,7 @@ type Using<V extends [string, string] = [string, string]> = Using1<V> | Using2<V
 | `'impulsespoints'`    | `line` to `#zero`, `circle` | —            | —                 |
 | `'bars'`              | `bar` to `#zero`            | —            | Bar fill          |
 
-[Guide](/guide/drawing-a-chart#ribbon-points)
+[Preset guide](/guide/drawing-a-chart#chart-presets) · [Custom Charts](/guide/advanced/styling#marks-and-links)
 
 ### TimescopeChartLink
 
@@ -447,6 +467,8 @@ type Using<V extends [string, string] = [string, string]> = Using1<V> | Using2<V
 
 [Guide](/guide/advanced/styling#drawing-colors)
 
+`fillOpacity` is clamped to `0`–`1`.
+
 #### Geometry {#mark-geometry}
 
 | Field      | Type                                                                      | Unit |
@@ -490,7 +512,11 @@ type TimescopeFontStyle =
     };
 ```
 
-[Guide](/guide/advanced/backends#select-a-font-style)
+Object properties inherit from local settings, then global settings, then location defaults. A local string replaces the global font; local objects inherit defaults rather than properties from a global string. Icon fonts use local settings only. Numeric `size` is in pixels; numeric `lineHeight` is unitless. String sizes and line heights use CSS syntax.
+
+Text Mark size priority: local string font → local object `font.size` → Mark `style.size` → global object `font.size` → default. A global string is used unchanged when neither a local font nor an explicit Mark size is set.
+
+[Guide](/guide/advanced/styling#fonts)
 
 ## Layout and Axes
 
@@ -568,7 +594,9 @@ type TimescopeOptionsSelection =
 | `color?`     | `string`  | —       | Selected-range overlay color.                    |
 | `invert?`    | `boolean` | —       | Shades outside the selected range.               |
 
-[Guide](/guide/advanced/views#select-a-time-range) · [Range methods](/api/classes#timescope-methods) · [Component range](/api/frameworks#props)
+Selection is enabled by default. `false` disables selection and clears its range; `true` restores default settings. `resizable: false` disables Shift-drag creation and handle resizing without clearing an existing selection. Set the initial range with constructor `selection.range`, or use the range methods after creation.
+
+[Range methods](/api/classes#timescope-methods) · [Component range](/api/frameworks#props)
 
 ### TimescopeDomainOptions
 
@@ -584,6 +612,8 @@ type TimescopeOptionsSelection =
 | `unit?`        | `string`                                                                                                                                                                                               | `''`       |
 
 [Guide](/guide/concepts#auto-scaling)
+
+An `undefined` range endpoint follows visible data; a scalar range means `[0, value]`. Top-level `expand` and `shrink` override the corresponding fields inside `range`. Logarithmic Domains draw positive values only and require positive specified bounds. `unit` appears in Tooltips and value-axis labels.
 
 ### TimescopeYAxisOptions
 
@@ -611,7 +641,9 @@ type TimescopeBackendTarget = Element | string | TimescopeCanvas;
 | `width`, `height`        | `number`                  |
 | `getContext`             | `(type: '2d') => unknown` |
 
-[Guide](/guide/advanced/backends)
+Container and selector targets are sized automatically; Timescope creates and owns their canvas. Supplied canvases retain application ownership and use explicit `resize(width, height, dpr)`. Omit constructor `target` to mount later. The mounted `canvas` property is `null` while unmounted.
+
+[Node.js guide](/guide/advanced/running-on-node)
 
 ### TimescopeEnvironment
 

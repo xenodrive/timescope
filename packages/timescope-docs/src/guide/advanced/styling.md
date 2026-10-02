@@ -2,9 +2,74 @@
 title: Styling
 ---
 
+<script setup>
+import PresetPreview from '../../../.vitepress/theme/components/PresetPreview.vue';
+</script>
+
 # Styling
 
-Style the host element with CSS and customize the drawing through chart options. The [Styling example](/examples/gallery#styling) combines a gradient background with custom Marks, Links, axes, cursor, and selection colors.
+Make a Chart your own: compose Marks and Links beyond the [presets](/guide/drawing-a-chart#chart-presets), vary the drawing with data, and match your application's theme. Style the host element with CSS and customize the drawing through chart options. The [Styling example](/examples/gallery#styling) combines these techniques.
+
+## Compose Marks and Links {#marks-and-links}
+
+To show a measurement and its lower and upper bounds, combine an area Link, a line Link, and circle Marks. Each primitive selects its own values from the same rows:
+
+```html
+<div id="chart" style="height: 240px"></div>
+```
+
+```ts
+import { Timescope } from 'timescope';
+
+const measurements = Array.from({ length: 121 }, (_, index) => {
+  const time = index / 2;
+  const value = 30 + 12 * Math.sin(time / 5);
+  return { time, values: { value, min: value - 5, max: value + 5 } };
+});
+
+const timescope = new Timescope({
+  target: '#chart',
+  fit: [0, 60],
+  sources: { measurements },
+  series: {
+    signal: {
+      data: { source: 'measurements', color: '#0d9488' },
+      chart: {
+        links: [{ draw: 'area', using: ['min', 'max'] }, { draw: 'line' }],
+        marks: [{ draw: 'circle', style: { size: 4, fillColor: '#0d9488' } }],
+      },
+    },
+  },
+  tracks: { default: { timeAxis: { relative: true } } },
+});
+```
+
+<ClientOnly><PresetPreview preset="ribbon-points" /></ClientOnly>
+
+- **Area Link:** `using: ['min', 'max']` selects the ribbon's bounds. Without `using`, an area extends from `value` to the Track's `#zero` baseline.
+- **Line Link:** the default selector, `value@time`, connects the central measurements.
+- **Circle Mark:** the same default selector places a point at each sample. An explicit `fillColor` makes the points solid; the ribbon inherits the Series color at 25% alpha.
+
+Links are drawn in array order, then Marks are drawn over them. Putting the area before the line keeps the central line visible. All these primitives use the same Series and Domain, so auto scaling includes the ribbon's bounds as well as its central values.
+
+Use `curve-area` and `curve` for a smooth ribbon. To draw a different named value, set `using: 'temperature'`; to choose a named time too, use a selector such as `'temperature@start'`. The [coordinate model](/guide/concepts#using-selectors) explains how selectors relate to rows, Track edges, and the shared baseline.
+
+[Marks & Links example](/examples/gallery#ribbon-points) · [Edit in Playground](/examples/playground?preset=ribbon-points) · [Marks](/api/types#timescopechartmark) · [Links](/api/types#timescopechartlink)
+
+### Show an aggregate envelope
+
+For a [decimated recording](/guide/drawing-a-chart#decimation), a `'point-aggregate'` source exposes summaries as suffixed value fields. Use the minimum and maximum for an envelope and the average for a line:
+
+```ts
+chart: {
+  links: [
+    { draw: 'area', using: ['value#min', 'value#max'] },
+    { draw: 'line', using: 'value#avg' },
+  ],
+}
+```
+
+This keeps peaks visible when an average alone would hide them. For a `'point-percentile'` source, select a percentile with a field such as `value#p95`. [Decimation example](/examples/gallery#decimation)
 
 ## Backgrounds and layout
 
@@ -26,7 +91,7 @@ The canvas is transparent, so a chart can overlay a gradient or an image on its 
 
 Use `background-image: url(...)` and `background-size: cover` for an image. Add `overflow: hidden` when using rounded corners so the chart stays inside the target's shape.
 
-Set a definite target height for a chart. With [framework components](/guide/advanced/frameworks/overview), use the component's `style` or class prop. CSS backgrounds are not included in [PNG exports](/guide/advanced/backends#render-a-png-in-the-browser).
+Set a definite target height for a chart. With [framework components](/guide/advanced/frameworks/overview), use the component's `style` or class prop. CSS backgrounds are not part of the canvas pixels; [Running on Node.js](./running-on-node#set-the-output-appearance) covers appearance outside a browser layout.
 
 ## Dark and light themes
 
@@ -65,8 +130,6 @@ Set `series.data.color` for the default Mark and Link color. Use primitive `line
 
 Inherited fills use the Series color at 25% alpha. An explicit `fillColor` uses its own alpha; `fillOpacity` applies in either case. Filled path Marks keep Links hidden behind their interiors, even with a transparent fill. Text and icon Marks leave underlying Links visible.
 
-`fillOpacity` defaults to `1` and is clamped to `0`–`1`.
-
 Use `fillPost: true` when you want the fill to cover the inner edge of the outline; the default keeps the complete outline visible.
 
 Use `cursor.color` for the cursor's strip fill, `cursor.borderColor` for its center line, and `selection.color` for the selected-range overlay. The cursor's default strip is transparent. Time-axis lines, ticks, and out-of-range areas default to translucent neutral gray, visible on both light and dark backgrounds. Axis and label overrides are listed in the [options reference](/api/types#timescopetimeaxisoptions); the [Styling example](/examples/gallery#styling) shows these settings together.
@@ -86,7 +149,7 @@ chart: {
 }
 ```
 
-The `marks` and `links` arrays, each entry's `draw`, `using`, and `style`, and individual style fields can all be callbacks. `origin`, `scale`, and `fillPost` are fixed values, not callbacks. The selected `draw` determines the coordinate count and supported style fields; `size` has primitive-specific meaning.
+You can also choose whole Marks and Links based on resolution, for example to show individual sample markers only when zoomed in. The selected `draw` determines the available coordinates and style fields.
 
 [Entries and callback contexts](/api/types#chart-entries) · [Style fields](/api/types#chart-styles)
 
@@ -103,8 +166,6 @@ Set `tooltip.round` on a Series or `axis.round` on a Domain to control number la
 For large or small values, use `'e'` to display `1.23e4`, or `'pow10'` to display `1.23×10⁴`. In these formats, `digits` controls the mantissa: `{ label: 'e', digits: 3 }` produces `1.235e4`. Omit `digits` from the object to leave tooltip mantissas unrounded or let axis precision adjust automatically. For decimal formatting, negative digits round to tens, hundreds, and so on.
 
 Without `round`, tooltips retain all digits and axis precision is automatic. An explicit coarse precision may leave fewer or no axis ticks; omit `digits` if that happens.
-
-The object form infers `mode` from a string `label`, otherwise defaulting to `'decimal'`; an omitted `label` uses the mode. `digits` must be a safe integer and cannot be negative in `'pow10'` mode. Incompatible mode/label pairs are rejected.
 
 For a custom label, assemble the formatted mantissa and exponent:
 
@@ -127,3 +188,26 @@ Supply `timeFormat` as a callback to replace a whole label. Its context includes
 Alternatively, provide a `TimeFormatLabeler` object with callbacks for individual calendar units. Their components use the axis's `timeZone`; `week` is the weekday, with Sunday `0`. The [Timezones example](/examples/gallery#timezones) compares time units and zones.
 
 [Time formatting types](/api/types#time-formatting)
+
+## Fonts
+
+Use `font` for the global text style and local font settings for individual labels or text Marks. Object properties inherit, so you can set a global family and override only the size or weight where needed:
+
+```ts
+const timescope = new Timescope({
+  target: '#chart',
+  fonts: [{ family: 'Chart Labels', source: 'url(/fonts/chart-labels.woff2)' }],
+  font: { family: 'Chart Labels, sans-serif', weight: 'bold' },
+  tracks: {
+    default: { timeAxis: { labels: { font: { size: 16, weight: 'normal' } } } },
+  },
+});
+```
+
+Time-axis labels use normal 16px Chart Labels; other text uses bold Chart Labels at its default size. For an installed system font, setting `font.family` is enough.
+
+`font` selects the drawing style; `fonts` loads additional browser font data and is set at creation. If `fonts` is omitted, Timescope loads accessible document `@font-face` rules. Use `fonts: []` to skip additional loading. In framework components, pass `fonts` as a creation-only prop and the style through `options.font`.
+
+Prefer font objects when combining global and local settings. A string such as `'bold 14px "MS Gothic"'` is a complete declaration, not a family name. Icon fonts use their local settings.
+
+[Font styles](/api/types#timescopefontstyle) · [Font loading options](/api/types#timescopeoptionsinitial)

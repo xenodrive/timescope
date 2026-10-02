@@ -4,19 +4,15 @@ import PresetPreview from '../../.vitepress/theme/components/PresetPreview.vue';
 
 # Drawing a Chart
 
-With time navigation and the [Core Concepts](/guide/concepts) in place, add data and drawing to the Timescope from Getting Started.
+Draw snapshot data with chart presets, arrange multiple Series, and choose how values are scaled. Each section shows a configuration for a particular result; use the ones your chart needs. [Core Concepts](/guide/concepts) explains how the parts fit together.
 
-Start with data already available in your application. Remote acquisition, chunk loading, and live updates are covered in [Loading and Updating Data](/guide/advanced/data).
+## Basic chart {#basic-chart}
 
-## Basic Chart
-
-Give the target element from Getting Started enough height for a Chart:
+A line chart needs a target with a definite height, a DataSource, and a Series that draws it:
 
 ```html
-<div id="timescope" style="height: 200px"></div>
+<div id="timescope" style="height: 240px"></div>
 ```
-
-Give each sample a `time` and a `value`, register the array in `sources`, and select its name with `series.signal.data.source`:
 
 ```ts
 import { Timescope } from 'timescope';
@@ -41,39 +37,195 @@ const timescope = new Timescope({
 
 <ClientOnly><PresetPreview preset="basic-chart" /></ClientOnly>
 
-- **`sources`** registers DataSources. The key `samples` is how a Series refers to this array; it is not a field in each row.
-- **`series`** registers Series. `signal` is the Series name, independent of the DataSource name.
-- **`chart: 'lines'`** connects consecutive samples. Without a `chart`, a Series does not draw a Chart.
-- **Target height** leaves room for the Chart; set it explicitly with CSS.
-- **`fit`** chooses the initial visible range. Numeric times are seconds by default, so this example spans 60 seconds from the Unix epoch.
+- **`sources`** names the data inputs. `samples` is how a Series refers to this array, not a field in each row.
+- **`series`** names the Series. Each one chooses a source and a chart preset; without `chart`, it does not draw a Chart.
+- **`fit`** sets the initial visible interval. Numeric times are seconds by default, so this example spans 60 seconds from the Unix epoch.
 
-With `tracks` and `data.domain` omitted, this uses the implicit `default` Track and an independent, automatically scaled linear Domain. No value axis is shown unless requested.
+With `tracks` and `data.domain` omitted, the chart uses the implicit `default` Track and an independent, automatically scaled linear Domain. No value axis is shown unless requested.
 
 [Basic Chart example](/examples/gallery#basic-chart) · [Edit in Playground](/examples/playground?preset=basic-chart)
 
-## Curve
+## Choose a chart preset {#chart-presets}
 
-Use `chart: 'curves'` to join samples with a smooth curve. Replace the basic configuration with the following response-time example:
+Set `chart` on a Series to select its presentation:
 
-```ts {19}
-const response = Array.from({ length: 16 }, (_, index) => {
-  const time = index * 4;
-  const decay = 10 ** (4 - time / 12);
-  const bump = 1 + 6 * Math.exp(-(((time - 44) / 2.8) ** 2));
-  return { time, value: decay * bump };
+| To draw…                    | Use…              |
+| --------------------------- | ----------------- |
+| Straight connections        | `'lines'`         |
+| Smooth connections          | `'curves'`        |
+| Individual samples          | `'points'`        |
+| Lines with sample markers   | `'linespoints'`   |
+| Step changes                | `'steps'`         |
+| Bars from the baseline      | `'bars'`          |
+| A filled area under a curve | `'curves:filled'` |
+
+For example, change an existing Series to a smooth curve:
+
+```ts
+timescope.updateOptions({
+  series: { signal: { chart: 'curves' } },
 });
+```
+
+`updateOptions()` merges the change, retaining the Series' data and other settings. You can also put the preset directly in the constructor. Connections change the drawing, not the source samples or the [instantaneous value](/guide/concepts#instantaneous-value) shown at the cursor.
+
+[All presets](/api/types#timescopecharttype) · [Curve example](/examples/gallery#curve) · [Custom Marks & Links](/guide/advanced/styling#marks-and-links)
+
+## Use snapshot data {#snapshot-data}
+
+A snapshot supplies the complete dataset, whether it comes from an array, a URL, or a callback. The basic chart uses an array. To load the same row format from JSON, replace its source input:
+
+```ts
+sources: {
+  samples: { url: '/samples.json' },
+}
+```
+
+For application-specific acquisition, use a callback with `chunked: false`:
+
+```ts
+sources: {
+  samples: {
+    chunked: false,
+    loader: async () => {
+      const response = await fetch('/samples.json');
+      if (!response.ok) throw new Error(`Samples: ${response.status}`);
+      return response.json();
+    },
+  },
+}
+```
+
+Use [`decoder` or `mappings`](/api/types#timescopedataloaderoptions) if the response has a different structure. Snapshots remain loaded until invalidated; call `timescope.reload(['samples'])` when the input has changed. For a history too large to load at once, use [Chunk Loading](/guide/advanced/chunk-loading).
+
+### Plot dates or elapsed time
+
+Rows can use date strings as well as numeric times:
+
+```ts
+const samples = [
+  { time: '2026-01-15T10:00:00Z', value: 18 },
+  { time: '2026-01-15T11:00:00Z', value: 21 },
+];
+```
+
+Date strings and `Date` inputs represent calendar instants. Numbers use the data's time units, seconds by default. Time strings are parsed as dates, not numeric strings; use a [`Decimal`](/api/classes#decimal) when a numeric timestamp needs more precision than a JavaScript number can retain.
+
+For a recording whose times start at zero, display elapsed time on the Track:
+
+```ts
+tracks: { default: { timeAxis: { relative: true } } }
+```
+
+For calendar labels, use `timeAxis: { timeZone: 'utc' }` or an IANA zone such as `'Asia/Tokyo'`. [Time-axis styling](/guide/advanced/styling#time-axis-labels) covers custom labels.
+
+## Overlay multiple Series {#multiple-series}
+
+Use multiple Series on the same Track to compare signals. Give them the same named Domain when equal vertical positions should mean equal values:
+
+```ts
+import { Timescope } from 'timescope';
+
+const timescope = new Timescope({
+  target: '#timescope',
+  fit: [0, 30],
+  sources: {
+    indoor: [
+      { time: 0, value: 18 },
+      { time: 15, value: 21 },
+      { time: 30, value: 19 },
+    ],
+    outdoor: [
+      { time: 0, value: 12 },
+      { time: 15, value: 16 },
+      { time: 30, value: 14 },
+    ],
+  },
+  domains: { temperature: { axis: 'left', unit: '°C' } },
+  series: {
+    indoor: {
+      data: { source: 'indoor', domain: 'temperature', color: '#0d9488' },
+      chart: 'linespoints',
+    },
+    outdoor: {
+      data: { source: 'outdoor', domain: 'temperature', color: '#d97706' },
+      chart: 'linespoints',
+    },
+  },
+  tracks: { default: { timeAxis: { relative: true } } },
+});
+```
+
+The shared Domain scales to both Series. Without it, each Series auto-scales independently, even when they share a Track. Series can also share a DataSource; [Styling](/guide/advanced/styling#marks-and-links) shows how to select different fields from the same rows.
+
+[Multiple Series example](/examples/gallery#multiple-series) · [Edit in Playground](/examples/playground?preset=multiple-series)
+
+## Arrange separate Tracks {#multiple-tracks}
+
+Put signals with different units in separate drawing regions while keeping their time axes aligned. Select a Track with the Series' `track` field:
+
+```ts
+import { Timescope } from 'timescope';
+
+const timescope = new Timescope({
+  target: '#timescope',
+  fit: [0, 30],
+  sources: {
+    temperature: [
+      { time: 0, value: 18 },
+      { time: 15, value: 21 },
+      { time: 30, value: 19 },
+    ],
+    latency: [
+      { time: 0, value: 8 },
+      { time: 15, value: 42 },
+      { time: 30, value: 12 },
+    ],
+  },
+  series: {
+    temperature: {
+      track: 'temperature',
+      data: { source: 'temperature', domain: { axis: 'left', unit: '°C' } },
+      chart: 'lines',
+    },
+    latency: {
+      track: 'latency',
+      data: { source: 'latency', domain: { axis: 'left', unit: 'ms' } },
+      chart: 'curves',
+    },
+  },
+  tracks: {
+    temperature: { timeAxis: false },
+    latency: { timeAxis: { relative: true } },
+  },
+});
+```
+
+Tracks without an explicit `height` share the available height. Give the target enough space for all Tracks, for example `height: 400px`. All Tracks pan and zoom together; Domains determine value scales independently of that layout.
+
+[Multiple Tracks example](/examples/gallery#multiple-tracks) · [Edit in Playground](/examples/playground?preset=multiple-tracks)
+
+## Choose a value scale {#log-scale}
+
+Use a logarithmic Domain when values span several orders of magnitude. This complete configuration plots response times with a left value axis:
+
+```ts
+import { Timescope } from 'timescope';
 
 const timescope = new Timescope({
   target: '#timescope',
   fit: [0, 60],
-  sources: { response },
+  sources: {
+    response: Array.from({ length: 16 }, (_, index) => {
+      const time = index * 4;
+      const decay = 10 ** (4 - time / 12);
+      const bump = 1 + 6 * Math.exp(-(((time - 44) / 2.8) ** 2));
+      return { time, value: decay * bump };
+    }),
+  },
   series: {
     response: {
-      data: {
-        source: 'response',
-        color: '#0d9488',
-        domain: { axis: 'left', unit: 'ms' },
-      },
+      data: { source: 'response', domain: { scale: 'log', axis: 'left', unit: 'ms' } },
       chart: 'curves',
     },
   },
@@ -81,115 +233,45 @@ const timescope = new Timescope({
 });
 ```
 
-<ClientOnly><PresetPreview preset="curve" /></ClientOnly>
+Equal vertical distances now represent equal ratios. Logarithmic Domains draw positive values only; any specified bounds must also be positive. Leave `scale` unspecified for a linear scale.
 
-The inline **Domain** enables a left value axis and adds `ms` to its labels and the Tooltip. Its bounds scale automatically. **`relative: true`** labels the time axis as elapsed time from zero rather than calendar time.
-
-The curve changes only the connections, not the samples or the Series' [instantaneous value](/guide/concepts#instantaneous-value).
-
-[Curve example](/examples/gallery#curve) · [Edit in Playground](/examples/playground?preset=curve)
-
-## Log Scale
-
-The response values span several orders of magnitude. A linear scale makes the small bump near 44 seconds hard to see. On the instance created above, switch to a logarithmic scale:
-
-```ts {6}
-timescope.updateOptions({
-  series: {
-    response: {
-      data: {
-        domain: {
-          scale: 'log',
-        },
-      },
-    },
-  },
-});
-```
-
-`updateOptions()` merges the change, keeping the DataSource, curve, unit, and other value-axis settings. For an initially logarithmic Chart, put these settings in the constructor instead.
-
-> [!WARNING]
-> Logarithmic Domains draw positive values only. Any specified bounds must also be positive.
-
-Equal vertical distances now represent equal ratios rather than equal differences; time and the row values themselves are unchanged.
-
-### Format axis and tooltip labels
-
-Logarithmic scaling does not require a particular number format. To display powers of ten in the labels, configure the Domain's `axis.round` and the Series' `tooltip.round` separately from `scale`:
-
-```ts
-timescope.updateOptions({
-  series: {
-    response: {
-      data: {
-        domain: {
-          axis: {
-            round: 'pow10',
-          },
-        },
-      },
-      tooltip: {
-        round: 'pow10',
-      },
-    },
-  },
-});
-```
-
-These settings control label formatting independently of the scale and do not change the source values. See [Number formatting](/guide/advanced/styling#number-formatting) for other formats.
-
-<ClientOnly><PresetPreview preset="log-scale" /></ClientOnly>
+Bounds normally follow visible data. Use Domain `range` to set bounds and `expand` / `shrink` to control their adjustment; see [auto scaling](/guide/concepts#auto-scaling). Label formatting is independent of the scale: [Styling](/guide/advanced/styling#number-formatting) covers decimal and exponential labels.
 
 [Log Scale example](/examples/gallery#log-scale) · [Edit in Playground](/examples/playground?preset=log-scale)
 
-## Marks & Links {#ribbon-points}
+## Decimation
 
-A row can carry several named values at the same time. Use `values` instead of `value` to provide a central measurement and its lower and upper bounds:
+For a dense recording, use a `'point-aggregate'` source to summarize samples at the requested data resolution. Zooming out shows coarser summaries; zooming in reveals finer detail without replacing the source:
 
 ```ts
-const measurements = Array.from({ length: 121 }, (_, index) => {
-  const time = index / 2;
-  const value = 30 + 12 * Math.sin(time / 5);
-  return { time, values: { value, min: value - 5, max: value + 5 } };
-});
-```
+import { Timescope } from 'timescope';
 
-Compose the Chart from Marks and Links rather than using a string preset:
-
-```ts {9-10}
 const timescope = new Timescope({
   target: '#timescope',
-  fit: [0, 60],
-  sources: { measurements },
-  series: {
-    signal: {
-      data: { source: 'measurements', color: '#0d9488' },
-      chart: {
-        links: [{ draw: 'area', using: ['min', 'max'] }, { draw: 'line' }],
-        marks: [{ draw: 'circle', style: { size: 4, fillColor: '#0d9488' } }],
-      },
+  fit: [0, 10],
+  sources: {
+    recording: {
+      type: 'point-aggregate',
+      data: Array.from({ length: 40_960 }, (_, index) => ({
+        time: index / 4096,
+        value: Math.sin(index / 64) + 0.2 * Math.sin(index / 3),
+      })),
     },
+  },
+  series: {
+    signal: { data: { source: 'recording' }, chart: 'lines' },
   },
   tracks: { default: { timeAxis: { relative: true } } },
 });
 ```
 
-<ClientOnly><PresetPreview preset="ribbon-points" /></ClientOnly>
+The preset draws the average of each bucket. The source also exposes minimum and maximum values, so you can show the signal's envelope with [custom Marks & Links](/guide/advanced/styling#show-an-aggregate-envelope) instead of hiding peaks in the average. The [Decimation example](/examples/gallery#decimation) combines an envelope with the average line.
 
-- **Area Link**: `using: ['min', 'max']` selects the two boundaries of the ribbon. Both use the row's default `time` field. Without `using`, an area extends from `value` to the Track's `#zero` baseline instead.
-- **Line Link**: the default selector is `value@time`, so it connects the central measurements.
-- **Circle Mark**: the same default selector places a point at every sample. Its `fillColor` is explicit so the points are solid; the ribbon inherits the Series color at the default 25% alpha.
+Use `'point-percentile'` for percentile summaries. Both summary source types accept snapshot points, not interval rows or range loaders. See [source types and output fields](/api/types#timescopesourceoptions) for the available summaries.
 
-Links are drawn in array order, then Marks are drawn over them. Putting the area before the line keeps the central line visible. All these primitives use the same Series and Domain, so the automatic range includes the ribbon's `min` and `max`, not just the central values.
+## Explore further
 
-Other combinations work the same way: use `curve-area` and `curve` for a smooth ribbon, or use the [`linespoints` / `curvespoints` presets](/api/types#timescopecharttype) when you only need a line or curve with points.
-
-[Marks & Links example](/examples/gallery#ribbon-points) · [Edit in Playground](/examples/playground?preset=ribbon-points)
-
-## Next steps
-
-- Compare shared Domains and separate Tracks in [Multiple Series](/examples/gallery#multiple-series) and [Multiple Tracks](/examples/gallery#multiple-tracks).
-- Open an example's **Options** popup for its configuration, or use [Playground](/examples/playground) to edit it.
-- Connect remote history, chunk loading, and live samples with [Loading and Updating Data](/guide/advanced/data).
-- Look up all [Chart presets](/api/types#timescopecharttype), [Links](/api/types#timescopechartlink), [Marks](/api/types#timescopechartmark), and [`using` selectors](/api/types#using).
+- [Styling](/guide/advanced/styling) — change the appearance and build your own Charts with Marks and Links.
+- [Chunk Loading](/guide/advanced/chunk-loading) — load large histories at the visible range and resolution.
+- [Live Streaming](/guide/advanced/live-streaming) — draw arriving samples and follow the latest time.
+- [Gallery](/examples/gallery) — explore more combinations and open their configuration in Playground.
