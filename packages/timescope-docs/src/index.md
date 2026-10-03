@@ -1,6 +1,10 @@
 ---
 title: Timescope
 layout: home
+head:
+  - - style
+    - {}
+    - '@page { size: A4 portrait; margin: 10mm; }'
 
 hero:
   name: Timescope

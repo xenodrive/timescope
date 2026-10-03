@@ -1,12 +1,11 @@
-/* A4 poster layout. Canvas remains live; no print-specific rendering work. */
-@page timescope-overview {
-  size: A4 portrait;
-  margin: 10mm;
+/* A4 poster layout with pre-rendered examples. Paper size is set in the home page's head. */
+.landing-print-examples {
+  display: none;
 }
+
 @media print {
   html:has(.VPHome),
   body:has(.VPHome) {
-    page: timescope-overview;
     margin: 0 !important;
     padding: 0 !important;
     background: #fff !important;
@@ -151,6 +150,32 @@
   }
   .landing-install-command button {
     display: none;
+  }
+
+  .landing-print-examples {
+    display: grid;
+    gap: 4mm;
+    padding: 4mm 0 2mm;
+    break-inside: avoid;
+  }
+  .landing-print-examples figure {
+    margin: 0;
+    padding: 3mm;
+    border: 1px solid #cfe4e9;
+    border-radius: 3mm;
+    background: #fff;
+  }
+  .landing-print-examples figcaption {
+    margin-bottom: 2mm;
+    color: #17566a;
+    font-size: 10pt;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .landing-print-examples img {
+    display: block;
+    width: 100%;
+    height: auto;
   }
 
   /* Feature sections. */

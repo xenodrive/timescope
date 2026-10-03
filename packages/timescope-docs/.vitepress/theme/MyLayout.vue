@@ -2,6 +2,7 @@
 import DefaultTheme from 'vitepress/theme';
 import LandingFeatures from './LandingFeatures.vue';
 import LandingInstall from './LandingInstall.vue';
+import LandingPrintExamples from './LandingPrintExamples.vue';
 import { Icon } from '@iconify/vue';
 import github from '@iconify-icons/mdi/github';
 import WarpBackground from './WarpBackground.vue';
@@ -26,6 +27,7 @@ const Layout = DefaultTheme.Layout;
       <LandingInstall />
     </template>
     <template #home-hero-after>
+      <LandingPrintExamples />
       <LandingFeatures />
       <footer class="landing-print-footer">
         <span>For more details, visit:</span>

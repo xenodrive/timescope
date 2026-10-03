@@ -62,6 +62,7 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
 
         const paddingX = 6;
         const paddingY = 2;
+        const boxHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent + paddingY * 2;
 
         const color = meta.color;
 
@@ -82,15 +83,14 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
 
           text: {
             dx: paddingX,
-            dy: 0,
             value: text,
           },
 
           box: {
             dx: 0.5,
-            dy: 0.5 - metrics.fontBoundingBoxAscent - paddingY,
+            dy: 0.5 - boxHeight / 2,
             width: paddingX * 2 + metrics.width,
-            height: paddingY * 2 + metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent,
+            height: boxHeight,
           },
         });
       }
@@ -151,10 +151,10 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
 
         ctx.beginPath();
         ctx.roundRect(point.x + box.dx, point.y + box.dy, box.width * sideX, box.height, 4);
-        ctx.shadowBlur = 3;
+        ctx.shadowBlur = 3 * timescope.dpr;
         ctx.shadowColor = 'black';
         ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 1;
+        ctx.shadowOffsetY = timescope.dpr;
         ctx.fillStyle = color;
         ctx.fill();
         ctx.shadowBlur = 0;
@@ -168,7 +168,7 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
         ctx.textBaseline = 'middle';
         ctx.textAlign = sideX < 0 ? 'right' : 'left';
         ctx.fillStyle = 'white'; //this.#labelStyle.color ?? 'black';
-        ctx.fillText(text.value, point.x + sideX * text.dx, point.y + text.dy);
+        ctx.fillText(text.value, point.x + sideX * text.dx, point.y + box.dy + box.height / 2);
       }
     });
   }

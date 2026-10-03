@@ -143,6 +143,17 @@ export class TimescopeYAxis extends TimescopeLayerDataBase<TimescopeYAxisData, T
       }
     }
 
+    // The renderer may include zero instead of leaving a floating gap at this height.
+    // Keep its label available; the floating axis bounds clip it when zero is omitted.
+    if (
+      wire.autoscale &&
+      (projection.mode === 'floating-positive' || projection.mode === 'floating-negative') &&
+      projection.numericZero != null &&
+      Number.isFinite(projection.numericZero)
+    ) {
+      values.push(Decimal(0));
+    }
+
     const digits =
       round.digits ??
       values.reduce((digits, value) => Math.max(digits, roundMantissa(value, round.mode).rescale().digits), 0);

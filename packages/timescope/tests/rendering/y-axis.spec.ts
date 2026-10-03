@@ -31,6 +31,7 @@ describe('value-axis label spacing', () => {
               bottom: 70,
               y0: 70,
               fadeForDomain: () => 0,
+              projectionForDomain: () => undefined,
               yForDomain: (_id: string, value: number) => value,
               axes: [
                 {

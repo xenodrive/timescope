@@ -9,6 +9,7 @@
     "dev": "vitepress dev .",
     "build": "vitepress build .",
     "render:node-example": "node scripts/render-node-example.js",
+    "render:poster": "node scripts/render-poster.js",
     "render:ogp": "node scripts/render-ogp.js",
     "preview": "vitepress preview .",
     "lint": "oxlint src .vitepress scripts",

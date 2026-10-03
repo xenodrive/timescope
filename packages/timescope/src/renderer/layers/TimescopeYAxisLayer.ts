@@ -43,14 +43,30 @@ export class TimescopeYAxisLayer extends TimescopeLayer {
     const maxTickWidth = Math.max(0, ...axis.ticks.map((tick) => ctx.measureText(tick.text).width));
 
     const floating = track.fadeForDomain(axis.id);
-    const bottom = floating > 0 ? Math.min(track.bottom, track.y0 - floating) : track.bottom;
+    const projection = track.projectionForDomain(axis.id);
+    const includesZero =
+      floating === 0 &&
+      projection?.autoscale &&
+      projection.numericZero != null &&
+      Number.isFinite(projection.numericZero);
+    const zeroY = includesZero ? track.yForDomain(axis.id, projection.numericZero) : NaN;
+    const bottom =
+      floating > 0
+        ? Math.min(track.bottom, track.y0 - floating)
+        : includesZero && projection.mode === 'floating-positive'
+          ? Math.min(track.bottom, zeroY)
+          : track.bottom;
     const title = [axis.label, axis.unit].filter(Boolean).join(' ');
     const titleY = 1;
     const titleMetrics = title ? ctx.measureText(title) : undefined;
     const titleBottom = titleMetrics
       ? titleY + Math.max(11, titleMetrics.actualBoundingBoxAscent + titleMetrics.actualBoundingBoxDescent) + 4
       : -Infinity;
-    const top = Math.max(track.top, titleBottom, floating < 0 ? track.y0 - floating : -Infinity);
+    const top = Math.max(
+      track.top,
+      titleBottom,
+      floating < 0 ? track.y0 - floating : includesZero && projection.mode === 'floating-negative' ? zeroY : -Infinity,
+    );
     const ticks = axis.ticks.flatMap((tick) => {
       const y = track.yForDomain(axis.id, tick.value);
       if (!Number.isFinite(y) || y < top || y > bottom) return [];
