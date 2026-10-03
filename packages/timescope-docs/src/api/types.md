@@ -196,16 +196,16 @@ type TimescopeDataRowInput = (
 
 ### TimescopeOptions
 
-| Field        | Type                                                  | Default                  | Description                                        |
-| ------------ | ----------------------------------------------------- | ------------------------ | -------------------------------------------------- |
-| `cursor?`    | `boolean \| { color?: string, borderColor?: string }` | `true`                   | Time cursor visibility and colors.                 |
-| `showFps?`   | `boolean`                                             | `false`                  | Frame-rate display.                                |
-| `font?`      | `TimescopeFontStyle`                                  | —                        | Global text font.                                  |
-| `sources?`   | `TimescopeOptionsSources`                             | —                        | Named DataSource inputs.                           |
-| `domains?`   | `TimescopeOptionsDomains`                             | —                        | Named value Domains.                               |
-| `series?`    | `TimescopeOptionsSeries`                              | —                        | Named Series configurations.                       |
-| `tracks?`    | `TimescopeOptionsTracks`                              | Implicit `default` Track | Named drawing regions; an empty object is invalid. |
-| `selection?` | `TimescopeOptionsSelection`                           | `true`                   | Selection interaction and overlay settings.        |
+| Field        | Type                                                  | Default                  | Description                                                                                                                              |
+| ------------ | ----------------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `cursor?`    | `boolean \| { color?: string, borderColor?: string }` | `true`                   | Time cursor visibility; `color` sets the center line (default: `'red'`), `borderColor` sets the side borders (default: `'transparent'`). |
+| `showFps?`   | `boolean`                                             | `false`                  | Frame-rate display.                                                                                                                      |
+| `font?`      | `TimescopeFontStyle`                                  | —                        | Global text font.                                                                                                                        |
+| `sources?`   | `TimescopeOptionsSources`                             | —                        | Named DataSource inputs.                                                                                                                 |
+| `domains?`   | `TimescopeOptionsDomains`                             | —                        | Named value Domains.                                                                                                                     |
+| `series?`    | `TimescopeOptionsSeries`                              | —                        | Named Series configurations.                                                                                                             |
+| `tracks?`    | `TimescopeOptionsTracks`                              | Implicit `default` Track | Named drawing regions; an empty object is invalid.                                                                                       |
+| `selection?` | `TimescopeOptionsSelection`                           | `true`                   | Selection interaction and overlay settings.                                                                                              |
 
 Referenced DataSources, Tracks, and named Domains must exist. Omitting `tracks` creates an implicit `default` Track; an empty Track object is invalid.
 

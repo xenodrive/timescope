@@ -55,7 +55,7 @@ Infers row and field types from input. A `'point-aggregate'` source supports app
 | `wheelSensitivity` | `200`                                                                                                                                              |
 | `fit`              | `{ padding: 0 }`                                                                                                                                   |
 | `options`          | `{ font: undefined, cursor: true, showFps: false, sources: undefined, series: undefined, tracks: undefined, domains: undefined, selection: true }` |
-| `cursor`           | `{ color: 'transparent', borderColor: 'red' }`                                                                                                     |
+| `cursor`           | `{ color: 'red', borderColor: 'transparent' }`                                                                                                     |
 | `domain`           | `{ scale: 'linear', animation: true, floatingGap: 20, axis: false, unit: '' }`                                                                     |
 | `domainRange`      | `{ default: [undefined, undefined], expand: false, shrink: true }`                                                                                 |
 | `track`            | `{ height: undefined, symmetric: false, timeAxis: true }`                                                                                          |

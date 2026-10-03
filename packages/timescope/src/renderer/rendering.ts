@@ -96,16 +96,13 @@ export function renderCursor(timescope: TimescopeRenderingContext) {
 
   const cursor = timescope.options.cursor;
   ctx.fillStyle =
-    typeof cursor === 'object' ? (cursor.color ?? defaultOptions.cursor.color) : defaultOptions.cursor.color;
-  ctx.strokeStyle =
     typeof cursor === 'object'
       ? (cursor.borderColor ?? defaultOptions.cursor.borderColor)
       : defaultOptions.cursor.borderColor;
-  ctx.lineWidth = 1;
-  ctx.fillRect(x - 1, 0, 3, height);
+  ctx.fillRect(x - 1, 0, 1, height);
+  ctx.fillRect(x + 1, 0, 1, height);
 
-  ctx.beginPath();
-  ctx.moveTo(x + 0.5, 0);
-  ctx.lineTo(x + 0.5, height);
-  ctx.stroke();
+  ctx.fillStyle =
+    typeof cursor === 'object' ? (cursor.color ?? defaultOptions.cursor.color) : defaultOptions.cursor.color;
+  ctx.fillRect(x, 0, 1, height);
 }

@@ -100,7 +100,9 @@ export function buildOptions(state) {
     ...(state.viewMode === 'fit'
       ? { fit: state.fitPadding ? { range: state.range, padding: state.fitPadding } : state.range }
       : { time: state.time, zoom: state.zoom }),
-    cursor: state.cursorEnabled ? { color: state.cursorColor, borderColor: state.cursorBorderColor } : false,
+    cursor: state.cursorEnabled
+      ? { color: state.cursorColor || undefined, borderColor: state.cursorBorderColor || undefined }
+      : false,
     sources: Object.fromEntries(
       [...new Set([...state.series.map((series) => series.source), ...state.sources])].map((name) => [
         name,

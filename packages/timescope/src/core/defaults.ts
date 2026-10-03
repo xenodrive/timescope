@@ -19,7 +19,7 @@ export const defaultOptions = Object.freeze({
     domains: undefined,
     selection: true,
   }),
-  cursor: Object.freeze({ color: 'transparent', borderColor: 'red' }),
+  cursor: Object.freeze({ color: 'red', borderColor: 'transparent' }),
   domain: Object.freeze({
     scale: 'linear' as const,
     animation: true,

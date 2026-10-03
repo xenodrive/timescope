@@ -112,7 +112,7 @@ Inherited fills use the Series color at 25% alpha. An explicit `fillColor` uses 
 
 Use `fillPost: true` when you want the fill to cover the inner edge of the outline; the default keeps the complete outline visible.
 
-Use `cursor.color` for the cursor's strip fill, `cursor.borderColor` for its center line, and `selection.color` for the selected-range overlay. The cursor's default strip is transparent. Time-axis lines, ticks, and out-of-range areas default to translucent neutral gray, visible on both light and dark backgrounds. Axis and label overrides are listed in the [options reference](/api/types#timescopetimeaxisoptions); the [Styling example](/examples/gallery#styling) shows these settings together.
+Use `cursor.color` for the cursor's center line, `cursor.borderColor` for its borders on either side, and `selection.color` for the selected-range overlay. The cursor's center line is red by default, with transparent borders. Time-axis lines, ticks, and out-of-range areas default to translucent neutral gray, visible on both light and dark backgrounds. Axis and label overrides are listed in the [options reference](/api/types#timescopetimeaxisoptions); the [Styling example](/examples/gallery#styling) shows these settings together.
 
 ## Data-driven styles
 

@@ -8,7 +8,7 @@ const trigger = ref<HTMLButtonElement>();
 const popup = ref<HTMLElement>();
 const position = ref({ left: '0px', top: '0px' });
 const automatic = computed(() => props.autoColor !== undefined && !model.value);
-const displayedColor = computed(() => model.value || props.autoColor || '#0d9488');
+const displayedColor = computed(() => model.value || props.autoColor || 'transparent');
 const palettes = [
   { name: 'Vivid', colors: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#0d9488', '#3b82f6', '#8b5cf6', '#ec4899'] },
   { name: 'Soft', colors: ['#fca5a5', '#fdba74', '#fde047', '#86efac', '#99f6e4', '#93c5fd', '#c4b5fd', '#f9a8d4'] },
@@ -67,6 +67,20 @@ async function opened(event: Event) {
             @click="choose(color)"></button>
         </div>
       </div>
+      <button type="button" class="palette-auto" :aria-pressed="model === 'transparent'" @click="choose('transparent')">
+        <span class="auto-color-preview" style="--picker-color: transparent" aria-hidden="true"></span>
+        Transparent
+        <span v-if="model === 'transparent'" class="auto-check" aria-hidden="true">✓</span>
+      </button>
+      <button
+        v-if="autoColor === undefined"
+        type="button"
+        class="palette-auto"
+        :aria-pressed="!model"
+        @click="choose('')">
+        Default
+        <span v-if="!model" class="auto-check" aria-hidden="true">✓</span>
+      </button>
       <button
         v-if="autoColor !== undefined"
         type="button"
@@ -96,7 +110,7 @@ async function opened(event: Event) {
   overflow: hidden;
   border: 1px solid var(--vp-c-divider);
   border-radius: 6px;
-  background: #fff;
+  background: repeating-conic-gradient(#fff 0% 25%, #d1d5db 0% 50%) 0 / 8px 8px;
 }
 .picker-trigger::before,
 .auto-color-preview::before {
