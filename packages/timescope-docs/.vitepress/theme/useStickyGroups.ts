@@ -7,14 +7,24 @@ export function useStickyGroups() {
   let frame = 0;
   const update = () => {
     frame = 0;
+    const scroller = document.scrollingElement;
+    if (!scroller) return;
+    // Safari rubber-banding can move sticky boxes independently of document layout.
+    // Keep the last valid state until the viewport returns to its scroll range.
+    const maxScroll = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+    if (window.scrollY < 0 || window.scrollY > maxScroll) return;
+
     for (const section of document.querySelectorAll<HTMLElement>('.doc-group, .doc-section')) {
       const proxy = section.querySelector<HTMLElement>(':scope > .doc-sticky');
       const heading = section.querySelector<HTMLElement>(':scope > .doc-group-heading, :scope > .doc-section-heading');
       if (!proxy || !heading) continue;
-      const top = parseFloat(getComputedStyle(proxy).top);
+      const style = getComputedStyle(proxy);
+      const top = parseFloat(style.top);
       section.classList.toggle('is-stuck', heading.getBoundingClientRect().top < top);
-      // Stop showing the outgoing label once its section pushes it above its slot.
-      section.classList.toggle('is-leaving', proxy.getBoundingClientRect().top < top - 0.5);
+      // Use the section boundary, never the browser's moving sticky-box coordinates.
+      const end = section.getBoundingClientRect().bottom;
+      const occupiedHeight = proxy.offsetHeight + (parseFloat(style.marginBottom) || 0);
+      section.classList.toggle('is-leaving', end < top + occupiedHeight - 0.5);
     }
   };
   const schedule = () => {
