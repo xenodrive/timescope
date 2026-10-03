@@ -13,6 +13,8 @@ export function useStickyGroups() {
       if (!proxy || !heading) continue;
       const top = parseFloat(getComputedStyle(proxy).top);
       section.classList.toggle('is-stuck', heading.getBoundingClientRect().top < top);
+      // Stop showing the outgoing label once its section pushes it above its slot.
+      section.classList.toggle('is-leaving', proxy.getBoundingClientRect().top < top - 0.5);
     }
   };
   const schedule = () => {

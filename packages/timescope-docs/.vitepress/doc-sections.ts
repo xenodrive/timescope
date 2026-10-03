@@ -19,6 +19,7 @@ export function docSections(md: MarkdownRenderer) {
     const output: typeof state.tokens = [];
     let inSection = false;
     let inGroup = false;
+    let stickyHeading = '';
     const html = (content: string) => {
       const token = new state.Token('html_block', '', 0);
       token.content = content;
@@ -57,14 +58,14 @@ export function docSections(md: MarkdownRenderer) {
               .join('')
               .replaceAll('\u200b', ''),
           );
-          output.push(
-            html(
-              `<div class="doc-sticky doc-sticky--${kind}" aria-hidden="true"><div class="doc-sticky-label">${label}</div></div>\n`,
-            ),
-          );
+          stickyHeading = `<div class="doc-sticky doc-sticky--${kind}" aria-hidden="true"><div class="doc-sticky-label">${label}</div></div>\n`;
         }
       }
       output.push(token);
+      if (token.type === 'heading_close' && stickyHeading) {
+        output.push(html(stickyHeading));
+        stickyHeading = '';
+      }
     }
     if (inSection) output.push(html('</section>\n'));
     if (inGroup) output.push(html('</section>\n'));

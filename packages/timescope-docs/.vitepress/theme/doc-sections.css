@@ -97,12 +97,25 @@
   margin-bottom: 0.5rem;
 }
 
+/* Keep semantic headings at their original coordinates for the outline and anchors.
+   Only the sticky labels paint text on screen, including before they stick. */
+@media screen {
+  .vp-doc .doc-group > .doc-group-heading,
+  .vp-doc .doc-section > .doc-section-heading {
+    height: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+  }
+}
+
 .vp-doc .doc-sticky {
   position: sticky;
   top: calc(var(--doc-sticky-top) + var(--doc-group-offset));
   z-index: 10;
-  height: 4.25rem;
-  margin-bottom: -4.25rem;
+  margin-bottom: 1.25rem;
   flex-shrink: 0;
   pointer-events: none;
 }
@@ -118,23 +131,26 @@
   line-height: 2rem;
   letter-spacing: -0.02em;
   overflow-wrap: anywhere;
-  opacity: 0;
-}
-
-.vp-doc .is-stuck > .doc-sticky > .doc-sticky-label {
   opacity: 1;
+  transition: opacity 120ms ease-out;
 }
 
-.vp-doc .is-stuck > .doc-section-heading,
-.vp-doc .is-stuck > .doc-group-heading {
+.vp-doc .is-stuck.is-leaving > .doc-sticky > .doc-sticky-label {
   opacity: 0;
+}
+
+.vp-doc .doc-group > .doc-sticky--group {
+  margin-bottom: 0;
+}
+
+.vp-doc .doc-group .doc-sticky--section {
+  margin-bottom: 0.5rem;
 }
 
 .vp-doc .doc-sticky--group {
   top: var(--doc-sticky-top);
   z-index: 11;
   height: 3rem;
-  margin-bottom: -3rem;
 }
 
 .vp-doc .doc-sticky--group .doc-sticky-label {
@@ -145,6 +161,7 @@
   line-height: 2rem;
   letter-spacing: 0;
   transition:
+    opacity 120ms ease-out,
     font-size 180ms ease,
     line-height 180ms ease,
     padding 180ms ease;
@@ -174,10 +191,6 @@
   .vp-doc .doc-sticky--section .doc-sticky-label {
     font-size: 1.25rem;
     line-height: 1.75rem;
-  }
-  .vp-doc .doc-sticky--section {
-    height: 4rem;
-    margin-bottom: -4rem;
   }
 }
 
