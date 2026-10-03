@@ -38,11 +38,13 @@ if [ -z "$targets" ]; then
   exit 0
 fi
 
-tag="release-$(date -u +%Y%m%d)"
-if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-  echo "Tag $tag already exists" >&2
-  exit 1
-fi
+tag_base="release-$(date -u +%Y%m%d)"
+tag=$tag_base
+suffix=0
+while git rev-parse -q --verify "refs/tags/$tag" >/dev/null; do
+  suffix=$((suffix + 1))
+  tag="$tag_base-$suffix"
+done
 
 if [ "$level" = minor ] || [ "$level" = major ]; then
   highest=$(node -e '
@@ -100,3 +102,4 @@ fi
 git commit -m "release: bump versions" -m "$summary"
 git tag -a -m "$tag" "$tag"
 echo "$tag"
+echo "$summary"
