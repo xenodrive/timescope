@@ -1,12 +1,10 @@
 ---
 title: Timescope
-titleTemplate: :title - Canvas for Time-Series Visualization
 layout: home
 
 hero:
   name: Timescope
-  text: Canvas for Time-Series Visualization
-  tagline: An embeddable JavaScript / TypeScript library for time-based visualization.
+  tagline: Embeddable JavaScript / TypeScript library.
   image:
     src: /logo.svg
     alt: Timescope

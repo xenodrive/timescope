@@ -46,6 +46,7 @@
 }
 .VPHome .VPHomeHero .text {
   font-weight: 600;
+  text-wrap: balance;
 }
 .VPHome .VPHomeHero .tagline {
   font-weight: 400;
@@ -99,7 +100,7 @@
     max-width: none;
     font-size: clamp(26px, 3vw, 36px) !important;
     line-height: 1.25 !important;
-    white-space: nowrap;
+    white-space: normal;
   }
 }
 .landing-install-command {

@@ -1,6 +1,6 @@
 # Timescope
 
-Canvas for Time-Series Visualization
+An infinite time slider that can display charts
 
 ## Features
 

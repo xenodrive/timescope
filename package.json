@@ -1,7 +1,7 @@
 {
   "private": true,
   "type": "module",
-  "description": "Timescope - Canvas for Time-Series Visualization",
+  "description": "An infinite time slider that can display charts",
   "author": "Xenodrive, Inc.",
   "license": "MIT",
   "homepage": "https://xenodrive.github.io/timescope/",
@@ -20,6 +20,7 @@
   "scripts": {
     "dev": "pnpm run -C packages/timescope dev",
     "docs": "pnpm run -C packages/timescope-docs start",
+    "render:ogp": "node packages/timescope-docs/scripts/render-ogp.js",
     "clean": "pnpm run clean:libs",
     "clean:libs": "rm -rf dist",
     "clean:docs": "rm -rf packages/timescope-docs/dist",

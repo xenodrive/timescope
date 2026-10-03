@@ -96,6 +96,9 @@ importers:
       vitepress:
         specifier: 2.0.0-alpha.20
         version: 2.0.0-alpha.20(@types/node@26.6.3)(jiti@2.7.0)(markdown-it-mathjax3@4.3.2)(postcss@8.5.28)(typescript@7.0.2)(yaml@2.9.1)
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
 
   packages/timescope-luna:
     devDependencies:

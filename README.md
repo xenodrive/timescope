@@ -1,6 +1,6 @@
 # Timescope
 
-Canvas for Time-Series Visualization
+An infinite time slider that can display charts
 
 - [Documentation](https://xenodrive.github.io/timescope/)
 - [packages/timescope](packages/timescope) ([npm](https://www.npmjs.com/package/timescope))

@@ -1,6 +1,7 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitepress';
+import pkg from '../../../package.json' with { type: 'json' };
 import { apiMarkdown } from './api-markdown.ts';
 import { docSections } from './doc-sections.ts';
 
@@ -29,7 +30,13 @@ export default defineConfig({
   ],
   title: 'Timescope',
   titleTemplate: ':title | Timescope',
-  description: 'Timescope - Canvas for Time-Series Visualization',
+  description: `Timescope - ${pkg.description}`,
+  transformPageData(pageData) {
+    if (pageData.relativePath === 'index.md') {
+      pageData.titleTemplate = `:title - ${pkg.description}`;
+      pageData.frontmatter.hero.text = pkg.description;
+    }
+  },
   srcDir: './src',
   outDir: './dist',
   base: '/timescope/',

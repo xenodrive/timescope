@@ -9,6 +9,7 @@
     "dev": "vitepress dev .",
     "build": "vitepress build .",
     "render:node-example": "node scripts/render-node-example.js",
+    "render:ogp": "node scripts/render-ogp.js",
     "preview": "vitepress preview .",
     "lint": "oxlint src .vitepress scripts",
     "format": "oxfmt --check .",
@@ -27,6 +28,7 @@
     "shiki": "^4.4.3",
     "skia-canvas": "^3.0.8",
     "timescope": "workspace:*",
-    "vitepress": "2.0.0-alpha.20"
+    "vitepress": "2.0.0-alpha.20",
+    "yaml": "^2.9.1"
   }
 }
