@@ -4,13 +4,13 @@ set -eu
 cd "$(dirname "$0")/.."
 
 if [ "$#" -ne 1 ]; then
-  echo "Usage: $0 <patch | minor | major>" >&2
+  echo "Usage: $0 <patch | minor | major | alpha | beta>" >&2
   exit 1
 fi
 
 case "$1" in
-  patch|minor|major) level=$1 ;;
-  *) echo "Usage: $0 <patch | minor | major>" >&2; exit 1 ;;
+  patch|minor|major|alpha|beta) level=$1 ;;
+  *) echo "Usage: $0 <patch | minor | major | alpha | beta>" >&2; exit 1 ;;
 esac
 
 if [ -n "$(git status --porcelain)" ]; then
@@ -26,7 +26,7 @@ fi
 targets=
 for dir in packages/timescope packages/timescope-react packages/timescope-vue \
   packages/timescope-solid packages/timescope-svelte packages/timescope-luna; do
-  if [ "$level" = patch ] && [ -n "$base" ] && \
+  if [ "$level" != minor ] && [ "$level" != major ] && [ -n "$base" ] && \
     git diff --quiet "$base" HEAD -- "$dir" tsdown.config.common.ts; then
     continue
   fi
@@ -44,7 +44,7 @@ if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
   exit 1
 fi
 
-if [ "$level" != patch ]; then
+if [ "$level" = minor ] || [ "$level" = major ]; then
   highest=$(node -e '
     const fs = require("node:fs");
     const packages = process.argv.slice(1).map((dir) => {
@@ -69,6 +69,8 @@ summary=
 for dir in $targets; do
   if [ "$level" = patch ]; then
     version=$(npm --prefix "$dir" version patch --no-git-tag-version --ignore-scripts)
+  elif [ "$level" = alpha ] || [ "$level" = beta ]; then
+    version=$(npm --prefix "$dir" version prerelease --preid="$level" --no-git-tag-version --ignore-scripts)
   elif [ "$dir" = "$highest" ]; then
     version="v$next_version"
   else
@@ -80,7 +82,7 @@ for dir in $targets; do
   git add -- "$dir/package.json"
 done
 
-if [ "$level" != patch ]; then
+if [ "$level" = minor ] || [ "$level" = major ]; then
   core_version=$(node -p "require('./packages/timescope/package.json').version")
   for dir in packages/timescope-react packages/timescope-vue \
     packages/timescope-solid packages/timescope-svelte packages/timescope-luna; do
