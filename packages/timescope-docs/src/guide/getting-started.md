@@ -14,6 +14,17 @@ Using a framework? Start with its [binding](/guide/advanced/frameworks/overview)
 npm install timescope
 ```
 
+::: tip Using a coding agent?
+Install the Timescope skill to help your agent work with Timescope APIs,
+timepicker and chart examples, and framework integrations:
+
+```bash
+npx skills add xenodrive/timescope
+```
+
+See the [skill documentation](https://github.com/xenodrive/timescope/blob/main/skills/timescope/SKILL.md) for details.
+:::
+
 ## Create your first Timescope
 
 ```html
