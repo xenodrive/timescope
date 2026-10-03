@@ -2,48 +2,33 @@
 title: Live Streaming
 ---
 
+<script setup>
+import ExampleLiveStream from '../../examples/live-stream.vue';
+</script>
+
 # Live Streaming
 
 Draw samples as they arrive and keep the view on the latest data. Data updates and time navigation are independent: append to a source to change the signal, and advance the clock to follow it. Try the [Live Stream example](/examples/gallery#live-stream) to see both together.
 
+<ClientOnly><ExampleLiveStream /></ClientOnly>
+
+Press **Start** to append samples, pan away to inspect history, and use **Follow live** to return to the newest data. The demo starts with six seconds of a synthetic pulse signal and produces new samples at 100 Hz. The excerpts below come from this running example.
+
 ## Append incoming samples {#append-live-points}
 
-Use a `'point-aggregate'` source for an ordered stream. Its `append()` method updates the chart automatically and supports [decimation](/guide/drawing-a-chart#decimation) as the recording grows:
+Use a `'point-aggregate'` source for an ordered stream. Its `append()` method updates the chart automatically and supports [decimation](/guide/drawing-a-chart#decimation) as the recording grows. Here `pulse(time)` generates a sample value; an application would receive those values from its data producer:
 
-```html
-<div id="chart" style="height: 240px"></div>
-```
+<<< ../../examples/live-signal.js#stream-source{js}
 
-```ts
-import { createDataSource, Timescope } from 'timescope';
+Each timer tick generates the next batch, awaits `append()`, then advances the playback clock. The timer skips ticks while a batch is in progress or the stream is paused:
 
-const signal = createDataSource({
-  type: 'point-aggregate',
-  data: [{ time: 0, value: 1 }],
-});
+<<< ../../examples/live-signal.js#append-batch{js}
 
-const timescope = new Timescope({
-  target: '#chart',
-  time: null,
-  zoom: 5,
-  sources: { signal },
-  series: { signal: { data: { source: 'signal' }, chart: 'lines' } },
-  tracks: { default: { timeAxis: { relative: true } } },
-});
-timescope.setPlaybackTime(0);
+::: details Chart configuration used in this example
+The source is registered as `signal`. The drawing combines an average line with a min/max envelope, as in [Styling](./styling#show-an-aggregate-envelope). `running` is initially `false`, so the first view is paused at the latest recorded sample. `target` is the demo's host element.
 
-// Call this with each batch from your application's data stream.
-async function receive(samples: { time: number; value: number }[]) {
-  if (samples.length === 0) return;
-  await signal.append(samples);
-  timescope.setPlaybackTime(samples[samples.length - 1].time);
-}
-
-await receive([
-  { time: 1, value: 2 },
-  { time: 2, value: 1.5 },
-]);
-```
+<<< ../../examples/live-signal.js#stream-chart{js}
+:::
 
 Supply points in time order, including across calls. Equal times are allowed, but a new point cannot precede an earlier one. Serialize incoming batches if your producer invokes an asynchronous receiver without awaiting it.
 

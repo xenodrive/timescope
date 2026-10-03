@@ -18,6 +18,7 @@ export function mountLiveSignal(target) {
   const toggle = document.getElementById('live-toggle');
   const follow = document.getElementById('live-follow');
   let running = false;
+  // #region stream-source
   const sampleRate = 100;
   const frameInterval = 1 / 60;
   let index = 600;
@@ -28,6 +29,8 @@ export function mountLiveSignal(target) {
     type: 'point-aggregate',
     data: Array.from({ length: index }, (_, i) => ({ time: i / sampleRate, value: pulse(i / sampleRate) })),
   });
+  // #endregion stream-source
+  // #region stream-chart
   const options = {
     target,
     time: running ? null : playbackTime,
@@ -55,11 +58,13 @@ export function mountLiveSignal(target) {
   };
   const timescope = new Timescope(options);
   timescope.setPlaybackTime(playbackTime);
+  // #endregion stream-chart
   let initialPause = !running;
   const timer = setInterval(async () => {
     if (!running || disposed || appending) return;
     appending = true;
     try {
+      // #region append-batch
       const nextTime = playbackTime + frameInterval;
       const nextIndex = Math.floor(nextTime * sampleRate) + 1;
       const rows = Array.from({ length: nextIndex - index }, () => {
@@ -70,6 +75,7 @@ export function mountLiveSignal(target) {
       if (disposed) return;
       playbackTime = nextTime;
       timescope.setPlaybackTime(playbackTime);
+      // #endregion append-batch
     } catch (error) {
       if (!disposed) {
         running = false;

@@ -54,6 +54,7 @@ export function mountTerrain(target) {
     ]),
   });
 
+  // #region terrain-loader
   const source = createDataSource({
     loader: delayed(({ range: [start, end], resolution }) => {
       const rows = [];
@@ -68,6 +69,8 @@ export function mountTerrain(target) {
       return rows;
     }),
   });
+
+  // #endregion terrain-loader
 
   const options = {
     target,

@@ -42,6 +42,6 @@ Vue, React, and Svelte refs expose `setTime`, `setZoom`, `fitTo`, `prepareView`,
 
 Components own their mount targets and dispose the Timescope automatically, including listeners registered with its `on()` method. Manually unsubscribe only if a subscription should end before the instance is disposed. Clean up application-owned timers, data producers, and listeners on external objects yourself on component unmount; see [Cleanup](/guide/getting-started#cleanup).
 
-Set chart dimensions and background with CSS on the host element, using the component's `style` or class prop and a definite height. `ready` / `onReady` fires at the first drawable mount and `mount` / `onMount` at each drawable mount. These mean the canvas has a non-zero size, not that data loading is complete; use a [prepared view](/api/interfaces#timescopepreparedview) and `nextFrame()` when you need finished pixels.
+Set chart dimensions and background with CSS on the host element, using the component's `style` or class prop. Usually, an explicit height makes the chart easier to read. `ready` / `onReady` fires at the first drawable mount and `mount` / `onMount` at each drawable mount. These mean the canvas has a non-zero size, not that data loading is complete; use a [prepared view](/api/interfaces#timescopepreparedview) and `nextFrame()` when you need finished pixels.
 
 [Props, events, and component refs](/api/frameworks) · [Styling and fonts](/guide/advanced/styling)

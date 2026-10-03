@@ -87,6 +87,9 @@ importers:
       shiki:
         specifier: ^4.4.3
         version: 4.4.3
+      skia-canvas:
+        specifier: ^3.0.8
+        version: 3.0.8(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
       timescope:
         specifier: workspace:*
         version: link:../timescope

@@ -17,6 +17,7 @@ export function mountDecimation(target) {
           domain: { range: [-1.2, 1.8], axis: true },
           instantaneous: { resolution: 1 / sampleRate },
         },
+        // #region envelope-chart
         chart: {
           links: [
             { draw: 'area', using: ['value#min', 'value#max'], style: { fillColor: '#8b5cf6', fillOpacity: 0.4 } },
@@ -27,6 +28,7 @@ export function mountDecimation(target) {
               ? [{ draw: 'circle', using: 'value#avg', style: { size: 5, lineColor: '#6d28d9', fillColor: '#ede9fe' } }]
               : [],
         },
+        // #endregion envelope-chart
       },
     },
     tracks: { default: { timeAxis: { relative: true } } },

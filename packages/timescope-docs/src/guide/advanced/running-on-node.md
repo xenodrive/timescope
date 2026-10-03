@@ -2,9 +2,19 @@
 title: Running on Node.js
 ---
 
+<script setup>
+import nodeExampleImage from '../assets/node-multiple-series.png';
+</script>
+
 # Running on Node.js
 
 Use the same chart configuration and data-loading code in a browser application and on the server. A Node.js job can draw the same signal, scales, and custom Marks without recreating them in a separate charting library. Only the target and environment-specific acquisition need to differ.
+
+<a :href="nodeExampleImage" target="_blank" rel="noopener noreferrer">
+  <img :src="nodeExampleImage" alt="Node.js-rendered chart with three signals sharing the left scale and a purple activity curve on the right scale" />
+</a>
+
+This PNG reuses the [Multiple Series example](/examples/gallery#multiple-series)'s data and chart configuration. It is rendered on Node.js with `cursor: false` and each Series' `tooltip: false`, against a white background. The image is rendered at twice its 960 × 360 layout size for sharp labels.
 
 ## Share chart configuration and loaders
 

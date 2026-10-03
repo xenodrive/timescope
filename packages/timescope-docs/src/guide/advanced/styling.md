@@ -3,7 +3,11 @@ title: Styling
 ---
 
 <script setup>
-import PresetPreview from '../../../.vitepress/theme/components/PresetPreview.vue';
+import GuideChart from '../../../.vitepress/theme/components/GuideChart.vue';
+import { marksAndLinks } from '../examples/charts.js';
+import ExampleDecimation from '../../examples/decimation.vue';
+import ExampleStyling from '../../examples/styling.vue';
+import ExampleValueScale from '../examples/value-scale.vue';
 </script>
 
 # Styling
@@ -20,31 +24,12 @@ To show a measurement and its lower and upper bounds, combine an area Link, a li
 
 ```ts
 import { Timescope } from 'timescope';
-
-const measurements = Array.from({ length: 121 }, (_, index) => {
-  const time = index / 2;
-  const value = 30 + 12 * Math.sin(time / 5);
-  return { time, values: { value, min: value - 5, max: value + 5 } };
-});
-
-const timescope = new Timescope({
-  target: '#chart',
-  fit: [0, 60],
-  sources: { measurements },
-  series: {
-    signal: {
-      data: { source: 'measurements', color: '#0d9488' },
-      chart: {
-        links: [{ draw: 'area', using: ['min', 'max'] }, { draw: 'line' }],
-        marks: [{ draw: 'circle', style: { size: 4, fillColor: '#0d9488' } }],
-      },
-    },
-  },
-  tracks: { default: { timeAxis: { relative: true } } },
-});
+const target = '#chart';
 ```
 
-<ClientOnly><PresetPreview preset="ribbon-points" /></ClientOnly>
+<ClientOnly><GuideChart :create="marksAndLinks" /></ClientOnly>
+
+<<< ../examples/charts.js#marks-and-links{js}
 
 - **Area Link:** `using: ['min', 'max']` selects the ribbon's bounds. Without `using`, an area extends from `value` to the Track's `#zero` baseline.
 - **Line Link:** the default selector, `value@time`, connects the central measurements.
@@ -58,40 +43,35 @@ Use `curve-area` and `curve` for a smooth ribbon. To draw a different named valu
 
 ### Show an aggregate envelope
 
-For a [decimated recording](/guide/drawing-a-chart#decimation), a `'point-aggregate'` source exposes summaries as suffixed value fields. Use the minimum and maximum for an envelope and the average for a line:
+For a [decimated recording](/guide/drawing-a-chart#decimation), a `'point-aggregate'` source exposes summaries as suffixed value fields. In this recording, the envelope preserves the bursts and a brief impact even when the average stays near zero. Zoom in to reveal individual sample markers:
 
-```ts
-chart: {
-  links: [
-    { draw: 'area', using: ['value#min', 'value#max'] },
-    { draw: 'line', using: 'value#avg' },
-  ],
-}
-```
+<ClientOnly><ExampleDecimation /></ClientOnly>
+
+The example's `chart` configuration selects minimum and maximum values for the area and the average for the line. Its Mark callback shows circles only at sample-level resolution (`sampleRate` is 4096 Hz):
+
+<<< ../../examples/decimation-demo.js#envelope-chart{js}
 
 This keeps peaks visible when an average alone would hide them. For a `'point-percentile'` source, select a percentile with a field such as `value#p95`. [Decimation example](/examples/gallery#decimation)
 
 ## Backgrounds and layout
 
-The canvas is transparent, so a chart can overlay a gradient or an image on its target:
+The canvas is transparent, so a chart can overlay a gradient or an image on its target. This example combines a gradient with custom point shapes, lines, axes, cursor, and selection colors:
 
-```html
-<div id="chart" class="chart"></div>
-```
+<ClientOnly><ExampleStyling /></ClientOnly>
 
-```css
-.chart {
-  height: 320px;
-  color: #1f2937;
-  background: linear-gradient(120deg, #14b8a633, #8b5cf622, #f59e0b33);
-  border-radius: 12px;
-  overflow: hidden;
-}
-```
+Its host element supplies the background and rounded corners:
+
+<<< ../../examples/styling.vue#html{html}
+
+::: details Chart configuration used in this example
+The drawing options below are taken directly from the running example. `target` is the host element above.
+
+<<< ../../examples/styling-demo.js#example{js}
+:::
 
 Use `background-image: url(...)` and `background-size: cover` for an image. Add `overflow: hidden` when using rounded corners so the chart stays inside the target's shape.
 
-Set a definite target height for a chart. With [framework components](/guide/advanced/frameworks/overview), use the component's `style` or class prop. CSS backgrounds are not part of the canvas pixels; [Running on Node.js](./running-on-node#set-the-output-appearance) covers appearance outside a browser layout.
+Usually, set an explicit target height to give the chart more room; compact charts can also use a small height with a symmetric Track. With [framework components](/guide/advanced/frameworks/overview), use the component's `style` or class prop. CSS backgrounds are not part of the canvas pixels; [Running on Node.js](./running-on-node#set-the-output-appearance) covers appearance outside a browser layout.
 
 ## Dark and light themes
 
@@ -161,11 +141,19 @@ Use `tooltip.side` to prefer labels on the left or right of a sample, defaulting
 
 ## Number formatting
 
+Use the selectors below to compare number formats on the same response-time data as [Drawing a Chart](/guide/drawing-a-chart#log-scale), using a logarithmic scale. **`axis.round`** and **`tooltip.round`** are independent: try `undefined`, `0`–`5`, `'e'`, or `'pow10'`, or choose an object such as `{ label: 'e', digits: 3 }` or `{ label: 'pow10', digits: 1 }` to set exponential precision explicitly. Move the time cursor to inspect the Tooltip and compare its formatting with the axis labels.
+
+<ClientOnly><ExampleValueScale formatting /></ClientOnly>
+
 Set `tooltip.round` on a Series or `axis.round` on a Domain to control number labels without changing source data. For example, `round: 2` displays a tooltip value of `12345.6789` as `12345.68`. The `'decimal'` shortcut gives the same two decimal places, including trailing zeros.
 
 For large or small values, use `'e'` to display `1.23e4`, or `'pow10'` to display `1.23×10⁴`. In these formats, `digits` controls the mantissa: `{ label: 'e', digits: 3 }` produces `1.235e4`. Omit `digits` from the object to leave tooltip mantissas unrounded or let axis precision adjust automatically. For decimal formatting, negative digits round to tens, hundreds, and so on.
 
 Without `round`, tooltips retain all digits and axis precision is automatic. An explicit coarse precision may leave fewer or no axis ticks; omit `digits` if that happens.
+
+Selecting `undefined` restores those defaults. The axis selector updates the Domain's axis while retaining its left-side placement (`axisRound` is a Vue ref):
+
+<<< ../examples/value-scale.vue#axis-format-control{js}
 
 For a custom label, assemble the formatted mantissa and exponent:
 

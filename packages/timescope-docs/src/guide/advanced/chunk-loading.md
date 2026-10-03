@@ -2,13 +2,25 @@
 title: Chunk Loading
 ---
 
+<script setup>
+import ExampleDynamicLoader from '../../examples/dynamic-loader.vue';
+</script>
+
 # Chunk Loading
 
 Explore a large or remote history without fetching all of it first. Timescope requests time ranges at the data resolution needed by the view, so your endpoint can serve a detailed close-up or a summarized overview. See [Core Concepts](/guide/concepts#chunk-loading) for the model, or try the [Dynamic Loader example](/examples/gallery#dynamic-loader).
 
+<ClientOnly><ExampleDynamicLoader /></ClientOnly>
+
+Pan to reveal new terrain, then zoom in to request finer detail. This example generates data locally with a simulated 450ms delay. The lower Track shows the ranges returned by a companion loader, making chunk boundaries visible.
+
+This is the terrain source used by the demo. `terrain()` generates a height at the given time and resolution, and `delayed()` supplies the simulated latency:
+
+<<< ../../examples/dynamic-terrain.js#terrain-loader{js}
+
 ## Connect a range endpoint
 
-Include range and resolution placeholders in a source URL. Timescope substitutes them as the user pans and zooms:
+For your own remote history, replace local generation with an endpoint. Include range and resolution placeholders in a source URL. Timescope substitutes them as the user pans and zooms:
 
 ```html
 <div id="chart" style="height: 240px"></div>
