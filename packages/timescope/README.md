@@ -1,5 +1,7 @@
 # Timescope
 
+**User Interface for Time Travel**
+
 An infinite time slider that can display charts
 
 ## Features

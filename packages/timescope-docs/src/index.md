@@ -8,7 +8,7 @@ head:
 
 hero:
   name: Timescope
-  tagline: Embeddable JavaScript / TypeScript library.
+  tagline: An infinite time slider that can display charts
   image:
     src: /logo.svg
     alt: Timescope

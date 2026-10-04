@@ -51,14 +51,14 @@
     position: relative;
     display: grid !important;
     grid-template-columns: 22mm 78mm minmax(0, 1fr);
-    gap: 3mm;
+    gap: 1mm 3mm;
     align-items: center;
     max-width: none;
   }
   .VPHome .VPHero .container::before {
     content: '';
     grid-column: 3;
-    grid-row: 1 / 3;
+    grid-row: 1 / 4;
     align-self: stretch;
     justify-self: start;
     border-left: 1px solid #b5cad8;
@@ -67,15 +67,11 @@
     display: contents !important;
   }
   .VPHome .VPHero .heading {
-    grid-column: 2;
-    grid-row: 1 / 3;
-    display: block !important;
-    width: 100% !important;
-    max-width: none;
-    margin: 0;
-    text-align: left;
+    display: contents !important;
   }
   .VPHome .VPHomeHero .name {
+    grid-column: 2;
+    grid-row: 1;
     display: block !important;
     margin-left: 0 !important;
     text-align: left !important;
@@ -86,11 +82,13 @@
     background: none !important;
   }
   .VPHome .VPHomeHero .text {
+    grid-column: 2;
+    grid-row: 2;
     display: block !important;
     width: 100% !important;
     margin-left: 0 !important;
     text-align: left !important;
-    margin-top: 1.5mm;
+    margin-top: 0;
     font-size: 11pt !important;
     font-weight: 500 !important;
     line-height: 1.25 !important;
@@ -98,12 +96,24 @@
     white-space: normal;
   }
   .VPHome .VPHomeHero .tagline {
-    display: none !important;
+    display: block !important;
+    grid-column: 2;
+    grid-row: 3;
+    align-self: start;
+    max-width: none;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-align: left !important;
+    color: #173c53 !important;
+    font-size: 8.5pt !important;
+    line-height: 1.35 !important;
+    font-weight: 400;
   }
   .VPHome .VPHomeHero .landing-print-description {
     display: block;
     grid-column: 3;
     grid-row: 1;
+    align-self: start;
     margin: 0 !important;
     padding: 0 0 0 4mm !important;
     text-align: left !important;
@@ -115,7 +125,7 @@
   }
   .VPHome .VPHomeHero .image {
     grid-column: 1;
-    grid-row: 1 / 3;
+    grid-row: 1 / 4;
     flex: none !important;
     display: flex;
     margin: 0 !important;
@@ -138,7 +148,7 @@
   .landing-install {
     justify-content: flex-start;
     grid-column: 3;
-    grid-row: 2;
+    grid-row: 2 / 4;
     align-self: start;
     margin: 0 0 0 4mm;
   }

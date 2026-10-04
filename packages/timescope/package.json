@@ -3,7 +3,7 @@
   "version": "0.1.1",
   "private": true,
   "type": "module",
-  "description": "Timescope - An infinite time slider that can display charts",
+  "description": "Timescope - User Interface for Time Travel",
   "scripts": {
     "dev": "vite",
     "test": "tsc --noEmit && vitest run",

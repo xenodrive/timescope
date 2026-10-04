@@ -1,7 +1,7 @@
 {
   "private": true,
   "type": "module",
-  "description": "An infinite time slider that can display charts",
+  "description": "User Interface for Time Travel",
   "author": "Xenodrive, Inc.",
   "license": "MIT",
   "homepage": "https://xenodrive.github.io/timescope/",
