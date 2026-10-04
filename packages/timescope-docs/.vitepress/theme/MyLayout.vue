@@ -3,6 +3,7 @@ import DefaultTheme from 'vitepress/theme';
 import LandingFeatures from './LandingFeatures.vue';
 import LandingInstall from './LandingInstall.vue';
 import LandingPrintExamples from './LandingPrintExamples.vue';
+import LandingPrintGesture from './LandingPrintGesture.vue';
 import { Icon } from '@iconify/vue';
 import github from '@iconify-icons/mdi/github';
 import WarpBackground from './WarpBackground.vue';
@@ -24,7 +25,11 @@ const Layout = DefaultTheme.Layout;
       <WarpBackground />
     </template>
     <template #home-hero-info-after>
+      <p class="landing-print-description">
+        It’s an embeddable JavaScript / TypeScript library. Add a time slider to your app in just a few lines.
+      </p>
       <LandingInstall />
+      <LandingPrintGesture />
     </template>
     <template #home-hero-after>
       <LandingPrintExamples />

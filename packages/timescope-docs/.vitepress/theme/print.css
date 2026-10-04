@@ -1,5 +1,7 @@
 /* A4 poster layout with pre-rendered examples. Paper size is set in the home page's head. */
-.landing-print-examples {
+.landing-print-examples,
+.landing-print-description,
+.landing-print-gesture {
   display: none;
 }
 
@@ -46,6 +48,7 @@
     color: #173c53 !important;
   }
   .VPHome .VPHero .container {
+    position: relative;
     display: grid !important;
     grid-template-columns: 22mm 78mm minmax(0, 1fr);
     gap: 3mm;
@@ -95,6 +98,10 @@
     white-space: normal;
   }
   .VPHome .VPHomeHero .tagline {
+    display: none !important;
+  }
+  .VPHome .VPHomeHero .landing-print-description {
+    display: block;
     grid-column: 3;
     grid-row: 1;
     margin: 0 !important;
@@ -103,7 +110,7 @@
     color: #173c53 !important;
     font-size: 9.5pt !important;
     line-height: 1.3 !important;
-    font-weight: 500;
+    font-weight: 400;
     white-space: normal;
   }
   .VPHome .VPHomeHero .image {
@@ -151,26 +158,58 @@
   .landing-install-command button {
     display: none;
   }
+  .landing-print-gesture {
+    display: block;
+    position: absolute;
+    right: 7mm;
+    bottom: -9mm;
+    z-index: 1;
+    width: 22mm;
+    height: auto;
+    overflow: visible;
+    color: #008bed;
+  }
 
   .landing-print-examples {
     display: grid;
-    gap: 4mm;
+    gap: 2mm;
     padding: 4mm 0 2mm;
     break-inside: avoid;
   }
   .landing-print-examples figure {
+    display: grid;
+    grid-template-columns: 35mm minmax(0, 1fr);
+    align-items: center;
+    gap: 3mm;
+    height: 31mm;
     margin: 0;
-    padding: 3mm;
+    padding: 0 3mm 0 0;
+    overflow: hidden;
     border: 1px solid #cfe4e9;
     border-radius: 3mm;
     background: #fff;
   }
   .landing-print-examples figcaption {
-    margin-bottom: 2mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-self: stretch;
+    padding: 3mm;
+    border-right: 1px solid #e1edf1;
+    background: #f2f8fa;
     color: #17566a;
     font-size: 10pt;
-    font-weight: 600;
     line-height: 1.3;
+  }
+  .landing-print-examples figcaption strong {
+    display: block;
+    font-weight: 600;
+  }
+  .landing-print-examples figcaption span {
+    display: block;
+    margin-top: 1.5mm;
+    color: #486575;
+    font-size: 8pt;
   }
   .landing-print-examples img {
     display: block;
