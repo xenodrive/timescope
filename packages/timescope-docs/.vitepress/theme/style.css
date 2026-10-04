@@ -41,6 +41,11 @@
   background: #050d18;
 }
 
+.VPHome .VPHero.select-none {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .VPHome .VPHero.warp-ready {
   background-image: none;
 }
@@ -166,6 +171,7 @@
 .VPHomeHero .image-container {
   width: 240px !important;
   height: 240px !important;
+  touch-action: none;
 }
 
 .VPHomeHero .image-bg {

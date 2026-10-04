@@ -15,6 +15,8 @@ onMounted(async () => {
 
   const container = hero.value;
   const surface = canvas.value;
+  container.classList.add('select-none');
+  dispose = () => container.classList.remove('select-none');
   if (typeof Worker === 'undefined' || !surface.transferControlToOffscreen) return;
 
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -25,10 +27,47 @@ onMounted(async () => {
     container.getBoundingClientRect().bottom > 0 && container.getBoundingClientRect().top < window.innerHeight;
   let lastSize: WarpSize | undefined;
   let lastRunning: boolean | undefined;
+  let drag: { pointerId: number; x: number; y: number } | undefined;
 
   const running = () => visible && !document.hidden && !motion.matches;
   const send = (message: WarpMessage) => worker?.postMessage(message);
+  const release = () => {
+    if (!drag) return;
+    const { pointerId } = drag;
+    drag = undefined;
+    send({ type: 'input', input: null });
+    if (container.hasPointerCapture(pointerId)) container.releasePointerCapture(pointerId);
+  };
+  const pointerDown = (event: PointerEvent) => {
+    if (event.button !== 0 || !event.isPrimary || drag || !running() || !ready) return;
+    const target = event.target;
+    // Keep page scrolling available everywhere except the Hero logo.
+    if (event.pointerType !== 'mouse' && !(target instanceof Element && target.closest('.image-container'))) return;
+    if (
+      target instanceof Element &&
+      target.closest('a, button, input, select, textarea, [role="button"], [contenteditable], .landing-install-command')
+    )
+      return;
+    event.preventDefault();
+    drag = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+    send({ type: 'input', input: { x: 0, y: 0 } });
+    container.setPointerCapture(event.pointerId);
+  };
+  const pointerMove = (event: PointerEvent) => {
+    if (event.pointerId !== drag?.pointerId) return;
+    // Also recover if the mouse was released outside the browser and returned.
+    if (event.pointerType === 'mouse' && !(event.buttons & 1)) return release();
+    const scale = Math.max(80, Math.min(container.clientWidth, container.clientHeight) * 0.25);
+    const x = (event.clientX - drag.x) / scale;
+    const y = (drag.y - event.clientY) / scale;
+    // Leave the input range to the flight model so longer drags can bend more.
+    send({ type: 'input', input: { x, y } });
+  };
+  const pointerEnd = (event: PointerEvent) => {
+    if (event.pointerId === drag?.pointerId) release();
+  };
   const fail = () => {
+    release();
     failed = true;
     ready = false;
     container.classList.remove('warp-ready');
@@ -48,6 +87,7 @@ onMounted(async () => {
   const sync = () => {
     container.classList.toggle('warp-ready', ready && !motion.matches);
     const active = running();
+    if (!active) release();
     if (active && !worker && !failed) {
       try {
         worker = new Worker(new URL('./warp-background.worker.ts', import.meta.url), { type: 'module' });
@@ -93,14 +133,27 @@ onMounted(async () => {
   window.addEventListener('resize', resize);
   document.addEventListener('visibilitychange', sync);
   motion.addEventListener('change', sync);
+  container.addEventListener('pointerdown', pointerDown);
+  container.addEventListener('lostpointercapture', pointerEnd);
+  window.addEventListener('pointermove', pointerMove);
+  window.addEventListener('pointerup', pointerEnd);
+  window.addEventListener('pointercancel', pointerEnd);
+  window.addEventListener('blur', release);
   dispose = () => {
+    release();
     sizes.disconnect();
     intersection.disconnect();
     window.removeEventListener('resize', resize);
     document.removeEventListener('visibilitychange', sync);
     motion.removeEventListener('change', sync);
+    container.removeEventListener('pointerdown', pointerDown);
+    container.removeEventListener('lostpointercapture', pointerEnd);
+    window.removeEventListener('pointermove', pointerMove);
+    window.removeEventListener('pointerup', pointerEnd);
+    window.removeEventListener('pointercancel', pointerEnd);
+    window.removeEventListener('blur', release);
     worker?.terminate();
-    container.classList.remove('warp-ready');
+    container.classList.remove('warp-ready', 'select-none');
   };
   sync();
 });

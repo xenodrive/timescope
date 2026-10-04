@@ -113,6 +113,8 @@
   background: #062b40;
 }
 .landing-install-command code {
+  -webkit-user-select: text;
+  user-select: text;
   font-family: var(--landing-mono);
   font-size: 14px;
   color: #eefaff;

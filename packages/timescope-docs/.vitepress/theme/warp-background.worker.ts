@@ -1,8 +1,12 @@
+import { flightSettings, type FlightInput, type Vector } from './warp-flight';
+import { createFlightScene, createStarField, sceneDimensions, sceneSettings } from './warp-scene';
+
 export type WarpSize = { width: number; height: number; ratio: number };
 export type WarpMessage =
   | { type: 'init'; canvas: OffscreenCanvas; size: WarpSize; running: boolean }
   | { type: 'resize'; size: WarpSize }
-  | { type: 'running'; running: boolean };
+  | { type: 'running'; running: boolean }
+  | { type: 'input'; input: FlightInput | null };
 
 export type WarpReply = { type: 'ready' } | { type: 'error' };
 
@@ -14,53 +18,41 @@ const scope = self as unknown as {
   cancelAnimationFrame(handle: number): void;
 };
 
-const flightSpeed = 40;
-const routeAmplitude = [35, 14, 28, 12];
-const routeFrequency = [0.02, 0.04, 0.02, 0.03];
-
-// Convert constant distance along the curve into its longitudinal increment.
-function travelRate(z: number) {
-  const slope = routeAmplitude.map(
-    (amplitude, i) => amplitude * routeFrequency[i] * Math.cos(z * routeFrequency[i] + (i === 2 ? 0.8 : 0)),
-  );
-  return flightSpeed / Math.hypot(slope[0] + slope[1], slope[2] + slope[3], 1);
-}
-
-// Fly through a stationary 3D star field along a winding tunnel.
+// Follow the centerline of a wormhole, steering its curvature with the mouse.
 // Trails sample past camera poses, giving real perspective and motion parallax.
 const vertexSource = `
 attribute vec3 seed;
 attribute vec2 corner;
+attribute vec3 starPosition;
+attribute float starSector;
+attribute vec3 starCoordinate;
 uniform vec2 resolution;
 uniform vec2 origin;
 uniform float travel;
-uniform vec4 routeAmplitude;
-uniform vec4 routeFrequency;
+uniform vec2 tubeRadii;
+uniform float curvature;
+uniform vec3 cameraPositions[${sceneSettings.exposureSamples}];
+uniform vec3 cameraDirections[${sceneSettings.exposureSamples}];
+uniform vec3 cameraUps[${sceneSettings.exposureSamples}];
 varying vec2 uv;
 varying vec3 color;
 varying float brightness;
 varying vec3 pointGlow;
 
-const float speed = ${flightSpeed.toFixed(1)};
-const float fieldDepth = 180.0;
-const float exposure = 0.075;
+const float speed = ${flightSettings.speed.toFixed(1)};
+const float exposure = ${sceneSettings.trailExposure.toFixed(3)};
+const float sampleInterval = ${(sceneSettings.exposureStride * flightSettings.step).toFixed(8)};
 
-vec3 route(float z) {
-  vec4 wave = routeAmplitude * sin(z * routeFrequency + vec4(0.0, 0.0, 0.8, 0.0));
-  return vec3(wave.x + wave.y, wave.z + wave.w, z);
-}
-
-vec3 routeTangent(float z) {
-  vec4 slope = routeAmplitude * routeFrequency
-    * cos(z * routeFrequency + vec4(0.0, 0.0, 0.8, 0.0));
-  return vec3(slope.x + slope.y, slope.z + slope.w, 1.0);
-}
-
-vec3 viewPosition(vec3 point, float travel) {
-  vec3 forward = normalize(routeTangent(travel));
-  vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), forward));
+vec3 viewPosition(vec3 point, float age) {
+  float sample = age / sampleInterval;
+  int index = int(clamp(floor(sample), 0.0, ${sceneSettings.exposureSamples - 2}.0));
+  float fraction = sample - float(index);
+  vec3 position = mix(cameraPositions[index], cameraPositions[index + 1], fraction);
+  vec3 forward = normalize(mix(cameraDirections[index], cameraDirections[index + 1], fraction));
+  vec3 cameraUp = mix(cameraUps[index], cameraUps[index + 1], fraction);
+  vec3 right = normalize(cross(cameraUp, forward));
   vec3 up = cross(forward, right);
-  vec3 relative = point - route(travel);
+  vec3 relative = point - position;
   return vec3(dot(relative, right), dot(relative, up), dot(relative, forward));
 }
 
@@ -69,33 +61,33 @@ vec2 project(vec3 point) {
 }
 
 void main() {
-  // Recycle only after passing behind the camera. A star's world position
-  // stays fixed throughout its flight past us, including its entire trail.
-  float sector = floor((travel - seed.z * fieldDepth - 30.0) / fieldDepth) + 1.0;
-  float z = (seed.z + sector) * fieldDepth;
-  vec2 random = fract(seed.xy + sector * vec2(0.75487766, 0.56984029));
-  float angle = random.x * 6.2831853;
-  float radius = sqrt(mix(9.0, 1600.0, random.y));
-  vec3 star = route(z) + vec3(cos(angle) * radius, sin(angle) * radius, 0.0);
-
-  vec3 head = viewPosition(star, travel);
-  float proximity = 1.0 - smoothstep(3.0, 110.0, head.z);
+  // Stars surround an empty tube, rather than flying toward the camera.
+  vec3 star = starPosition;
+  vec3 head = viewPosition(star, 0.0);
+  float radiusSquared = dot(starCoordinate.xy, starCoordinate.xy);
+  float radiusFraction = (radiusSquared - tubeRadii.x * tubeRadii.x) / (tubeRadii.y * tubeRadii.y - tubeRadii.x * tubeRadii.x);
+  float referenceRadius = sqrt(max(0.0, ${sceneSettings.holeRadius ** 2}.0 + radiusFraction * ${sceneSettings.outerRadius ** 2 - sceneSettings.holeRadius ** 2}.0));
+  vec3 metric = vec3(referenceRadius, 0.0,
+    (starCoordinate.z - travel) * ${sceneSettings.longitudinalScale.toFixed(4)});
+  float distance = length(metric);
+  // Keep the original depth-based flare profile, using compressed axial depth.
+  // The full anisotropic distance below only controls visibility and fading.
+  float proximity = 1.0 - smoothstep(3.0, 110.0, max(metric.z, 0.0));
   // Keep each star's scale stable throughout its passage through the field.
-  float sizeSeed = fract(seed.x * 31.7 + seed.y * 17.3 + seed.z * 13.1 + sector * 0.618);
+  float sizeSeed = fract(seed.x * 31.7 + seed.y * 17.3 + seed.z * 13.1 + starSector * 0.618);
   float starScale = mix(0.55, 1.6, sizeSeed * sizeSeed);
   float width = (0.55 + 8.0 * pow(proximity, 3.0)) * starScale;
   // Each star carries a round flare at the trail's head.
   float spread = 1.0;
-  float tailTravel = travel - exposure * speed * starScale / length(routeTangent(travel));
-  float trailLength = max(length(project(head) - project(viewPosition(star, tailTravel))), 0.5);
+  vec2 headProjection = project(head);
+  vec2 tailProjection = project(viewPosition(star, exposure * starScale));
+  float trailLength = max(length(headProjection - tailProjection), 0.5);
   float padding = min(width * spread / trailLength, 2.0);
   float along = mix(-padding, 1.0 + padding, corner.x);
-  float trailDistance = along * exposure * speed * starScale;
-  float midpoint = travel - 0.5 * trailDistance / length(routeTangent(travel));
-  float sampleTravel = travel - trailDistance / length(routeTangent(midpoint));
-  vec3 samplePoint = viewPosition(star, sampleTravel);
+  float sampleAge = along * exposure * starScale;
+  vec3 samplePoint = viewPosition(star, sampleAge);
   vec2 center = project(samplePoint);
-  vec2 movement = project(viewPosition(star, sampleTravel + 0.05)) - center;
+  vec2 movement = project(viewPosition(star, sampleAge - 0.05 / speed)) - center;
   vec2 tangent = movement / max(length(movement), 0.0001);
   vec2 position = center
     + vec2(-tangent.y, tangent.x) * corner.y * width * spread;
@@ -107,8 +99,15 @@ void main() {
   float lowSpeedLift = 1.0 - smoothstep(15.0, 55.0, speed);
   float distantLight = mix(0.015, 0.085, lowSpeedLift);
   float depthLight = pow(proximity, mix(3.0, 2.3, lowSpeedLift));
-  brightness = smoothstep(0.5, 3.0, head.z) * (1.0 - smoothstep(100.0, 140.0, z - travel))
+  brightness = smoothstep(0.5, 3.0, head.z)
+    * (1.0 - smoothstep(${sceneSettings.fadeStart.toFixed(1)}, ${sceneSettings.visibleRadius.toFixed(1)}, distance))
     * (distantLight + (1.3 - distantLight) * depthLight) * (0.25 + seed.y * 0.7);
+  // Fade before the half-turn visibility cutoff instead of showing a sliced
+  // tunnel end. Also soften the finite outer wall, especially while turning.
+  float turnAngle = max(starCoordinate.z - travel, 0.0) * curvature;
+  brightness *= 1.0 - smoothstep(2.2, 3.14159265, turnAngle);
+  float outerFade = 1.0 - smoothstep(${(sceneSettings.outerRadius * 0.85).toFixed(1)}, ${sceneSettings.outerRadius.toFixed(1)}, length(metric.xy));
+  brightness *= mix(1.0, outerFade, smoothstep(0.0005, 0.002, curvature));
 }
 `;
 
@@ -141,19 +140,22 @@ function createRenderer(surface: OffscreenCanvas) {
   const shaders: WebGLShader[] = [];
   const program = gl.createProgram();
   const buffer = gl.createBuffer();
+  const starBuffer = gl.createBuffer();
+  const scene = createFlightScene(null);
+  const instances = gl.getExtension('ANGLE_instanced_arrays');
   let frame = 0;
   let lost = false;
   let ready = false;
-  let travel = 0;
   let previous = 0;
-  let starCount = 0;
+  let width = 0;
+  let height = 0;
 
   const stop = () => {
     scope.cancelAnimationFrame(frame);
     frame = 0;
     previous = 0;
   };
-  if (!program || !buffer) throw new Error('WebGL allocation failed');
+  if (!program || !buffer || !starBuffer) throw new Error('WebGL allocation failed');
 
   for (const [type, source] of [
     [gl.VERTEX_SHADER, vertexSource],
@@ -179,7 +181,6 @@ function createRenderer(surface: OffscreenCanvas) {
   });
   gl.useProgram(program);
 
-  const stars = 1200;
   const segments = 8;
   const verticesPerStar = segments * 6;
   const corners = [
@@ -190,57 +191,118 @@ function createRenderer(surface: OffscreenCanvas) {
     [1, -1],
     [1, 1],
   ];
-  const data = new Float32Array(stars * verticesPerStar * 5);
+  const totalStars = sceneSettings.fieldStars;
+  const seeds: Vector[] = Array.from({ length: totalStars }, () => [Math.random(), Math.random(), Math.random()]);
+  // Appearance is independent of placement around the tube.
+  const appearanceSeeds: Vector[] = Array.from({ length: totalStars }, () => [
+    Math.random(),
+    Math.random(),
+    Math.random(),
+  ]);
+  const cornerData = new Float32Array(verticesPerStar * 2);
+  const repeat = instances ? 1 : verticesPerStar;
+  let capacity = 0;
+  let starData = new Float32Array();
   let offset = 0;
-  for (let i = 0; i < stars; i++) {
-    const seed = [Math.random(), Math.random(), Math.random()];
-    for (let segment = 0; segment < segments; segment++) {
-      for (const [along, across] of corners) {
-        data.set([...seed, (segment + along) / segments, across], offset);
-        offset += 5;
-      }
+  for (let segment = 0; segment < segments; segment++) {
+    for (const [along, across] of corners) {
+      cornerData.set([(segment + along) / segments, across], offset);
+      offset += 2;
     }
   }
+  const field = createStarField(seeds);
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, cornerData, gl.STATIC_DRAW);
+  const corner = gl.getAttribLocation(program, 'corner');
+  gl.enableVertexAttribArray(corner);
+  gl.vertexAttribPointer(corner, 2, gl.FLOAT, false, 8, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, starBuffer);
   for (const [name, size, offset] of [
     ['seed', 3, 0],
-    ['corner', 2, 12],
+    ['starPosition', 3, 12],
+    ['starSector', 1, 24],
+    ['starCoordinate', 3, 28],
   ] as const) {
     const location = gl.getAttribLocation(program, name);
     gl.enableVertexAttribArray(location);
-    gl.vertexAttribPointer(location, size, gl.FLOAT, false, 20, offset);
+    gl.vertexAttribPointer(location, size, gl.FLOAT, false, 40, offset);
+    instances?.vertexAttribDivisorANGLE(location, 1);
   }
   const resolution = gl.getUniformLocation(program, 'resolution');
   const origin = gl.getUniformLocation(program, 'origin');
-  const travelUniform = gl.getUniformLocation(program, 'travel');
-  gl.uniform4fv(gl.getUniformLocation(program, 'routeAmplitude'), routeAmplitude);
-  gl.uniform4fv(gl.getUniformLocation(program, 'routeFrequency'), routeFrequency);
+  const travel = gl.getUniformLocation(program, 'travel');
+  const tubeRadii = gl.getUniformLocation(program, 'tubeRadii');
+  const curvature = gl.getUniformLocation(program, 'curvature');
+  const cameraPositions = gl.getUniformLocation(program, 'cameraPositions[0]');
+  const cameraDirections = gl.getUniformLocation(program, 'cameraDirections[0]');
+  const cameraUps = gl.getUniformLocation(program, 'cameraUps[0]');
   gl.enable(gl.BLEND);
   gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
   gl.clearColor(0, 0, 0, 0);
 
-  const resize = ({ width, height, ratio }: WarpSize) => {
+  const resize = (size: WarpSize) => {
     if (lost) return;
-    if (!width || !height) return;
-    surface.width = Math.max(1, Math.round(width * ratio));
-    surface.height = Math.max(1, Math.round(height * ratio));
-    starCount = width < 640 ? 540 : stars;
+    if (!size.width || !size.height) return;
+    ({ width, height } = size);
+    const dimensions = sceneDimensions(width, height);
+    field.setDimensions(dimensions);
+    scene.setDimensions(dimensions);
+    gl.uniform2f(tubeRadii, dimensions.holeRadius, dimensions.outerRadius);
+    surface.width = Math.max(1, Math.round(width * size.ratio));
+    surface.height = Math.max(1, Math.round(height * size.ratio));
     gl.viewport(0, 0, surface.width, surface.height);
     // CSS pixels keep the streak widths consistent across displays.
     gl.uniform2f(resolution, width, height);
     gl.uniform2f(origin, width / 2, height / 2);
   };
   const draw = (now: number) => {
-    if (previous) {
-      const delta = Math.min((now - previous) / 1000, 0.05);
-      const midpoint = travel + travelRate(travel) * delta * 0.5;
-      travel += travelRate(midpoint) * delta;
-    }
+    const delta = previous ? Math.min((now - previous) / 1000, 0.05) : 0;
+    const snapshot = scene.advance(delta);
+    const { history } = snapshot;
     previous = now;
+    field.update(snapshot);
+    const visible = field.visible(snapshot, width, height);
+    gl.bindBuffer(gl.ARRAY_BUFFER, starBuffer);
+    if (visible.length > capacity) {
+      capacity = 2 ** Math.ceil(Math.log2(visible.length));
+      starData = new Float32Array(capacity * repeat * 10);
+      gl.bufferData(gl.ARRAY_BUFFER, starData.byteLength, gl.DYNAMIC_DRAW);
+      if (!instances) {
+        const data = new Float32Array(capacity * cornerData.length);
+        for (let i = 0; i < capacity; i++) data.set(cornerData, i * cornerData.length);
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, starBuffer);
+      }
+    }
+    let offset = 0;
+    for (const { index, position, sector, coordinate } of visible) {
+      const seed = appearanceSeeds[index];
+      for (let i = 0; i < repeat; i++) {
+        starData.set([...seed, ...position, sector, ...coordinate], offset);
+        offset += 10;
+      }
+    }
+    if (offset) gl.bufferSubData(gl.ARRAY_BUFFER, 0, starData.subarray(0, offset));
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.uniform1f(travelUniform, travel);
-    gl.drawArrays(gl.TRIANGLES, 0, starCount * verticesPerStar);
+    gl.uniform1f(travel, snapshot.travel);
+    gl.uniform1f(curvature, Math.hypot(history[0].curvature.x, history[0].curvature.y));
+    gl.uniform3fv(
+      cameraPositions,
+      history.flatMap((pose) => pose.position),
+    );
+    gl.uniform3fv(
+      cameraDirections,
+      history.flatMap((pose) => pose.direction),
+    );
+    gl.uniform3fv(
+      cameraUps,
+      history.flatMap((pose) => pose.up),
+    );
+    if (visible.length) {
+      if (instances) instances.drawArraysInstancedANGLE(gl.TRIANGLES, 0, verticesPerStar, visible.length);
+      else gl.drawArrays(gl.TRIANGLES, 0, visible.length * verticesPerStar);
+    }
     if (!ready) {
       ready = true;
       scope.postMessage({ type: 'ready' });
@@ -260,7 +322,7 @@ function createRenderer(surface: OffscreenCanvas) {
     scope.postMessage({ type: 'error' });
   };
   surface.addEventListener('webglcontextlost', contextLost);
-  return { resize, setRunning };
+  return { resize, setRunning, setInput: scene.setInput };
 }
 
 let renderer: ReturnType<typeof createRenderer> | undefined;
@@ -277,6 +339,9 @@ scope.onmessage = ({ data }) => {
         break;
       case 'running':
         renderer?.setRunning(data.running);
+        break;
+      case 'input':
+        renderer?.setInput(data.input);
         break;
     }
   } catch {
