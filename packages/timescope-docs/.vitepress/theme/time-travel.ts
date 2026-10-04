@@ -7,6 +7,7 @@ export const travelSettings = {
   inactivityMs: 700,
 };
 export type TravelState = {
+  activity?: number;
   mode: 'normal' | 'travel' | 'stopped';
   direction: 1 | -1;
   dawn: number;

@@ -1,7 +1,7 @@
 import { flightSettings, travelIntensity, type FlightInput, type Vector } from './warp-flight';
-import { createFlightScene, createFreeStarField, createStarField, sceneDimensions, sceneSettings } from './warp-scene';
+import { createFreeStarField, createStarField, sceneDimensions, sceneSettings } from './warp-scene';
 import type { TravelState } from './time-travel';
-import { createWarpJourney } from './warp-journey';
+import { createWarpController } from './warp-controller';
 
 export type WarpSize = { width: number; height: number; ratio: number };
 export type WarpMessage =
@@ -161,7 +161,7 @@ function createRenderer(surface: OffscreenCanvas) {
   const program = gl.createProgram();
   const buffer = gl.createBuffer();
   const starBuffer = gl.createBuffer();
-  const scene = createFlightScene(null, sceneSettings.driftSpeedScale, false);
+  const warp = createWarpController();
   const instances = gl.getExtension('ANGLE_instanced_arrays');
   let frame = 0;
   let lost = false;
@@ -170,11 +170,7 @@ function createRenderer(surface: OffscreenCanvas) {
   let width = 0;
   let height = 0;
   let travelState: TravelState = { mode: 'normal', direction: 1, dawn: 0 };
-  let starScale = 1;
-  let tubeMix = 0;
-  let warpInput: FlightInput | null = null;
-  const journey = createWarpJourney();
-  let inTransit = false;
+  let activity = 0;
 
   const stop = () => {
     scope.cancelAnimationFrame(frame);
@@ -282,7 +278,7 @@ function createRenderer(surface: OffscreenCanvas) {
     dimensions = sceneDimensions(width, height);
     field.setDimensions(dimensions);
     tubeField.setDimensions(dimensions);
-    scene.setDimensions(dimensions);
+    warp.setDimensions(dimensions);
     gl.uniform2f(tubeRadii, dimensions.holeRadius, dimensions.outerRadius);
     surface.width = Math.max(1, Math.round(width * size.ratio));
     surface.height = Math.max(1, Math.round(height * size.ratio));
@@ -294,18 +290,9 @@ function createRenderer(surface: OffscreenCanvas) {
   };
   const draw = (now: number) => {
     const delta = previous ? Math.min((now - previous) / 1000, 0.05) : 0;
-    const movement = journey.advance(delta);
-    scene.setTravel(movement);
-    const idle = movement.mode !== 'travel';
-    inTransit = !idle;
-    tubeMix += ((idle ? 0 : 1) - tubeMix) * (1 - Math.exp(-6 * delta));
-    if (Math.abs(tubeMix - (idle ? 0 : 1)) < 0.001) tubeMix = idle ? 0 : 1;
-    scene.setTube(tubeMix > 0 || !idle);
-    const snapshot = scene.advance(delta);
+    const { flight: snapshot, tubeMix, starScale } = warp.update(delta);
     const { history } = snapshot;
     previous = now;
-    const targetStars = idle ? 1 : travelIntensity(movement.distanceYears).starScale;
-    starScale += (targetStars - starScale) * (1 - Math.exp(-3 * delta));
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform1f(speed, Math.abs(snapshot.speedScale) * flightSettings.speed);
     gl.uniform1f(travel, snapshot.travel);
@@ -380,20 +367,17 @@ function createRenderer(surface: OffscreenCanvas) {
   };
   const setTravel = (travel: TravelState) => {
     travelState = travel;
-    journey.set(travel);
-    scene.setTravel(journey.advance(0));
+    if (travel.activity !== undefined ? travel.activity !== activity : travel.mode === 'travel') warp.warpIn(travel);
+    else warp.updateSelection(travel);
+    activity = travel.activity ?? activity;
     if (active && !frame) frame = scope.requestAnimationFrame(draw);
   };
   const setInput = (input: FlightInput | null) => {
-    warpInput = input;
-    scene.setInput(inTransit ? input : null);
+    warp.setInput(input);
     if (active && !frame) frame = scope.requestAnimationFrame(draw);
   };
   const navigate = (input: FlightInput) => {
-    if (inTransit) {
-      warpInput = { x: (warpInput?.x ?? 0) + input.x / 0.35, y: (warpInput?.y ?? 0) + input.y / 0.35 };
-      scene.setInput(warpInput);
-    } else scene.navigate(input);
+    warp.navigate(input);
     if (active && !frame) frame = scope.requestAnimationFrame(draw);
   };
   const contextLost = () => {

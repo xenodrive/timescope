@@ -10,7 +10,7 @@ import {
   type Vector,
 } from './warp-flight';
 import type { TravelState } from './time-travel';
-import { createWarpCruise, warpSettings, type WarpMovement } from './warp-journey';
+import { createWarpBlend, createWarpCruise, warpTiming, type WarpMovement } from './warp-journey';
 
 export const sceneSettings = {
   exposureSamples: 25,
@@ -99,8 +99,8 @@ export function createFlightScene(
   let automaticInput: FlightInput = { x: 0, y: 0 };
   let accumulator = 0;
   let travelMode: TravelState['mode'] = 'normal';
-  let targetSpeed = initialSpeed;
   let speedScale = initialSpeed;
+  const speedBlend = createWarpBlend(initialSpeed);
   let bidirectional = false;
   let freeNavigation = false;
   let forceTube = false;
@@ -116,6 +116,7 @@ export function createFlightScene(
   };
   let cruise: ReturnType<typeof createWarpCruise> | undefined;
   let bendsEnabled = false;
+  let timing = warpTiming();
   const pendingTurn = { x: 0, y: 0 };
   const navigate = (value: FlightInput) => {
     freeNavigation = true;
@@ -136,14 +137,21 @@ export function createFlightScene(
       cruise = createWarpCruise(() => randomTurn(travelTurn * 997 + sample++));
     }
     bendsEnabled = (value.distanceYears ?? 0) >= 1000;
+    if (value.timing) timing = value.timing;
+    else if (value.mode === 'travel') timing = warpTiming(value.distanceYears);
     warpPhase = value.warpPhase;
     travelMode = value.mode;
-    targetSpeed =
+    const targetSpeed =
       value.dawn >= 1
         ? 0
-        : value.mode === 'travel'
+        : value.mode === 'travel' && warpPhase !== 'out'
           ? value.direction * travelIntensity(value.distanceYears).speedScale
           : sceneSettings.driftSpeedScale;
+    speedBlend.set(
+      targetSpeed,
+      value.mode === 'travel' && warpPhase !== 'out' ? timing.inDuration : timing.outDuration,
+      value.transitionResponse,
+    );
     // Idle frames repeat the same arc length too. Never interpolate the
     // chronological exposure history as a spatial route after time control.
     bidirectional = true;
@@ -173,7 +181,7 @@ export function createFlightScene(
       const drifting = bidirectional && travelMode !== 'travel';
       if (travelMode === 'travel') {
         travelElapsed += flightSettings.step;
-        const straight = warpPhase === 'in' || warpPhase === 'out' || travelElapsed <= warpSettings.inDuration;
+        const straight = warpPhase === 'in' || warpPhase === 'out' || travelElapsed <= timing.inDuration;
         const automatic =
           !straight && (bendsEnabled || travelElapsed >= 1.2) ? cruise!.advance(flightSettings.step) : { x: 0, y: 0 };
         if (straight) steering = { x: 0, y: 0 };
@@ -202,9 +210,7 @@ export function createFlightScene(
       }
       const magnitude = Math.max(1, Math.hypot(steering.x, steering.y) / flightSettings.inputRange);
       const curvatureScale = (dimensions.maxCurvature / flightSettings.maxCurvature) * (drifting ? 0.35 : 1);
-      const desiredSpeed = targetSpeed;
-      speedScale += (desiredSpeed - speedScale) * (1 - Math.exp(-5 * flightSettings.step));
-      if (Math.abs(speedScale - desiredSpeed) < 0.0001) speedScale = desiredSpeed;
+      speedScale = speedBlend.advance(flightSettings.step);
       path.push(
         flight.step(
           flightSettings.step,

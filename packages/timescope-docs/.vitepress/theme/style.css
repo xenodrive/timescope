@@ -119,6 +119,7 @@
 }
 .travel-picker {
   width: 100%;
+  height: 48px;
   background: var(--vp-c-bg-soft);
   position: relative;
 }

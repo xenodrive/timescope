@@ -1,13 +1,16 @@
 import { expect, test } from "vitest";
 import { Calendar } from "../packages/timescope/src/index";
+import { createWarpController } from "../packages/timescope-docs/.vitepress/theme/warp-controller";
 import {
   travelIntensity,
   flightSettings,
 } from "../packages/timescope-docs/.vitepress/theme/warp-flight";
 import {
   createWarpJourney,
+  createWarpBlend,
   createWarpCruise,
   warpSettings,
+  warpTiming,
 } from "../packages/timescope-docs/.vitepress/theme/warp-journey";
 import {
   birthTime,
@@ -100,7 +103,7 @@ test("time travel re-enters a curved tube even after free navigation, with frame
   ).toBeLessThan(1e-7);
 });
 
-test("near trips stay straight and only retain the fixed warp-out on arrival", () => {
+test("near trips stay straight and use short warp entry/exit and acceleration/deceleration", () => {
   const scene = createFlightScene(null, sceneSettings.driftSpeedScale, false);
   scene.setTravel({ mode: "travel", direction: 1, dawn: 0, distanceYears: 100 });
   const snapshot = scene.advance(0.5);
@@ -108,10 +111,124 @@ test("near trips stay straight and only retain the fixed warp-out on arrival", (
   expect(snapshot.history[0].curvature).toEqual({ x: 0, y: 0 });
   const journey = createWarpJourney();
   journey.set({ mode: "travel", direction: 1, dawn: 0, distanceYears: 100 });
-  journey.advance(0.3);
+  expect(journey.advance(0.15).warpPhase).toBe("cruise");
   journey.set({ mode: "stopped", direction: 1, dawn: 0 });
   expect(journey.advance(0).warpPhase).toBe("out");
-  expect(journey.advance(warpSettings.outDuration).mode).toBe("stopped");
+  expect(journey.advance(0.15).mode).toBe("stopped");
+  scene.setTravel({ mode: "stopped", direction: 1, dawn: 0 });
+  expect(
+    Math.abs(scene.advance(0.5).speedScale - sceneSettings.driftSpeedScale) * flightSettings.speed,
+  ).toBeLessThan(1);
+});
+
+test("transition timing grows continuously with distance and keeps a full exit for sustained nearby curves", () => {
+  const near = warpTiming(100);
+  const middle = warpTiming(1000);
+  const far = warpTiming(10_000);
+  expect(near.inDuration).toBeLessThan(middle.inDuration);
+  expect(middle.inDuration).toBeLessThan(far.inDuration);
+  expect(near.outDuration).toBeLessThan(middle.outDuration);
+  expect(middle.outDuration).toBeLessThan(far.outDuration);
+  expect(far.inDuration).toBe(warpSettings.inDuration);
+  expect(far.outDuration).toBe(warpSettings.outDuration);
+  for (const years of [0, 100, 1000, 10_000, 1_000_000_000]) {
+    for (const duration of [0, 2]) {
+      const timing = warpTiming(years, duration);
+      expect(timing.inDuration + timing.outDuration).toBeLessThanOrEqual(0.5);
+    }
+  }
+  const journey = createWarpJourney();
+  journey.set({ mode: "travel", direction: 1, dawn: 0, distanceYears: 100 });
+  journey.advance(2);
+  journey.set({ mode: "stopped", direction: 1, dawn: 0 });
+  expect(journey.advance(0.125).warpPhase).toBe("out");
+  expect(journey.advance(0.125).mode).toBe("stopped");
+});
+
+test("nearby speed and opacity ease together across the whole entry/exit, in both flight directions", () => {
+  for (const direction of [-1, 1] as const) {
+    const scene = createFlightScene(null, sceneSettings.driftSpeedScale, false);
+    const opacity = createWarpBlend(0);
+    const timing = warpTiming(100);
+    scene.setTravel({ mode: "travel", direction, dawn: 0, distanceYears: 100, warpPhase: "in" });
+    opacity.set(1, timing.inDuration);
+    for (let step = 1; step <= 6; step++) {
+      const snapshot = scene.advance(timing.inDuration / 6);
+      const fraction =
+        (snapshot.speedScale - sceneSettings.driftSpeedScale) /
+        (direction - sceneSettings.driftSpeedScale);
+      expect(fraction).toBeCloseTo(opacity.advance(timing.inDuration / 6), 10);
+      if (step === 1) expect(fraction).toBeLessThan(0.04);
+      if (step === 3) expect(fraction).toBeCloseTo(0.5, 10);
+      if (step === 6) expect(fraction).toBe(1);
+    }
+    scene.setTravel({ mode: "travel", direction, dawn: 0, distanceYears: 100, warpPhase: "out" });
+    opacity.set(0, timing.outDuration);
+    for (let step = 1; step <= 6; step++) {
+      const snapshot = scene.advance(timing.outDuration / 6);
+      const fraction =
+        (snapshot.speedScale - sceneSettings.driftSpeedScale) /
+        (direction - sceneSettings.driftSpeedScale);
+      expect(fraction).toBeCloseTo(opacity.advance(timing.outDuration / 6), 10);
+      if (step === 1) expect(fraction).toBeGreaterThan(0.96);
+      if (step === 3) expect(fraction).toBeCloseTo(0.5, 10);
+      if (step === 6) expect(snapshot.speedScale).toBe(sceneSettings.driftSpeedScale);
+    }
+  }
+});
+
+test("resuming during warp-out keeps the current speed, opacity and position instead of snapping", () => {
+  const scene = createFlightScene(null, sceneSettings.driftSpeedScale, false);
+  const opacity = createWarpBlend(0);
+  scene.setTravel({ mode: "travel", direction: -1, dawn: 0, distanceYears: 100, warpPhase: "in" });
+  opacity.set(1, 0.15);
+  scene.advance(0.15);
+  opacity.advance(0.15);
+  scene.setTravel({ mode: "travel", direction: -1, dawn: 0, distanceYears: 100, warpPhase: "out" });
+  opacity.set(0, 0.15);
+  const before = scene.advance(0.05);
+  const faded = opacity.advance(0.05);
+  scene.setTravel({ mode: "travel", direction: -1, dawn: 0, distanceYears: 100, warpPhase: "in" });
+  opacity.set(1, 0.15);
+  expect(scene.advance(0).speedScale).toBe(before.speedScale);
+  expect(scene.advance(0).history[0].position).toEqual(before.history[0].position);
+  expect(opacity.advance(0)).toBe(faded);
+  expect(scene.advance(1 / 120).speedScale).toBeGreaterThan(before.speedScale);
+  expect(opacity.advance(1 / 120)).toBeLessThan(faded);
+});
+
+test("warp controller owns inactivity, repeated activity and smooth restart", () => {
+  const warp = createWarpController();
+  const request = { mode: "travel", direction: 1, dawn: 0, distanceYears: 100 } as const;
+  warp.warpIn(request);
+  const entering = warp.update(0.2);
+  expect(entering.tubeMix).toBeGreaterThan(0.6);
+  expect(entering.tubeMix).toBeLessThan(0.7);
+  expect(
+    (entering.flight.speedScale - sceneSettings.driftSpeedScale) /
+      (1 - sceneSettings.driftSpeedScale),
+  ).toBeCloseTo(entering.tubeMix, 10);
+  for (let i = 0; i < 10; i++) {
+    warp.warpIn(request);
+    expect(warp.update(0.3).tubeMix).toBeGreaterThan(0.9);
+  }
+  warp.updateSelection({ ...request, mode: "stopped" });
+  const exiting = warp.update(0.5);
+  expect(exiting.tubeMix).toBeGreaterThan(0);
+  expect(exiting.tubeMix).toBeLessThan(1);
+  warp.warpIn(request);
+  expect(warp.update(0).tubeMix).toBe(exiting.tubeMix);
+  expect(warp.update(0).flight.speedScale).toBe(exiting.flight.speedScale);
+  const resumed = warp.update(0.3);
+  expect(resumed.tubeMix).toBeGreaterThan(exiting.tubeMix);
+  expect(resumed.tubeMix).toBeLessThan(1);
+  const braking = warp.update(0.55);
+  expect(braking.tubeMix).toBeGreaterThan(0.3);
+  expect(braking.tubeMix).toBeLessThan(0.7);
+  expect(braking.flight.speedScale).toBeGreaterThan(sceneSettings.driftSpeedScale + 0.3);
+  const stopped = warp.update(3);
+  expect(stopped.tubeMix).toBe(0);
+  expect(stopped.flight.speedScale).toBe(sceneSettings.driftSpeedScale);
 });
 
 test("sustained nearby selections can bend too, while short nearby trips remain straight", () => {
@@ -210,6 +327,11 @@ test("warp-out interrupts a bend and settles into straight flight before arrival
         warpPhase: "out",
       });
       const arrival = scene.advance(warpSettings.outDuration).history[0];
+      expect(
+        Math.abs(
+          Math.hypot(...arrival.velocity) - flightSettings.speed * sceneSettings.driftSpeedScale,
+        ),
+      ).toBeLessThan(0.1);
       expect(Math.hypot(arrival.curvature.x, arrival.curvature.y)).toBeLessThan(
         flightSettings.maxCurvature * 0.01,
       );
@@ -257,17 +379,17 @@ test("warp entry/exit have fixed durations, cruise has no deadline, and inactivi
   for (const years of [10_000, 1_000_000]) {
     const journey = createWarpJourney();
     journey.set({ mode: "travel", direction: -1, dawn: 0, distanceYears: years });
-    expect(journey.advance(0.1).warpPhase).toBe("in");
-    expect(journey.advance(0.1).warpPhase).toBe("cruise");
+    expect(journey.advance(0.125).warpPhase).toBe("in");
+    expect(journey.advance(0.125).warpPhase).toBe("cruise");
     expect(journey.advance(120).warpPhase).toBe("cruise");
     journey.set({ mode: "stopped", direction: -1, dawn: 0 });
     expect(journey.advance(0).mode).toBe("travel");
-    expect(journey.advance(0.1).warpPhase).toBe("out");
-    expect(journey.advance(0.11).mode).toBe("stopped");
+    expect(journey.advance(0.125).warpPhase).toBe("out");
+    expect(journey.advance(0.126).mode).toBe("stopped");
     journey.set({ mode: "travel", direction: 1, dawn: 0, distanceYears: years });
     expect(journey.advance(0).warpPhase).toBe("in");
     journey.set({ mode: "stopped", direction: 1, dawn: 0 });
-    expect(journey.advance(0.2).warpPhase).toBe("out");
+    expect(journey.advance(0.25).warpPhase).toBe("out");
     journey.set({ mode: "travel", direction: 1, dawn: 0, distanceYears: years });
     expect(journey.advance(0).warpPhase).toBe("in");
     journey.set({ mode: "stopped", direction: 1, dawn: 1 });
