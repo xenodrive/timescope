@@ -1,5 +1,7 @@
 <script setup>
+import { useData } from 'vitepress';
 import DefaultTheme from 'vitepress/theme';
+import { nextTick, ref, watch } from 'vue';
 import LandingFeatures from './LandingFeatures.vue';
 import LandingInstall from './LandingInstall.vue';
 import LandingPrintExamples from './LandingPrintExamples.vue';
@@ -17,10 +19,39 @@ import { useStickyGroups } from './useStickyGroups';
 useStickyGroups();
 
 const Layout = DefaultTheme.Layout;
+const { frontmatter } = useData();
+const enteringHome = ref(false);
+
+watch(
+  () => frontmatter.value.layout === 'home',
+  (isHome, _, onCleanup) => {
+    if (!isHome || typeof window === 'undefined') return;
+
+    enteringHome.value = true;
+    let frame;
+    let cancelled = false;
+
+    onCleanup(() => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+      enteringHome.value = false;
+    });
+
+    // Paint the new page and its restored scroll position before enabling transitions.
+    nextTick(() => {
+      if (cancelled) return;
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => {
+          enteringHome.value = false;
+        });
+      });
+    });
+  },
+);
 </script>
 
 <template>
-  <Layout>
+  <Layout :class="{ 'entering-home': enteringHome }">
     <template #home-hero-info-before>
       <WarpBackground />
     </template>

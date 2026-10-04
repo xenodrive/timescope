@@ -71,8 +71,35 @@
   box-shadow: 0 0 28px rgba(38, 167, 198, 0.35);
 }
 
+.entering-home .VPNavBar,
+.entering-home .VPNavBar::before,
+.entering-home .VPNavBar *,
+.entering-home .VPNavBar *::before,
+.entering-home .VPNavBar *::after {
+  transition: none !important;
+}
+
 .VPNavBar.home.top:not(.screen-open) .VPNavBarTitle .title {
   color: #e3f0f5;
+}
+
+.VPNavBar.home .content-body > :is(.translations, .appearance, .social-links)::before {
+  --vp-c-divider: rgba(128, 128, 128, 0.28);
+}
+
+.VPNavBar.home .VPNavBarSearchButton {
+  --vp-c-bg-alt: rgba(128, 128, 128, 0.14);
+  transition: color 0.25s;
+}
+
+.VPNavBar.home .VPNavBarSearchButton .keys {
+  transition: border-color 0.25s;
+}
+
+.VPNavBar.home.top:not(.screen-open) .VPNavBarSearchButton {
+  --vp-c-text-2: #b9cfd9;
+  --vp-c-divider: rgba(223, 238, 244, 0.28);
+  color: var(--vp-c-text-2);
 }
 
 .VPNavBar.home.top:not(.screen-open) .VPNavBarMenuLink {
@@ -84,12 +111,17 @@
   color: #7ce7ff;
 }
 
-.VPNavBar.home.top:not(.screen-open) .VPSocialLink {
-  color: #b9cfd9;
+.VPNavBar.home .VPSocialLink {
+  color: rgba(128, 128, 128, 0.9);
+  transition: color 0.25s;
+}
+
+.VPNavBar.home .VPSocialLink:hover {
+  color: var(--vp-c-brand-1);
 }
 
 .VPNavBar.home.top:not(.screen-open) .VPSocialLink:hover {
-  color: #ffffff;
+  color: #7ce7ff;
 }
 
 .VPNavBar.home.top:not(.screen-open) .VPNavBarHamburger .top,
