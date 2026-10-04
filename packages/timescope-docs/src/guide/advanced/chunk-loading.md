@@ -12,9 +12,9 @@ Explore a large or remote history without fetching all of it first. Timescope re
 
 <ClientOnly><ExampleDynamicLoader /></ClientOnly>
 
-Pan to reveal new terrain, then zoom in to request finer detail. This example generates data locally with a simulated 450ms delay. The lower Track shows the ranges returned by a companion loader, making chunk boundaries visible.
+Pan to reveal new terrain, then zoom in to request finer detail. The terrain is synthetic height data generated locally by combining smooth variations at different scales; zooming in reveals finer detail. The vertical axis automatically fits the data. No network requests are made: **Simulate loading delay** adds a random wait of up to one second to each new terrain request. Uncheck it to load without the simulated wait. Cached data is reused either way. The lower Track shows the ranges returned by a companion loader without a delay, making chunk boundaries visible.
 
-This is the terrain source used by the demo. `terrain()` generates a height at the given time and resolution, and `delayed()` supplies the simulated latency:
+This is the terrain source used by the demo. `terrain()` generates a height at the given time and resolution. The loader checks the checkbox state, and the inline `await` simulates latency:
 
 <<< ../../examples/dynamic-terrain.js#terrain-loader{js}
 

@@ -9,15 +9,15 @@ onBeforeUnmount(() => cleanup?.());
 </script>
 
 <template>
-  <!-- #region html -->
   <div class="demo">
-    <div class="demo-controls">
+    <!-- #region html -->
+    <div>
       <button id="live-toggle">Start</button>
       <button id="live-follow">Follow live</button>
     </div>
     <div id="example-live-stream" style="height: 300px"></div>
+    <!-- #endregion html -->
   </div>
-  <!-- #endregion html -->
 </template>
 
 <style src="./demo.css"></style>

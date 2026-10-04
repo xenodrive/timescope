@@ -33,11 +33,19 @@ export default {
             source('vibration-data.js').replace(/^export /gm, ''),
           );
         }
-        const html = source(`${name}.vue`)
+        const htmlLines = source(`${name}.vue`)
           .split('<!-- #region html -->')[1]
           .split('<!-- #endregion html -->')[0]
-          .replace(/^  /gm, '')
-          .trim()
+          .split('\n');
+        const indent = Math.min(
+          ...htmlLines
+            .filter((line) => line.trim())
+            .map((line) => line.match(/^[ \t]*/)![0].length),
+        );
+        const html = htmlLines
+          .map((line) => (line.trim() ? line.slice(indent) : ''))
+          .join('\n')
+          .replace(/^\n+|\n+$/g, '')
           .replace(/<(span|audio)([^>]*?)\s*\/>/g, '<$1$2></$1>')
           .replace(/\s:class="[^"]*"/g, '');
         return [name, { html, javascript: mountedCode(javascript, target) }];

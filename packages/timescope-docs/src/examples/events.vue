@@ -3,37 +3,39 @@ title: Events
 ---
 
 <template>
-  <!-- #region html -->
-  <div id="example-intermediate-values" :class="props.class"></div>
-  <table>
-    <tbody>
-      <tr>
-        <th>timechanged</th>
-        <td><span id="timechanged" /></td>
-        <th>zoomchanged</th>
-        <td><span id="zoomchanged" /></td>
-      </tr>
-      <tr>
-        <th>timechanging</th>
-        <td><span id="timechanging" /></td>
-        <th>zoomchanging</th>
-        <td><span id="zoomchanging" /></td>
-      </tr>
-      <tr>
-        <th>timeanimating</th>
-        <td><span id="timeanimating" /></td>
-        <th>zoomanimating</th>
-        <td><span id="zoomanimating" /></td>
-      </tr>
-      <tr>
-        <th>selectionrangechanging</th>
-        <td><span id="selectionrangechanging" /></td>
-        <th>selectionrangechanged</th>
-        <td><span id="selectionrangechanged" /></td>
-      </tr>
-    </tbody>
-  </table>
-  <!-- #endregion html -->
+  <div class="demo">
+    <!-- #region html -->
+    <div id="example-intermediate-values" :class="props.class"></div>
+    <table>
+      <tbody>
+        <tr>
+          <th>timechanged</th>
+          <td><span id="timechanged" /></td>
+          <th>zoomchanged</th>
+          <td><span id="zoomchanged" /></td>
+        </tr>
+        <tr>
+          <th>timechanging</th>
+          <td><span id="timechanging" /></td>
+          <th>zoomchanging</th>
+          <td><span id="zoomchanging" /></td>
+        </tr>
+        <tr>
+          <th>timeanimating</th>
+          <td><span id="timeanimating" /></td>
+          <th>zoomanimating</th>
+          <td><span id="zoomanimating" /></td>
+        </tr>
+        <tr>
+          <th>selectionrangechanging</th>
+          <td><span id="selectionrangechanging" /></td>
+          <th>selectionrangechanged</th>
+          <td><span id="selectionrangechanged" /></td>
+        </tr>
+      </tbody>
+    </table>
+    <!-- #endregion html -->
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -49,6 +51,8 @@ onMounted(() => {
 });
 onBeforeUnmount(() => cleanup?.());
 </script>
+
+<style src="./demo.css"></style>
 
 <style scoped>
 #timechanged,

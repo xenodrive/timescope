@@ -3,13 +3,15 @@ title: Financial Chart
 ---
 
 <template>
-  <!-- #region html -->
-  <div id="example-financial-chart" style="height: 280px"></div>
-  <p class="financial-source">
-    Data:
-    <a href="https://www.binance.com/en/trade/BTC_USDT" target="_blank" rel="noopener noreferrer">Binance · BTC/USDT</a>
-  </p>
-  <!-- #endregion html -->
+  <div class="demo">
+    <!-- #region html -->
+    <div id="example-financial-chart" style="height: 280px"></div>
+    <!-- #endregion html -->
+    <p class="financial-source">
+      Data:
+      <a href="https://www.binance.com/en/trade/BTC_USDT" target="_blank" rel="noopener noreferrer">Binance · BTC/USDT</a>
+    </p>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -22,6 +24,8 @@ onMounted(() => {
 });
 onBeforeUnmount(() => cleanup?.());
 </script>
+
+<style src="./demo.css"></style>
 
 <style scoped>
 .financial-source {

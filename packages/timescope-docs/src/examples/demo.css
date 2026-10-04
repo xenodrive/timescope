@@ -4,6 +4,7 @@
     13px/1.5 system-ui,
     sans-serif;
 }
+.demo > div:has(> button, > label, > input, > select),
 .demo-controls {
   display: flex;
   flex-wrap: wrap;

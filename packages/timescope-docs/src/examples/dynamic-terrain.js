@@ -24,39 +24,25 @@ function terrain(time, resolution) {
 
 export function mountTerrain(target) {
   // #region example
-  let alive = true;
-  const timers = new Map();
-
-  function delayed(loader) {
-    return async (request) => {
-      if (!alive) return [];
-      await new Promise((resolve) => {
-        const timer = setTimeout(() => {
-          timers.delete(timer);
-          resolve();
-        }, 450);
-        timers.set(timer, resolve);
-      });
-      if (!alive) return [];
-      return loader(request);
-    };
-  }
-
   // Each loader returns its own data. Timescope owns caching and the selection
   // of chunks for the current view; no request-history source is needed.
   const chunks = createDataSource({
-    loader: delayed(({ range: [start, end], resolution }) => [
+    loader: ({ range: [start, end], resolution }) => [
       {
         times: { start, middle: start.add(end).div(2), end },
         values: { level: 0.5 },
         data: { label: `${resolution.number().toPrecision(2)} s/px` },
       },
-    ]),
+    ],
   });
 
   // #region terrain-loader
+  const delayCheckbox = document.querySelector('#example-simulate-loading-delay');
   const source = createDataSource({
-    loader: delayed(({ range: [start, end], resolution }) => {
+    loader: async ({ range: [start, end], resolution }) => {
+      if (delayCheckbox.checked) {
+        await new Promise((resolve) => setTimeout(resolve, Math.random() * 1000));
+      }
       const rows = [];
       // Align samples globally; include one neighbor on either side.
       for (
@@ -67,7 +53,7 @@ export function mountTerrain(target) {
         rows.push({ time: t, value: terrain(t.number(), resolution.number()) });
       }
       return rows;
-    }),
+    },
   });
 
   // #endregion terrain-loader
@@ -80,8 +66,7 @@ export function mountTerrain(target) {
     sources: { terrain: source, chunks },
     series: {
       terrain: {
-        // Fixed vertical scale: loading new chunks never rescales the landscape.
-        data: { source: 'terrain', domain: { range: [-220, 220], axis: 'left' }, color: '#0d9488' },
+        data: { source: 'terrain', domain: { axis: 'left' }, color: '#0d9488' },
         chart: 'lines:filled',
         tooltip: false,
         track: 'terrain',
@@ -119,13 +104,5 @@ export function mountTerrain(target) {
   };
   const timescope = new Timescope(options);
   // #endregion example
-  return () => {
-    alive = false;
-    for (const [timer, resolve] of timers) {
-      clearTimeout(timer);
-      resolve();
-    }
-    timers.clear();
-    timescope.dispose();
-  };
+  return () => timescope.dispose();
 }

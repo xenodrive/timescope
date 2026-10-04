@@ -9,10 +9,15 @@ onBeforeUnmount(() => cleanup?.());
 </script>
 
 <template>
-  <!-- #region html -->
-  <div id="example-dynamic-loader" style="height: 350px"></div>
-  <!-- #endregion html -->
-  <p class="demo-note">Pan and zoom to load terrain. Boxes show the ranges returned by the loader.</p>
+  <div class="demo">
+    <!-- #region html -->
+    <div>
+      <label><input id="example-simulate-loading-delay" type="checkbox" checked /> Simulate loading delay</label>
+    </div>
+    <div id="example-dynamic-loader" style="height: 350px"></div>
+    <!-- #endregion html -->
+    <p class="demo-note">Pan and zoom to load generated data on demand.</p>
+  </div>
 </template>
 
 <style src="./demo.css"></style>
