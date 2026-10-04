@@ -4,10 +4,13 @@ import {
   dot,
   normalize,
   flightSettings,
+  travelIntensity,
   straightFlight,
   type FlightInput,
   type Vector,
 } from './warp-flight';
+import type { TravelState } from './time-travel';
+import { createWarpCruise, warpSettings, type WarpMovement } from './warp-journey';
 
 export const sceneSettings = {
   exposureSamples: 25,
@@ -25,6 +28,7 @@ export const sceneSettings = {
   routeSamples: 110,
   near: 0.5,
   focalScale: 0.9,
+  driftSpeedScale: 0.035,
   sizing: {
     shortSide: 365,
     longSide: 1920,
@@ -70,10 +74,18 @@ export function sceneDimensions(width: number, height: number): SceneDimensions 
   };
 }
 
-export function createFlightScene(initialInput: FlightInput | null = { x: 0, y: 0 }) {
+export function createFlightScene(
+  initialInput: FlightInput | null = { x: 0, y: 0 },
+  initialSpeed = 1,
+  predictTube = true,
+) {
   const tickDistance = flightSettings.speed * flightSettings.step;
   const pastTicks = Math.ceil((sceneSettings.behind + sceneSettings.routeSpacing * 2) / tickDistance);
-  const path = Array.from({ length: pastTicks + 1 }, (_, i) => straightFlight((i - pastTicks) * tickDistance));
+  const path = Array.from({ length: pastTicks + 1 }, (_, i) => {
+    const pose = straightFlight((i - pastTicks) * tickDistance * initialSpeed);
+    pose.velocity = pose.velocity.map((value) => value * initialSpeed) as Vector;
+    return pose;
+  });
   const flight = createFlight(path.at(-1)!);
   // Null hands control to the autopilot; an explicit input always takes priority.
   let input = initialInput;
@@ -86,6 +98,56 @@ export function createFlightScene(initialInput: FlightInput | null = { x: 0, y: 
   let turnIndex = 0;
   let automaticInput: FlightInput = { x: 0, y: 0 };
   let accumulator = 0;
+  let travelMode: TravelState['mode'] = 'normal';
+  let targetSpeed = initialSpeed;
+  let speedScale = initialSpeed;
+  let bidirectional = false;
+  let freeNavigation = false;
+  let forceTube = false;
+  const setTube = (value: boolean) => {
+    forceTube = value;
+  };
+  let travelElapsed = 0;
+  let travelTurn = 0;
+  let warpPhase: WarpMovement['warpPhase'];
+  const randomTurn = (index: number) => {
+    const value = Math.sin(index * 127.1 + 311.7) * 43758.5453;
+    return value - Math.floor(value);
+  };
+  let cruise: ReturnType<typeof createWarpCruise> | undefined;
+  let bendsEnabled = false;
+  const pendingTurn = { x: 0, y: 0 };
+  const navigate = (value: FlightInput) => {
+    freeNavigation = true;
+    bidirectional = true;
+    pendingTurn.x += value.x;
+    pendingTurn.y += value.y;
+  };
+  const setTravel = (value: WarpMovement) => {
+    const starting =
+      value.mode === 'travel' && (travelMode !== 'travel' || (value.warpPhase === 'in' && warpPhase !== 'in'));
+    if (starting) {
+      travelTurn++;
+      travelElapsed = 0;
+      phaseElapsed = 0;
+      turning = false;
+      automaticInput = { x: 0, y: 0 };
+      let sample = 0;
+      cruise = createWarpCruise(() => randomTurn(travelTurn * 997 + sample++));
+    }
+    bendsEnabled = (value.distanceYears ?? 0) >= 1000;
+    warpPhase = value.warpPhase;
+    travelMode = value.mode;
+    targetSpeed =
+      value.dawn >= 1
+        ? 0
+        : value.mode === 'travel'
+          ? value.direction * travelIntensity(value.distanceYears).speedScale
+          : sceneSettings.driftSpeedScale;
+    // Idle frames repeat the same arc length too. Never interpolate the
+    // chronological exposure history as a spatial route after time control.
+    bidirectional = true;
+  };
   const setInput = (value: FlightInput | null) => {
     if (value === null && input !== null) {
       // Releasing manual control always starts a fresh straight interval.
@@ -99,9 +161,27 @@ export function createFlightScene(initialInput: FlightInput | null = { x: 0, y: 
     accumulator += delta;
     while (accumulator + 1e-10 >= flightSettings.step) {
       let steering = input;
+      if (freeNavigation && travelMode !== 'travel') {
+        const response = 1 - Math.exp(-6 * flightSettings.step);
+        const x = pendingTurn.x * response;
+        const y = pendingTurn.y * response;
+        pendingTurn.x -= x;
+        pendingTurn.y -= y;
+        flight.turn(x, y);
+        steering = { x: 0, y: 0 };
+      }
+      const drifting = bidirectional && travelMode !== 'travel';
+      if (travelMode === 'travel') {
+        travelElapsed += flightSettings.step;
+        const straight = warpPhase === 'in' || warpPhase === 'out' || travelElapsed <= warpSettings.inDuration;
+        const automatic =
+          !straight && (bendsEnabled || travelElapsed >= 1.2) ? cruise!.advance(flightSettings.step) : { x: 0, y: 0 };
+        if (straight) steering = { x: 0, y: 0 };
+        else if (steering === null) steering = automatic;
+      }
       if (steering === null) {
         const { strength, straightDuration, turnDuration, response } = sceneSettings.autopilot;
-        phaseElapsed += flightSettings.step;
+        phaseElapsed += flightSettings.step * (drifting ? 0.12 : 1);
         const duration = turning ? turnDuration : straightDuration;
         if (phaseElapsed + 1e-10 >= duration) {
           phaseElapsed = Math.max(0, phaseElapsed - duration);
@@ -121,36 +201,50 @@ export function createFlightScene(initialInput: FlightInput | null = { x: 0, y: 
         steering = automaticInput;
       }
       const magnitude = Math.max(1, Math.hypot(steering.x, steering.y) / flightSettings.inputRange);
-      const curvatureScale = dimensions.maxCurvature / flightSettings.maxCurvature;
+      const curvatureScale = (dimensions.maxCurvature / flightSettings.maxCurvature) * (drifting ? 0.35 : 1);
+      const desiredSpeed = targetSpeed;
+      speedScale += (desiredSpeed - speedScale) * (1 - Math.exp(-5 * flightSettings.step));
+      if (Math.abs(speedScale - desiredSpeed) < 0.0001) speedScale = desiredSpeed;
       path.push(
-        flight.step(flightSettings.step, {
-          x: (steering.x / magnitude) * curvatureScale,
-          y: (steering.y / magnitude) * curvatureScale,
-        }),
+        flight.step(
+          flightSettings.step,
+          {
+            x: (steering.x / magnitude) * curvatureScale,
+            y: (steering.y / magnitude) * curvatureScale,
+          },
+          speedScale,
+          travelMode === 'travel' ? flightSettings.bendResponse : flightSettings.curvatureResponse,
+        ),
       );
       accumulator = Math.max(0, accumulator - flightSettings.step);
     }
     const current = path.at(-1)!;
-    const oldestDistance = current.distance - sceneSettings.behind - sceneSettings.routeSpacing * 2;
     const exposureTicks = (sceneSettings.exposureSamples - 1) * sceneSettings.exposureStride;
-    let discard = 0;
-    while (discard + 1 < path.length - exposureTicks && path[discard + 1].distance < oldestDistance) discard++;
-    path.splice(0, discard);
+    path.splice(0, Math.max(0, path.length - Math.max(pastTicks + 1, exposureTicks + 1)));
     const history = Array.from({ length: sceneSettings.exposureSamples }, (_, i) =>
       path.at(-1 - i * sceneSettings.exposureStride)!,
     );
     const travel = current.distance;
+    // A world-space field needs only camera history. Do not predict a tunnel
+    // that is no longer rendered after the user takes over navigation.
+    if (travelMode !== 'travel' && !forceTube && (freeNavigation || !predictTube))
+      return { history, route: [], travel, routeStart: travel, speedScale };
     const routeStart =
       Math.floor((travel - sceneSettings.behind - sceneSettings.routeSpacing) / sceneSettings.routeSpacing) *
       sceneSettings.routeSpacing;
     // The visible tube extends the current, smoothed curvature. A new pointer
     // target must not instantly snap the distant tunnel into a different shape.
-    const prediction = createFlight(current);
     const predictionInput = {
       x: (current.curvature.x / flightSettings.maxCurvature) * flightSettings.inputRange,
       y: (current.curvature.y / flightSettings.maxCurvature) * flightSettings.inputRange,
     };
-    const samples = path.slice();
+    // Exposure history is chronological even in reverse. Route samples must
+    // instead remain ordered by arc length; predict both sides from the pose.
+    const start = bidirectional
+      ? createFlight(current).step((travel - routeStart) / flightSettings.speed, predictionInput, -1)
+      : current;
+    const prediction = createFlight(start);
+    const samples = bidirectional ? [start] : path.slice();
     const curvature = Math.hypot(current.curvature.x, current.curvature.y);
     const visibleAhead = Math.min(
       Math.sqrt(sceneSettings.visibleRadius ** 2 - sceneSettings.holeRadius ** 2) / sceneSettings.longitudinalScale,
@@ -175,9 +269,9 @@ export function createFlightScene(initialInput: FlightInput | null = { x: 0, y: 
       const up = normalize(cross(direction, cross(interpolate(before.up, after.up), direction)));
       return { distance, position: interpolate(before.position, after.position), direction, up };
     });
-    return { history, route, travel, routeStart };
+    return { history, route, travel, routeStart, speedScale };
   };
-  return { advance, setInput, setDimensions };
+  return { advance, setInput, setDimensions, setTravel, navigate, setTube };
 }
 
 export type SceneSnapshot = ReturnType<ReturnType<typeof createFlightScene>['advance']>;
@@ -220,6 +314,10 @@ function tubePosition(coordinate: Vector, { route, routeStart }: SceneSnapshot):
 
 export function createStarField(seeds: Vector[]) {
   const stars: Star[] = [];
+  let count = seeds.length;
+  const setCount = (value: number) => {
+    count = Math.max(0, Math.min(seeds.length, Math.round(value)));
+  };
   let dimensions = referenceDimensions;
   let appliedDimensions = referenceDimensions;
   const setDimensions = (value: SceneDimensions) => {
@@ -227,7 +325,8 @@ export function createStarField(seeds: Vector[]) {
   };
   const fract = (value: number) => value - Math.floor(value);
   const update = (snapshot: SceneSnapshot) => {
-    for (let index = 0; index < seeds.length; index++) {
+    stars.length = count;
+    for (let index = 0; index < count; index++) {
       const seed = seeds[index];
       const sector =
         Math.floor(
@@ -274,7 +373,44 @@ export function createStarField(seeds: Vector[]) {
       );
     });
   };
-  return { update, visible, setDimensions };
+  return { update, visible, setDimensions, setCount };
+}
+
+// Free navigation uses fixed world positions. Only stars outside the visible
+// shell wrap; turning the camera never bends or rotates their surroundings.
+export function createFreeStarField(seeds: Vector[]) {
+  const stars: Star[] = [];
+  let dimensions = referenceDimensions;
+  let count = seeds.length;
+  const setDimensions = (value: SceneDimensions) => {
+    dimensions = value;
+  };
+  const setCount = (value: number) => {
+    count = Math.min(seeds.length, Math.max(0, Math.round(value)));
+  };
+  const radius = () => dimensions.outerRadius * 1.5;
+  const update = (snapshot: SceneSnapshot) => {
+    const camera = snapshot.history[0].position;
+    const size = radius() * 2 + 64;
+    stars.length = Math.min(stars.length, count);
+    for (let index = 0; index < count; index++) {
+      const previous = stars[index];
+      if (previous && previous.position.every((value, axis) => Math.abs(value - camera[axis]) < size / 2)) continue;
+      const position = seeds[index].map((seed, axis) => {
+        const cell = Math.floor((camera[axis] - seed * size + size / 2) / size);
+        return (seed + cell) * size;
+      }) as Vector;
+      stars[index] = { index, position, coordinate: position, sector: 0 };
+    }
+    return stars;
+  };
+  const visible = (snapshot: SceneSnapshot, width: number, height: number) =>
+    visibleStars(stars, snapshot, width, height, (star) => {
+      const camera = snapshot.history[0].position;
+      const distance = Math.hypot(...star.position.map((value, axis) => value - camera[axis]));
+      return distance > dimensions.holeRadius * 0.7 && distance < radius();
+    });
+  return { update, visible, setCount, setDimensions };
 }
 
 function visibleStars(

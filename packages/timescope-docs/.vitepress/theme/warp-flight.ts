@@ -14,7 +14,14 @@ export const flightSettings = {
   inputRange: 2,
   curvatureResponse: 5,
   step: 1 / 120,
+  bendResponse: 24,
 };
+
+export function travelIntensity(distanceYears = 0) {
+  // Keep nearby trips unchanged; each order of magnitude adds a bounded boost.
+  const strength = Math.min(1, Math.max(0, (Math.log10(Math.max(1, distanceYears)) - 2) / 8));
+  return { speedScale: 1 + strength * 4, starScale: 1 + strength };
+}
 
 export const dot = (a: Vector, b: Vector) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 export const cross = (a: Vector, b: Vector): Vector => [
@@ -47,7 +54,20 @@ export function straightFlight(distance = 0): FlightState {
 
 export function createFlight(initial = straightFlight()) {
   let state = initial;
-  const step = (delta: number, input: FlightInput): FlightState => {
+  const turn = (x: number, y: number) => {
+    const speed = dot(state.velocity, state.direction);
+    const yaw = rotate(state.direction, state.up, x);
+    const right = normalize(cross(state.up, yaw));
+    const direction = normalize(rotate(yaw, right, -y));
+    const up = normalize(rotate(state.up, right, -y));
+    state = { ...state, direction, up, velocity: direction.map((value) => value * speed) as Vector };
+  };
+  const step = (
+    delta: number,
+    input: FlightInput,
+    speedScale = 1,
+    curvatureResponse = flightSettings.curvatureResponse,
+  ): FlightState => {
     const magnitude = Math.max(1, Math.hypot(input.x, input.y) / flightSettings.inputRange);
     const target = {
       x: ((input.x / magnitude) * flightSettings.maxCurvature) / flightSettings.inputRange,
@@ -55,12 +75,12 @@ export function createFlight(initial = straightFlight()) {
     };
     for (let remaining = delta; remaining > 1e-10;) {
       const dt = Math.min(remaining, flightSettings.step);
-      const halfResponse = 1 - Math.exp((-flightSettings.curvatureResponse * dt) / 2);
-      const response = 1 - Math.exp(-flightSettings.curvatureResponse * dt);
+      const halfResponse = 1 - Math.exp((-curvatureResponse * dt) / 2);
+      const response = 1 - Math.exp(-curvatureResponse * dt);
       const x = state.curvature.x + (target.x - state.curvature.x) * halfResponse;
       const y = state.curvature.y + (target.y - state.curvature.y) * halfResponse;
       const curvature = Math.hypot(x, y);
-      const distance = flightSettings.speed * dt;
+      const distance = flightSettings.speed * speedScale * dt;
       const right = cross(state.up, state.direction);
       const normal =
         curvature > 1e-12 ? (right.map((value, i) => (value * x + state.up[i] * y) / curvature) as Vector) : right;
@@ -77,7 +97,7 @@ export function createFlight(initial = straightFlight()) {
         position: state.position.map((value, i) => value + state.direction[i] * along + normal[i] * across) as Vector,
         direction,
         up,
-        velocity: direction.map((value) => value * flightSettings.speed) as Vector,
+        velocity: direction.map((value) => value * flightSettings.speed * speedScale) as Vector,
         distance: state.distance + distance,
         curvature: {
           x: state.curvature.x + (target.x - state.curvature.x) * response,
@@ -88,5 +108,5 @@ export function createFlight(initial = straightFlight()) {
     }
     return state;
   };
-  return { step };
+  return { step, turn };
 }

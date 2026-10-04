@@ -60,12 +60,85 @@
   opacity: 0;
   background:
     radial-gradient(ellipse at var(--warp-x) var(--warp-y), transparent 8%, #02060c55 75%),
-    radial-gradient(ellipse at 0% 85%, #123349 0%, transparent 48%),
     radial-gradient(ellipse at 90% 15%, #101b31 0%, transparent 50%), #02060c;
 }
 
 .warp-ready .warp-background {
-  opacity: 1;
+  opacity: calc(1 - var(--travel-dawn, 0));
+}
+
+.travel-flash {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: white;
+  opacity: var(--travel-dawn, 0);
+  transition: opacity 0.4s ease;
+}
+.VPHome .VPHero.travel-dawn {
+  color: #153447;
+  --vp-button-alt-text: #153447;
+  --vp-button-alt-bg: #15344715;
+}
+.VPHome .VPHero.travel-dawn .text,
+.VPHome .VPHero.travel-dawn .tagline {
+  color: #153447;
+}
+.time-travel-dawn .VPNavBar {
+  --vp-c-text-1: #153447;
+  --vp-c-text-2: #3c596a;
+  color: #153447;
+}
+.time-travel-dawn .VPNavBar .title,
+.time-travel-dawn .VPNavBar .VPNavBarMenuLink {
+  color: #153447;
+}
+
+.landing-time-picker {
+  width: 100%;
+}
+.travel-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  justify-content: flex-end;
+  padding: 6px 16px;
+}
+.travel-toolbar output {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.travel-toolbar button {
+  color: var(--vp-c-brand-1);
+  padding: 4px 8px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+}
+.travel-picker {
+  width: 100%;
+  background: var(--vp-c-bg-soft);
+  position: relative;
+}
+.travel-picker::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  border-bottom: 1px solid var(--vp-c-divider);
+  pointer-events: none;
+}
+@media print {
+  .landing-time-picker,
+  .travel-flash {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .travel-flash {
+    transition: none;
+  }
 }
 
 .VPHome .VPHero .text {

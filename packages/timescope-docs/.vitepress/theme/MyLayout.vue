@@ -9,6 +9,8 @@ import LandingPrintGesture from './LandingPrintGesture.vue';
 import { Icon } from '@iconify/vue';
 import github from '@iconify-icons/mdi/github';
 import WarpBackground from './WarpBackground.vue';
+import LandingTimePicker from './LandingTimePicker.vue';
+import { normalTravel } from './time-travel';
 import './style.css';
 import './landing.css';
 import './api.css';
@@ -21,11 +23,13 @@ useStickyGroups();
 const Layout = DefaultTheme.Layout;
 const { frontmatter } = useData();
 const enteringHome = ref(false);
+const travel = ref(normalTravel);
 
 watch(
   () => frontmatter.value.layout === 'home',
   (isHome, _, onCleanup) => {
     if (!isHome || typeof window === 'undefined') return;
+    travel.value = normalTravel;
 
     enteringHome.value = true;
     let frame;
@@ -51,9 +55,10 @@ watch(
 </script>
 
 <template>
-  <Layout :class="{ 'entering-home': enteringHome }">
+  <Layout
+    :class="{ 'entering-home': enteringHome, 'time-travel-dawn': travel.dawn > 0.5 && frontmatter.layout === 'home' }">
     <template #home-hero-info-before>
-      <WarpBackground />
+      <WarpBackground :travel="travel" />
     </template>
     <template #home-hero-info-after>
       <p class="landing-print-description">
@@ -63,6 +68,7 @@ watch(
       <LandingPrintGesture />
     </template>
     <template #home-hero-after>
+      <LandingTimePicker @travel="travel = $event" />
       <LandingPrintExamples />
       <LandingFeatures />
       <footer class="landing-print-footer">

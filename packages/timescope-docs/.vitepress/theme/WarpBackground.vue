@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+import { normalTravel, type TravelState } from './time-travel';
 import type { WarpMessage, WarpReply, WarpSize } from './warp-background.worker';
 
 const anchor = ref<HTMLElement>();
+const props = withDefaults(defineProps<{ travel?: TravelState }>(), { travel: () => normalTravel });
 const canvas = ref<HTMLCanvasElement>();
 const hero = shallowRef<HTMLElement>();
 let dispose = () => {};
@@ -31,6 +33,13 @@ onMounted(async () => {
 
   const running = () => visible && !document.hidden && !motion.matches;
   const send = (message: WarpMessage) => worker?.postMessage(message);
+  const syncTravel = () => {
+    container.style.setProperty('--travel-dawn', String(props.travel.dawn));
+    container.classList.toggle('travel-dawn', props.travel.dawn > 0.5);
+    send({ type: 'travel', travel: { ...props.travel } });
+  };
+  const unwatch = watch(() => props.travel, syncTravel);
+  syncTravel();
   const release = () => {
     if (!drag) return;
     const { pointerId } = drag;
@@ -39,6 +48,7 @@ onMounted(async () => {
     if (container.hasPointerCapture(pointerId)) container.releasePointerCapture(pointerId);
   };
   const pointerDown = (event: PointerEvent) => {
+    if (props.travel.dawn >= 1) return;
     if (event.button !== 0 || !event.isPrimary || drag || !running() || !ready) return;
     const target = event.target;
     // Keep page scrolling available everywhere except the Hero logo.
@@ -58,10 +68,11 @@ onMounted(async () => {
     // Also recover if the mouse was released outside the browser and returned.
     if (event.pointerType === 'mouse' && !(event.buttons & 1)) return release();
     const scale = Math.max(80, Math.min(container.clientWidth, container.clientHeight) * 0.25);
-    const x = (event.clientX - drag.x) / scale;
-    const y = (drag.y - event.clientY) / scale;
-    // Leave the input range to the flight model so longer drags can bend more.
-    send({ type: 'input', input: { x, y } });
+    const x = ((event.clientX - drag.x) / scale) * 0.35;
+    const y = ((drag.y - event.clientY) / scale) * 0.35;
+    drag.x = event.clientX;
+    drag.y = event.clientY;
+    send({ type: 'navigate', input: { x, y } });
   };
   const pointerEnd = (event: PointerEvent) => {
     if (event.pointerId === drag?.pointerId) release();
@@ -97,6 +108,7 @@ onMounted(async () => {
             fail();
           } else {
             ready = true;
+            syncTravel();
             container.classList.toggle('warp-ready', !motion.matches);
           }
         };
@@ -140,6 +152,7 @@ onMounted(async () => {
   window.addEventListener('pointercancel', pointerEnd);
   window.addEventListener('blur', release);
   dispose = () => {
+    unwatch();
     release();
     sizes.disconnect();
     intersection.disconnect();
@@ -154,6 +167,8 @@ onMounted(async () => {
     window.removeEventListener('blur', release);
     worker?.terminate();
     container.classList.remove('warp-ready', 'select-none');
+    container.classList.remove('travel-dawn');
+    container.style.removeProperty('--travel-dawn');
   };
   sync();
 });
@@ -168,5 +183,6 @@ onBeforeUnmount(() => {
   <span ref="anchor" hidden aria-hidden="true" />
   <Teleport v-if="hero" :to="hero">
     <canvas ref="canvas" class="warp-background" aria-hidden="true" />
+    <div class="travel-flash" aria-hidden="true" />
   </Teleport>
 </template>
