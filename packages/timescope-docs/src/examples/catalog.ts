@@ -38,6 +38,12 @@ export const examples = [
     guide: '/guide/advanced/styling#marks-and-links',
   },
   {
+    name: 'timeline',
+    title: 'Timeline',
+    tag: 'Drawing',
+    guide: '/guide/advanced/styling#marks-and-links',
+  },
+  {
     name: 'multiple-series',
     title: 'Multiple Series',
     tag: 'Data',
