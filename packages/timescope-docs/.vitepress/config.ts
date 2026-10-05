@@ -20,6 +20,11 @@ export default defineConfig({
       },
     ],
     ['link', { rel: 'icon', href: '/timescope/logo.svg' }],
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:site_name', content: 'Timescope' }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    ['meta', { name: 'twitter:image', content: 'https://xenodrive.github.io/timescope/ogp.png' }],
+    ['meta', { name: 'twitter:image:alt', content: 'Timescope — User Interface for Time Travel' }],
     [
       'meta',
       {
@@ -36,6 +41,18 @@ export default defineConfig({
       pageData.titleTemplate = `:title - ${pkg.description}`;
       pageData.frontmatter.hero.text = pkg.description;
     }
+  },
+  transformHead({ pageData }) {
+    const title = pageData.relativePath === 'index.md' ? `Timescope - ${pkg.description}` : `${pageData.title} | Timescope`;
+    const description = pageData.description || `Timescope - ${pkg.description}`;
+    const path = pageData.relativePath.replace(/index\.md$/, '').replace(/\.md$/, '');
+    return [
+      ['meta', { property: 'og:title', content: title }],
+      ['meta', { property: 'og:description', content: description }],
+      ['meta', { property: 'og:url', content: `https://xenodrive.github.io/timescope/${path}` }],
+      ['meta', { name: 'twitter:title', content: title }],
+      ['meta', { name: 'twitter:description', content: description }],
+    ];
   },
   srcDir: './src',
   outDir: './dist',

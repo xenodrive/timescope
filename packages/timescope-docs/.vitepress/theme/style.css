@@ -41,9 +41,17 @@
   background: #050d18;
 }
 
-.VPHome .VPHero.select-none {
-  -webkit-user-select: none;
-  user-select: none;
+@media (hover: hover) and (pointer: fine) {
+  .VPHome .VPHero.select-none {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+@media (pointer: coarse) {
+  .VPHome .VPHero.select-none {
+    -webkit-user-select: text;
+    user-select: text;
+  }
 }
 
 .VPHome .VPHero.warp-ready {
