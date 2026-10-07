@@ -75,9 +75,10 @@ describe('overlays', () => {
   });
 
   it.each([
-    { cursor: true, expected: [0, 0, 0, 0] },
-    { cursor: { color: 'rgba(0, 255, 0, 0.5)' }, expected: [0, 255, 0, 128] },
-  ])('clears the cursor strip before painting its configured color: %o', ({ cursor, expected }) => {
+    { cursor: true, center: [255, 0, 0, 255], border: [0, 0, 0, 0] },
+    { cursor: { color: 'rgba(0, 255, 0, 0.5)' }, center: [0, 255, 0, 128], border: [0, 0, 0, 0] },
+    { cursor: { borderColor: 'rgba(0, 255, 0, 0.5)' }, center: [255, 0, 0, 255], border: [0, 255, 0, 128] },
+  ])('clears the cursor strip before painting its center and borders: %o', ({ cursor, center, border }) => {
     const canvas = new Canvas(20, 4);
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = 'blue';
@@ -88,8 +89,8 @@ describe('overlays', () => {
       timeAxis: { cursor: { p: 10 } },
       options: { cursor },
     } as unknown as TimescopeRenderingContext);
-    for (const x of [9, 11]) expect([...ctx.getImageData(x, 2, 1, 1).data]).toEqual(expected);
-    expect([...ctx.getImageData(10, 2, 1, 1).data]).toEqual([255, 0, 0, 255]);
+    for (const x of [9, 11]) expect([...ctx.getImageData(x, 2, 1, 1).data]).toEqual(border);
+    expect([...ctx.getImageData(10, 2, 1, 1).data]).toEqual(center);
     expect([...ctx.getImageData(8, 2, 1, 1).data]).toEqual([0, 0, 255, 255]);
     expect(ctx.globalCompositeOperation).toBe('source-over');
   });

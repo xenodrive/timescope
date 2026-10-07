@@ -27,6 +27,7 @@ describe('fill compositing', () => {
             bottom: 60,
             y0: 25,
             fadeForDomain: () => 0,
+            projectionForDomain: () => undefined,
             yForDomain: () => 35,
             axes: [
               {
