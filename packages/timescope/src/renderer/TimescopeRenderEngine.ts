@@ -56,6 +56,9 @@ export type TimescopeRenderEngineEnvironment = {
   layers?: TimescopeLayer[];
 };
 
+// Keep cache keys distinct across engines sharing the same rendering thread.
+let nextFontEpoch = 0;
+
 export class TimescopeRenderEngine {
   readonly commands: RenderEngineCommands;
   readonly dispose: () => void;
@@ -209,6 +212,7 @@ export class TimescopeRenderEngine {
       },
 
       dpr: 1,
+      fontEpoch: 0,
       timeAxis,
     } as TimescopeRenderingContext;
 
@@ -590,6 +594,7 @@ export class TimescopeRenderEngine {
               if (disposed) return;
               fontFaceSet?.add(face);
               ownedFonts.add(face);
+              renderingContext.fontEpoch = ++nextFontEpoch;
               render();
             } catch (error) {
               if (key) loadedFonts.delete(key);

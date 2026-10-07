@@ -1,8 +1,8 @@
 import { TimescopeAnimatedValue } from '#src/core/animation';
 import { normalizeOptions } from '#src/core/options';
-import { DEFAULT_FONT_FAMILY, resolveFont } from '#src/main/fontStyle';
+import { DEFAULT_FONT_FAMILY } from '#src/main/fontStyle';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
-import { forEachTrack, renderLabel } from '#src/renderer/rendering';
+import { forEachTrack, renderLabel, resolveCanvasFont } from '#src/renderer/rendering';
 import type { TimescopeRenderingContext, TimescopeTimeAxisData } from '#src/renderer/types';
 
 // Match #3333 over white while keeping axis lines visible on dark backgrounds.
@@ -94,7 +94,8 @@ export class TimescopeTimeAxisLayer extends TimescopeLayer {
 
     ctx.fillStyle =
       (typeof opts.labels === 'object' ? opts.labels.color : undefined) ?? timescope.options.foreground ?? 'black';
-    ctx.font = resolveFont(
+    ctx.font = resolveCanvasFont(
+      timescope,
       typeof opts.labels === 'object' ? opts.labels.font : undefined,
       { weight: 'normal', size: 12, family: DEFAULT_FONT_FAMILY },
       timescope.options.font,

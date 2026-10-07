@@ -1,8 +1,18 @@
 import type { Decimal } from '#src/core/decimal';
 import { defaultOptions } from '#src/core/defaults';
 import type { TimescopeRange } from '#src/core/range';
+import { resolveFont } from '#src/main/fontStyle';
 import type { TimescopeTrack } from '#src/renderer/TimescopeTrack';
 import type { TimescopeRenderingContext } from '#src/renderer/types';
+
+export function resolveCanvasFont(
+  timescope: TimescopeRenderingContext,
+  ...args: Parameters<typeof resolveFont>
+): string {
+  const font = resolveFont(...args);
+  // Avoid Chrome's stale Worker font fallback cache after registering a FontFace.
+  return timescope.fontEpoch ? `${font}, "__timescope_font_epoch_${timescope.fontEpoch}"` : font;
+}
 
 export function clipToTrack(
   renderingContext: TimescopeRenderingContext,

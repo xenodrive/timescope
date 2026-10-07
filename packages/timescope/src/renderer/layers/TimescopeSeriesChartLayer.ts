@@ -11,9 +11,9 @@ import type {
   StrokeStyle,
   TextStyle,
 } from '#src/main/chart';
-import { DEFAULT_FONT_FAMILY, resolveFont } from '#src/main/fontStyle';
+import { DEFAULT_FONT_FAMILY } from '#src/main/fontStyle';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
-import { clipToTrack } from '#src/renderer/rendering';
+import { clipToTrack, resolveCanvasFont } from '#src/renderer/rendering';
 import type {
   TimescopeProjectedChartMark,
   TimescopePath2DConstructor,
@@ -956,18 +956,20 @@ export function renderPath(
 }
 
 function renderTextAt(
-  { ctx, options }: TimescopeRenderingContext,
+  timescope: TimescopeRenderingContext,
   x: number,
   y: number,
   style: TextStyle & SizeStyle & { color: string } & OffsetStyle & AngleStyle,
 ) {
   if (!style.text) return;
+  const { ctx, options } = timescope;
 
   const font =
     typeof style.font === 'string' || style.size === undefined
       ? style.font
       : { ...style.font, size: style.font?.size ?? style.size };
-  ctx.font = resolveFont(
+  ctx.font = resolveCanvasFont(
+    timescope,
     font,
     { weight: 'normal', size: defaultOptions.chartSize.text, family: DEFAULT_FONT_FAMILY },
     options.font,
@@ -997,14 +999,15 @@ function renderTextAt(
 }
 
 function renderIconAt(
-  { ctx }: TimescopeRenderingContext,
+  timescope: TimescopeRenderingContext,
   x: number,
   y: number,
   style: IconStyle & SizeStyle & { color: string } & OffsetStyle & AngleStyle,
 ) {
   if (!style.icon) return;
+  const { ctx } = timescope;
 
-  ctx.font = resolveFont(style.font, {
+  ctx.font = resolveCanvasFont(timescope, style.font, {
     weight: 'normal',
     size: style.size ?? defaultOptions.chartSize.icon,
     family: 'icons',

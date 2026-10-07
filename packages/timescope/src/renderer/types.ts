@@ -27,6 +27,7 @@ export type TimescopeRenderingContext = {
   symmetric: boolean;
   timeAxis: TimescopeViewport;
   dpr: number;
+  fontEpoch: number;
 };
 
 export interface Interaction {

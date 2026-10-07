@@ -1,8 +1,8 @@
 import { Vector2f } from '#src/core/vector';
-import { DEFAULT_FONT_FAMILY, resolveFont } from '#src/main/fontStyle';
+import { DEFAULT_FONT_FAMILY } from '#src/main/fontStyle';
 import { disperse } from '#src/renderer/layers/disperse';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
-import { forEachTrack } from '#src/renderer/rendering';
+import { forEachTrack, resolveCanvasFont } from '#src/renderer/rendering';
 import type { TimescopeRenderingContext, TimescopeSeriesTooltipData } from '#src/renderer/types';
 import type { TimescopeDataCache } from '../TimescopeDataCache.ts';
 
@@ -25,7 +25,8 @@ export class TimescopeSeriesTooltipLayer extends TimescopeLayer {
 
       const labels = [];
 
-      ctx.font = resolveFont(
+      ctx.font = resolveCanvasFont(
+        timescope,
         undefined,
         { weight: 'normal', size: 12, family: DEFAULT_FONT_FAMILY },
         timescope.options.font,

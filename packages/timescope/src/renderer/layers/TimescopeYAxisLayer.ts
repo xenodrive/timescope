@@ -1,6 +1,6 @@
-import { DEFAULT_FONT_FAMILY, resolveFont } from '#src/main/fontStyle';
+import { DEFAULT_FONT_FAMILY } from '#src/main/fontStyle';
 import { TimescopeLayer } from '#src/renderer/layers/TimescopeLayer';
-import { forEachTrack, renderLabel } from '#src/renderer/rendering';
+import { forEachTrack, renderLabel, resolveCanvasFont } from '#src/renderer/rendering';
 import type { TimescopeTrack } from '#src/renderer/TimescopeTrack';
 import type { TimescopeRenderingContext, TimescopeYAxisData } from '#src/renderer/types';
 
@@ -33,7 +33,8 @@ export class TimescopeYAxisLayer extends TimescopeLayer {
     ctx.strokeStyle = axis.color || '#64748b';
     ctx.fillStyle = axis.color || timescope.options.foreground || 'black';
     ctx.lineWidth = 1;
-    ctx.font = resolveFont(
+    ctx.font = resolveCanvasFont(
+      timescope,
       axis.font,
       { weight: 'normal', size: 11, family: DEFAULT_FONT_FAMILY },
       timescope.options.font,
