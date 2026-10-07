@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../tools/oxlint.base.json"],
+  "jsPlugins": ["eslint-plugin-solid"],
+  "ignorePatterns": ["node_modules", "dist"],
+  "rules": {
+    "solid/jsx-no-duplicate-props": "error",
+    "solid/jsx-no-undef": "error",
+    "solid/jsx-uses-vars": "error",
+    "solid/no-unknown-namespaces": "error",
+    "solid/no-innerhtml": "error",
+    "solid/jsx-no-script-url": "error",
+    "solid/components-return-once": "warn",
+    "solid/no-destructure": "error",
+    "solid/prefer-for": "error",
+    "solid/reactivity": "warn",
+    "solid/event-handlers": "warn",
+    "solid/imports": "warn",
+    "solid/style-prop": "warn",
+    "solid/no-react-deps": "warn",
+    "solid/no-react-specific-props": "warn",
+    "solid/self-closing-comp": "warn"
+  }
+}

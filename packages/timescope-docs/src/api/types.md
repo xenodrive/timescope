@@ -165,7 +165,8 @@ type TimescopeDataDecoder = (
 
 ```ts
 type TimescopeDataRowInput = (
-  { time: TimescopeTimeLike<never>; times?: never } | { time?: never; times: Record<string, TimescopeTimeLike<never>> }
+  | { time: TimescopeTimeLike<never>; times?: never }
+  | { time?: never; times: Record<string, TimescopeTimeLike<never>> }
 ) &
   (
     | { value: TimescopeNumberLike | null; values?: never }
@@ -364,7 +365,9 @@ Object `mode` is inferred from a string `label`, otherwise it defaults to `'deci
 
 ```ts
 type UsingElement<V extends [string, string]> =
-  `${V[1] | '#zero' | '#top' | '#bottom'}@${V[0]}` | (V[1] | '#zero' | '#top' | '#bottom') | `@${V[0]}`;
+  | `${V[1] | '#zero' | '#top' | '#bottom'}@${V[0]}`
+  | (V[1] | '#zero' | '#top' | '#bottom')
+  | `@${V[0]}`;
 type Using1<V extends [string, string]> = UsingElement<V> | [UsingElement<V>];
 type Using2<V extends [string, string]> = [UsingElement<V>, UsingElement<V>];
 type Using<V extends [string, string] = [string, string]> = Using1<V> | Using2<V>;

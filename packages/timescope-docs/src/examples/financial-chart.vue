@@ -9,7 +9,9 @@ title: Financial Chart
     <!-- #endregion html -->
     <p class="financial-source">
       Data:
-      <a href="https://www.binance.com/en/trade/BTC_USDT" target="_blank" rel="noopener noreferrer">Binance · BTC/USDT</a>
+      <a href="https://www.binance.com/en/trade/BTC_USDT" target="_blank" rel="noopener noreferrer">
+        Binance · BTC/USDT
+      </a>
     </p>
   </div>
 </template>

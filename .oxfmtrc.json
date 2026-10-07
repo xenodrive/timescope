@@ -1,0 +1,41 @@
+{
+  "$schema": "./packages/timescope/node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 120,
+  "tabWidth": 2,
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "bracketSpacing": true,
+  "bracketSameLine": true,
+  "arrowParens": "always",
+  "sortImports": {
+    "groups": ["import", "relative"],
+    "customGroups": [{ "groupName": "relative", "elementNamePattern": ["./**", "../**"] }],
+    "newlinesBetween": false,
+    "sortSideEffects": false
+  },
+  "sortPackageJson": false,
+  "overrides": [
+    { "files": ["packages/timescope-docs/**"], "options": { "sortImports": false } },
+    { "files": ["packages/timescope-svelte/**"], "options": { "svelte": true } }
+  ],
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    "bun.lock",
+    "bun.lockb",
+    "packages/timescope/src/mdi.ts",
+    "packages/timescope/**/*.json",
+    "packages/timescope/tests/artifacts",
+    "packages/timescope-docs/.vitepress/cache",
+    "packages/timescope-docs/src/public/**",
+    "packages/timescope-svelte/static/",
+    "packages/timescope-vue/**/files",
+    "packages/timescope-vue/**/playground",
+    "packages/timescope-vue/**/.vite",
+    "packages/timescope-vue/**/.local"
+  ]
+}

@@ -91,7 +91,7 @@ watch(options, (value) => {
       timescope = new Timescope({ ...value, target: target.value });
       fontSource = value.fonts?.[0];
     } else {
-      const { time, zoom, fit, fonts, ...configuration } = value;
+      const { time: _time, zoom: _zoom, fit: _fit, fonts: _fonts, ...configuration } = value;
       timescope?.setOptions({ ...configuration, target: target.value });
     }
     error.value = '';

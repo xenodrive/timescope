@@ -14,9 +14,9 @@
     "test": "vitest",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm run build",
-    "lint": "eslint ./src",
-    "format": "prettier --check .",
-    "format:fix": "prettier --write ."
+    "lint": "oxlint ./src",
+    "format": "oxfmt --check .",
+    "format:fix": "oxfmt --write ."
   },
   "exports": {
     ".": {
@@ -38,23 +38,19 @@
     "timescope": "~0.1.0-alpha.0"
   },
   "devDependencies": {
-    "@eslint/compat": "^2.1.1",
-    "@eslint/js": "^9.39.5",
     "@kikuchan/calendar": "^0.2.0",
     "@kikuchan/decimal": "^0.2.0",
     "@solidjs/testing-library": "^0.8.10",
-    "@vitest/browser-playwright": "^5.0.2",
+    "@vitest/browser-playwright": "^5.0.3",
     "bumpp": "^12.3.0",
-    "eslint": "^9.39.5",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-solid": "^0.18.0",
-    "prettier": "^3.9.9",
-    "prettier-plugin-organize-imports": "^4.3.0",
+    "eslint-plugin-solid": "^0.18.1",
+    "oxfmt": "^0.72.0",
+    "oxlint": "^1.87.0",
     "rolldown-plugin-solid": "^0.2.1",
+    "solid-js": "^1.9.16",
     "timescope": "workspace:*",
     "tsdown": "^0.23.0",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.71.0",
     "vite-plugin-solid": "^2.11.14"
   }
 }

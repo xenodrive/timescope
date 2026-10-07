@@ -43,7 +43,8 @@ export default defineConfig({
     }
   },
   transformHead({ pageData }) {
-    const title = pageData.relativePath === 'index.md' ? `Timescope - ${pkg.description}` : `${pageData.title} | Timescope`;
+    const title =
+      pageData.relativePath === 'index.md' ? `Timescope - ${pkg.description}` : `${pageData.title} | Timescope`;
     const description = pageData.description || `Timescope - ${pkg.description}`;
     const path = pageData.relativePath.replace(/index\.md$/, '').replace(/\.md$/, '');
     return [

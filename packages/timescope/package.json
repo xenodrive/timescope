@@ -30,8 +30,8 @@
   "devDependencies": {
     "@kikuchan/calendar": "^0.2.0",
     "@kikuchan/decimal": "^0.2.0",
-    "oxfmt": "^0.71.0",
-    "oxlint": "^1.86.0",
+    "oxfmt": "^0.72.0",
+    "oxlint": "^1.87.0",
     "skia-canvas": "^3.0.8",
     "tsdown": "^0.23.0",
     "typescript": "^7.0.2"

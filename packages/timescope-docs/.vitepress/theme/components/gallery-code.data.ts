@@ -39,9 +39,7 @@ export default {
           .split('<!-- #endregion html -->')[0]
           .split('\n');
         const indent = Math.min(
-          ...htmlLines
-            .filter((line) => line.trim())
-            .map((line) => line.match(/^[ \t]*/)![0].length),
+          ...htmlLines.filter((line) => line.trim()).map((line) => line.match(/^[ \t]*/)![0].length),
         );
         const html = htmlLines
           .map((line) => (line.trim() ? line.slice(indent) : ''))
