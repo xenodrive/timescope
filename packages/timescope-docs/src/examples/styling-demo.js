@@ -9,7 +9,7 @@ export function createStylingDemo(target) {
   const timescope = new Timescope({
     target,
     fit: { range: [0, 60], padding: 28 },
-    cursor: { color: '#f59e0b', borderColor: '#b45309' },
+    cursor: { color: '#b45309', borderColor: '#f59e0b' },
     selection: { range: [18, 32], color: '#8b5cf633' },
     font: { family: 'sans-serif' },
     sources: { samples },
