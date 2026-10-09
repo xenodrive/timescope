@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "extends": ["../../tools/oxlint.base.json"],
+  "extends": ["../../oxlint.base.json"],
+  "categories": { "correctness": "error" },
   "ignorePatterns": ["node_modules", "dist"]
 }
