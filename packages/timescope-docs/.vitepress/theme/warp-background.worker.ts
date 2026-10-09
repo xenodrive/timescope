@@ -10,6 +10,7 @@ export type WarpMessage =
   | { type: 'running'; running: boolean }
   | { type: 'input'; input: FlightInput | null }
   | { type: 'navigate'; input: FlightInput }
+  | { type: 'warp'; active: boolean }
   | { type: 'travel'; travel: TravelState };
 
 export type WarpReply = { type: 'ready' } | { type: 'error' };
@@ -24,9 +25,10 @@ const scope = self as unknown as {
 
 // Follow the centerline of a wormhole, steering its curvature with the mouse.
 // Trails sample past camera poses, giving real perspective and motion parallax.
+const trailSegments = 8;
 const vertexSource = `
 attribute vec3 seed;
-attribute vec2 corner;
+attribute vec3 corner;
 attribute vec3 starPosition;
 attribute float starSector;
 attribute vec3 starCoordinate;
@@ -38,20 +40,27 @@ uniform float curvature;
 uniform float speed;
 uniform float freeSpace;
 uniform float layerOpacity;
+uniform float motionTimeScale;
 uniform vec3 cameraPositions[${sceneSettings.exposureSamples}];
 uniform vec3 cameraDirections[${sceneSettings.exposureSamples}];
 uniform vec3 cameraUps[${sceneSettings.exposureSamples}];
 varying vec2 uv;
 varying vec3 color;
 varying float brightness;
-varying vec3 pointGlow;
+varying vec2 pointPosition;
+varying float pointOpacity;
+varying float trailHeadDistance;
 varying float opacity;
 
-const float exposure = ${sceneSettings.trailExposure.toFixed(3)};
 const float sampleInterval = ${(sceneSettings.exposureStride * flightSettings.step).toFixed(8)};
+const float exposure = ${sceneSettings.trailExposure.toFixed(3)};
 
 vec3 viewPosition(vec3 point, float age) {
-  float sample = age / sampleInterval;
+  // A camera pose must use one timestamp: mixing an older position with a
+  // newer orientation shears curved trails into artificial lateral motion.
+  // Only the tunnel's flight history uses represented time; free navigation
+  // keeps the unscaled shutter interval for both translation and rotation.
+  float sample = clamp(age * motionTimeScale / sampleInterval, 0.0, ${sceneSettings.exposureSamples - 1}.0);
   int index = int(clamp(floor(sample), 0.0, ${sceneSettings.exposureSamples - 2}.0));
   float fraction = sample - float(index);
   vec3 position = mix(cameraPositions[index], cameraPositions[index + 1], fraction);
@@ -90,27 +99,59 @@ void main() {
   float sizeSeed = fract(seed.x * 31.7 + seed.y * 17.3 + seed.z * 13.1 + starSector * 0.618);
   float starScale = mix(0.55, 1.6, sizeSeed * sizeSeed);
   float width = (0.55 + 8.0 * pow(proximity, 3.0)) * starScale;
-  // Each star carries a round flare at the trail's head.
+  // Keep the head sprite separate from the ribbon, so a collapsed or folded
+  // exposure never changes the shape of the star itself.
   float spread = 1.0;
   vec2 headProjection = project(head);
-  vec2 tailProjection = project(viewPosition(star, exposure * starScale));
-  float trailLength = max(length(headProjection - tailProjection), 0.5);
-  float padding = min(width * spread / trailLength, 2.0);
-  float along = mix(-padding, 1.0 + padding, corner.x);
-  float sampleAge = along * exposure * starScale;
-  vec3 samplePoint = viewPosition(star, sampleAge);
-  vec2 center = project(samplePoint);
-  vec2 movement = project(viewPosition(star, sampleAge - 0.05 / max(speed, 1.0))) - center;
-  vec2 tangent = movement / max(length(movement), 0.0001);
-  if (length(headProjection - tailProjection) < 0.5) {
-    tangent = vec2(1.0, 0.0);
-    center = headProjection - tangent * along * trailLength;
+  vec2 position;
+  pointOpacity = corner.z < 0.0 ? 1.0 : 0.0;
+  if (pointOpacity > 0.5) {
+    vec2 offset = vec2(corner.x * 2.0 - 1.0, corner.y);
+    position = headProjection + offset * width * spread;
+    uv = vec2(0.0, corner.y);
+    trailHeadDistance = 0.0;
+  } else {
+    vec3 previousView = head;
+    vec2 segmentStart = headProjection;
+    vec2 segmentEnd = headProjection;
+    float segmentOffset = 0.0;
+    float segmentLength = 0.0;
+    float trailLength = 0.0;
+    // Use arc length, not head-to-tail distance: an exposure may double back
+    // without being short. Each quad has one local normal at both ends, so
+    // a reversal cannot swap sides within a quad or twist its triangles.
+    for (int i = 0; i < ${trailSegments}; i++) {
+      float age = float(i + 1) / ${trailSegments.toFixed(1)} * exposure;
+      vec3 nextView = viewPosition(star, age);
+      vec3 startView = previousView;
+      vec3 endView = nextView;
+      // Clip each historical segment in view space before projection. Behind-
+      // camera samples must not create enormous, artificial screen-space arcs.
+      if (startView.z < 0.5 && endView.z >= 0.5) {
+        startView = mix(startView, endView, (0.5 - startView.z) / (endView.z - startView.z));
+      } else if (endView.z < 0.5 && startView.z >= 0.5) {
+        endView = mix(startView, endView, (0.5 - startView.z) / (endView.z - startView.z));
+      }
+      vec2 startPoint = project(startView);
+      vec2 endPoint = project(endView);
+      float lengthHere = previousView.z < 0.5 && nextView.z < 0.5 ? 0.0 : length(endPoint - startPoint);
+      if (float(i) == corner.z) {
+        segmentStart = startPoint;
+        segmentEnd = lengthHere > 0.0 ? endPoint : startPoint;
+        segmentOffset = trailLength;
+        segmentLength = lengthHere;
+      }
+      trailLength += lengthHere;
+      previousView = nextView;
+    }
+    vec2 tangent = (segmentEnd - segmentStart) / max(segmentLength, 0.0001);
+    position = mix(segmentStart, segmentEnd, corner.x)
+      + vec2(-tangent.y, tangent.x) * corner.y * width * spread;
+    uv = vec2((segmentOffset + corner.x * segmentLength) / max(trailLength, 0.0001), corner.y);
+    trailHeadDistance = (segmentOffset + corner.x * segmentLength) / (width * spread);
   }
-  vec2 position = center
-    + vec2(-tangent.y, tangent.x) * corner.y * width * spread;
   gl_Position = vec4(position / resolution * 2.0 - 1.0, 0.0, 1.0);
-  uv = vec2(along, corner.y);
-  pointGlow = vec3(1.0, trailLength / (width * spread), spread);
+  pointPosition = (position - headProjection) / (width * spread);
   color = seed.y > 0.82 ? vec3(1.0, 0.55, 0.25) : mix(vec3(0.28, 0.61, 1.0), vec3(0.86, 0.94, 1.0), seed.y);
   // Shorter trails at low speeds need more light in the distant star field.
   float lowSpeedLift = 1.0 - smoothstep(15.0, 55.0, speed);
@@ -118,7 +159,8 @@ void main() {
   float depthLight = pow(proximity, mix(3.0, 2.3, lowSpeedLift));
   brightness = smoothstep(0.5, 3.0, head.z)
     * (1.0 - smoothstep(${sceneSettings.fadeStart.toFixed(1)}, ${sceneSettings.visibleRadius.toFixed(1)}, distance))
-    * (distantLight + (1.3 - distantLight) * depthLight) * (0.25 + seed.y * 0.7);
+    * (distantLight + (1.3 - distantLight) * depthLight) * (0.25 + seed.y * 0.7)
+    * ${sceneSettings.starBrightness.toFixed(2)};
   // Fade before the half-turn visibility cutoff instead of showing a sliced
   // tunnel end. Also soften the finite outer wall, especially while turning.
   if (freeSpace < 0.5) {
@@ -135,21 +177,25 @@ precision mediump float;
 varying vec2 uv;
 varying vec3 color;
 varying float brightness;
-varying vec3 pointGlow;
+varying vec2 pointPosition;
+varying float pointOpacity;
+varying float trailHeadDistance;
 varying float opacity;
 void main() {
-  float crossSection = abs(uv.y) * pointGlow.z;
+  float crossSection = abs(uv.y);
   float core = exp(-crossSection * crossSection * 110.0);
   float halo = exp(-crossSection * crossSection * 4.0) * 0.36;
-  float tail = pow(max(0.0, 1.0 - uv.x), 0.65) * smoothstep(0.0, 0.12, uv.x);
+  // The head fade covers a fixed fraction of the star's width, not 12% of
+  // the entire trail: a receding trail can extend far beyond the viewport.
+  float tail = pow(max(0.0, 1.0 - uv.x), 0.65) * smoothstep(0.0, 0.5, trailHeadDistance);
   float glow = (core + halo) * (1.0 - smoothstep(0.7, 1.0, crossSection));
-  vec2 point = vec2(uv.x * pointGlow.y, uv.y);
+  vec2 point = pointPosition;
   float radiusSquared = dot(point, point);
-  float pointCore = exp(-radiusSquared * 85.0) * pointGlow.x;
-  float pointHalo = exp(-radiusSquared * 5.0) * 0.55 * pointGlow.x
+  float pointCore = exp(-radiusSquared * 85.0) * pointOpacity;
+  float pointHalo = exp(-radiusSquared * 5.0) * 0.55 * pointOpacity
     * (1.0 - smoothstep(0.7, 1.0, length(point)));
   vec3 light = mix(color, vec3(1.0), max(core * 0.5, pointCore * 0.9));
-  gl_FragColor = vec4(light, (glow * tail + pointCore + pointHalo) * brightness * opacity);
+  gl_FragColor = vec4(light, (glow * tail * (1.0 - pointOpacity) + pointCore + pointHalo) * brightness * opacity);
 }
 `;
 
@@ -203,8 +249,7 @@ function createRenderer(surface: OffscreenCanvas) {
   });
   gl.useProgram(program);
 
-  const segments = 8;
-  const verticesPerStar = segments * 6;
+  const verticesPerStar = (trailSegments + 1) * 6;
   const corners = [
     [0, -1],
     [1, -1],
@@ -220,15 +265,15 @@ function createRenderer(surface: OffscreenCanvas) {
     Math.random(),
     Math.random(),
   ]);
-  const cornerData = new Float32Array(verticesPerStar * 2);
+  const cornerData = new Float32Array(verticesPerStar * 3);
   const repeat = instances ? 1 : verticesPerStar;
   let capacity = 0;
   let starData = new Float32Array();
   let offset = 0;
-  for (let segment = 0; segment < segments; segment++) {
+  for (let segment = -1; segment < trailSegments; segment++) {
     for (const [along, across] of corners) {
-      cornerData.set([(segment + along) / segments, across], offset);
-      offset += 2;
+      cornerData.set([along, across, segment], offset);
+      offset += 3;
     }
   }
   const field = createFreeStarField(
@@ -242,7 +287,7 @@ function createRenderer(surface: OffscreenCanvas) {
   gl.bufferData(gl.ARRAY_BUFFER, cornerData, gl.STATIC_DRAW);
   const corner = gl.getAttribLocation(program, 'corner');
   gl.enableVertexAttribArray(corner);
-  gl.vertexAttribPointer(corner, 2, gl.FLOAT, false, 8, 0);
+  gl.vertexAttribPointer(corner, 3, gl.FLOAT, false, 12, 0);
   gl.bindBuffer(gl.ARRAY_BUFFER, starBuffer);
   for (const [name, size, offset] of [
     ['seed', 3, 0],
@@ -263,6 +308,7 @@ function createRenderer(surface: OffscreenCanvas) {
   const speed = gl.getUniformLocation(program, 'speed');
   const freeSpace = gl.getUniformLocation(program, 'freeSpace');
   const layerOpacity = gl.getUniformLocation(program, 'layerOpacity');
+  const motionTimeScale = gl.getUniformLocation(program, 'motionTimeScale');
   const cameraPositions = gl.getUniformLocation(program, 'cameraPositions[0]');
   const cameraDirections = gl.getUniformLocation(program, 'cameraDirections[0]');
   const cameraUps = gl.getUniformLocation(program, 'cameraUps[0]');
@@ -342,6 +388,7 @@ function createRenderer(surface: OffscreenCanvas) {
       }
       if (offset) gl.bufferSubData(gl.ARRAY_BUFFER, 0, starData.subarray(0, offset));
       gl.uniform1f(freeSpace, layer.space);
+      gl.uniform1f(motionTimeScale, layer.space === 0 ? sceneSettings.warpMotionScale : 1);
       gl.uniform1f(layerOpacity, layer.opacity);
       if (visibleCount) {
         if (instances) instances.drawArraysInstancedANGLE(gl.TRIANGLES, 0, verticesPerStar, visibleCount);
@@ -386,7 +433,7 @@ function createRenderer(surface: OffscreenCanvas) {
     scope.postMessage({ type: 'error' });
   };
   surface.addEventListener('webglcontextlost', contextLost);
-  return { resize, setRunning, setInput, setTravel, navigate };
+  return { resize, setRunning, setInput, setTravel, navigate, setWarp: warp.setWarp };
 }
 
 let renderer: ReturnType<typeof createRenderer> | undefined;
@@ -412,6 +459,9 @@ scope.onmessage = ({ data }) => {
         break;
       case 'travel':
         renderer?.setTravel(data.travel);
+        break;
+      case 'warp':
+        renderer?.setWarp(data.active);
         break;
     }
   } catch {

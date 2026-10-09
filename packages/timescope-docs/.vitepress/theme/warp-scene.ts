@@ -15,7 +15,10 @@ import { createWarpBlend, createWarpCruise, warpTiming, type WarpMovement } from
 export const sceneSettings = {
   exposureSamples: 25,
   exposureStride: 2,
-  trailExposure: 0.06,
+  trailExposure: 0.012,
+  // Ratio between represented warp motion and renderer-space flight history.
+  warpMotionScale: 7.5,
+  starBrightness: 1.35,
   fieldStars: 1260,
   fieldDepth: 3100,
   behind: 320,
@@ -110,6 +113,10 @@ export function createFlightScene(
   let travelElapsed = 0;
   let travelTurn = 0;
   let warpPhase: WarpMovement['warpPhase'];
+  let straighteningElapsed = 0;
+  let straighteningDuration = 0;
+  let straightening = false;
+  let straighteningOrigin: FlightInput = { x: 0, y: 0 };
   const randomTurn = (index: number) => {
     const value = Math.sin(index * 127.1 + 311.7) * 43758.5453;
     return value - Math.floor(value);
@@ -117,6 +124,7 @@ export function createFlightScene(
   let cruise: ReturnType<typeof createWarpCruise> | undefined;
   let bendsEnabled = false;
   let timing = warpTiming();
+  let exitBendResponse = flightSettings.curvatureResponse;
   const pendingTurn = { x: 0, y: 0 };
   const navigate = (value: FlightInput) => {
     freeNavigation = true;
@@ -139,18 +147,29 @@ export function createFlightScene(
     bendsEnabled = (value.distanceYears ?? 0) >= 1000;
     if (value.timing) timing = value.timing;
     else if (value.mode === 'travel') timing = warpTiming(value.distanceYears);
+    exitBendResponse = value.transitionResponse || flightSettings.curvatureResponse;
+    if (value.warpPhase === 'out' && warpPhase !== 'out') {
+      straighteningOrigin = { ...path.at(-1)!.curvature };
+      straighteningElapsed = 0;
+      straighteningDuration = timing.outDuration;
+      straightening = Math.hypot(straighteningOrigin.x, straighteningOrigin.y) > 0;
+    }
+    if (value.warpPhase === 'in' || value.warpPhase === 'cruise') straightening = false;
     warpPhase = value.warpPhase;
     travelMode = value.mode;
     const targetSpeed =
       value.dawn >= 1
         ? 0
         : value.mode === 'travel' && warpPhase !== 'out'
-          ? value.direction * travelIntensity(value.distanceYears).speedScale
+          ? value.direction * (value.speedScale ?? travelIntensity(value.distanceYears).speedScale)
           : sceneSettings.driftSpeedScale;
     speedBlend.set(
       targetSpeed,
       value.mode === 'travel' && warpPhase !== 'out' ? timing.inDuration : timing.outDuration,
+      // Reverse trips cross zero on the same continuous curve into forward
+      // drift, with no separate stop/restart at the end of warp-out.
       value.transitionResponse,
+      warpPhase === 'out' || warpPhase === 'idle',
     );
     // Idle frames repeat the same arc length too. Never interpolate the
     // chronological exposure history as a spatial route after time control.
@@ -181,7 +200,10 @@ export function createFlightScene(
       const drifting = bidirectional && travelMode !== 'travel';
       if (travelMode === 'travel') {
         travelElapsed += flightSettings.step;
-        const straight = warpPhase === 'in' || warpPhase === 'out' || travelElapsed <= timing.inDuration;
+        const straight =
+          warpPhase === 'in' ||
+          warpPhase === 'out' ||
+          travelElapsed <= timing.inDuration;
         const automatic =
           !straight && (bendsEnabled || travelElapsed >= 1.2) ? cruise!.advance(flightSettings.step) : { x: 0, y: 0 };
         if (straight) steering = { x: 0, y: 0 };
@@ -211,6 +233,19 @@ export function createFlightScene(
       const magnitude = Math.max(1, Math.hypot(steering.x, steering.y) / flightSettings.inputRange);
       const curvatureScale = (dimensions.maxCurvature / flightSettings.maxCurvature) * (drifting ? 0.35 : 1);
       speedScale = speedBlend.advance(flightSettings.step);
+      const settling = straightening;
+      if (settling) {
+        straighteningElapsed = Math.min(
+          straighteningDuration,
+          straighteningElapsed + flightSettings.step,
+        );
+        const remaining = Math.max(0, 1 - straighteningElapsed / straighteningDuration);
+        flight.setCurvature({
+          x: straighteningOrigin.x * remaining,
+          y: straighteningOrigin.y * remaining,
+        });
+        if (remaining === 0) straightening = false;
+      }
       path.push(
         flight.step(
           flightSettings.step,
@@ -219,7 +254,14 @@ export function createFlightScene(
             y: (steering.y / magnitude) * curvatureScale,
           },
           speedScale,
-          travelMode === 'travel' ? flightSettings.bendResponse : flightSettings.curvatureResponse,
+          // Settle bends over a finite duration alongside the warp-out fade.
+          settling
+            ? 0
+            : warpPhase === 'out' || warpPhase === 'idle'
+              ? exitBendResponse
+              : travelMode === 'travel'
+                ? flightSettings.bendResponse
+                : flightSettings.curvatureResponse,
         ),
       );
       accumulator = Math.max(0, accumulator - flightSettings.step);

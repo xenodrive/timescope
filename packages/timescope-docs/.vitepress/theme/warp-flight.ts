@@ -10,6 +10,7 @@ export type FlightState = FlightPose & {
 // Arc length and time, rather than lateral thrust, determine the flight.
 export const flightSettings = {
   speed: 640,
+  warpSpeedScale: 5,
   maxCurvature: 0.003,
   inputRange: 2,
   curvatureResponse: 5,
@@ -18,9 +19,9 @@ export const flightSettings = {
 };
 
 export function travelIntensity(distanceYears = 0) {
-  // Keep nearby trips unchanged; each order of magnitude adds a bounded boost.
+  // Warp speed is constant; only star density scales with travel distance.
   const strength = Math.min(1, Math.max(0, (Math.log10(Math.max(1, distanceYears)) - 2) / 8));
-  return { speedScale: 1 + strength * 4, starScale: 1 + strength };
+  return { speedScale: flightSettings.warpSpeedScale, starScale: 1 + strength };
 }
 
 export const dot = (a: Vector, b: Vector) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
@@ -108,5 +109,8 @@ export function createFlight(initial = straightFlight()) {
     }
     return state;
   };
-  return { step, turn };
+  const setCurvature = (curvature: FlightInput) => {
+    state = { ...state, curvature };
+  };
+  return { step, turn, setCurvature };
 }

@@ -30,6 +30,8 @@ onMounted(async () => {
   let lastSize: WarpSize | undefined;
   let lastRunning: boolean | undefined;
   let drag: { pointerId: number; x: number; y: number } | undefined;
+  let lastPress: { time: number; x: number; y: number; pointerType: string } | undefined;
+  let warping = false;
 
   const running = () => visible && !document.hidden && !motion.matches;
   const send = (message: WarpMessage) => worker?.postMessage(message);
@@ -45,6 +47,10 @@ onMounted(async () => {
     const { pointerId } = drag;
     drag = undefined;
     send({ type: 'input', input: null });
+    if (warping) {
+      warping = false;
+      send({ type: 'warp', active: false });
+    }
     if (container.hasPointerCapture(pointerId)) container.releasePointerCapture(pointerId);
   };
   const pointerDown = (event: PointerEvent) => {
@@ -59,8 +65,20 @@ onMounted(async () => {
     )
       return;
     event.preventDefault();
+    const doublePress =
+      lastPress &&
+      event.timeStamp - lastPress.time <= 500 &&
+      event.pointerType === lastPress.pointerType &&
+      Math.hypot(event.clientX - lastPress.x, event.clientY - lastPress.y) <= 16;
+    lastPress = doublePress
+      ? undefined
+      : { time: event.timeStamp, x: event.clientX, y: event.clientY, pointerType: event.pointerType };
     drag = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
     send({ type: 'input', input: { x: 0, y: 0 } });
+    if (doublePress) {
+      warping = true;
+      send({ type: 'warp', active: true });
+    }
     container.setPointerCapture(event.pointerId);
   };
   const pointerMove = (event: PointerEvent) => {

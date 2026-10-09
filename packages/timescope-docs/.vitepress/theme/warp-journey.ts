@@ -2,26 +2,24 @@ import { flightSettings, type FlightInput } from './warp-flight';
 import type { TravelState } from './time-travel';
 
 export const warpSettings = {
-  // Entry + exit together fit Timescope's default setTime animation (500 ms).
   inDuration: 0.25,
-  outDuration: 0.25,
+  // Five time constants retain the original damping until >99% settled.
+  outDuration: 1,
   bendRate: 1.5,
   minimumStraight: 0.25,
   minimumBend: 0.8,
   maximumBend: 1.6,
 };
 export function warpTiming(distanceYears = 0, travelSeconds = 0) {
-  // Nearby hops should not linger. Sustained travel keeps the full transition
-  // so a curve still has time to straighten before exiting.
+  // Entry depends on distance; exit shares one finite clock with straightening.
   const strength =
     travelSeconds >= 1.2 ? 1 : Math.min(1, Math.max(0, Math.log10(Math.max(100, distanceYears) / 100) / 2));
-  // 75 ms left only a handful of frames for nearby hops. Keep enough frames
-  // to ease both ends while entry + exit still fit the 500 ms total budget.
   const inDuration = 0.15 + (warpSettings.inDuration - 0.15) * strength;
-  const outDuration = 0.15 + (warpSettings.outDuration - 0.15) * strength;
+  const outDuration = warpSettings.outDuration;
   return { inDuration, outDuration };
 }
 export type WarpMovement = TravelState & {
+  speedScale?: number;
   transitionResponse?: number;
   warpPhase?: 'idle' | 'in' | 'cruise' | 'out';
   timing?: ReturnType<typeof warpTiming>;
@@ -32,8 +30,7 @@ const ease = (value: number) => {
   return t * t * t * (10 + t * (-15 + 6 * t));
 };
 
-// Shared by camera speed and field opacity: use the whole finite duration,
-// rather than exponential damping that front-loads almost all of the change.
+// Shared speed/opacity interpolation, with optional finite damping on exit.
 export function createWarpBlend(initial: number) {
   let value = initial;
   let origin = initial;
@@ -43,7 +40,8 @@ export function createWarpBlend(initial: number) {
   let velocity = 0;
   let initialVelocity = 0;
   let response = 0;
-  const set = (next: number, seconds: number, damping = 0) => {
+  let finishAtDuration = false;
+  const set = (next: number, seconds: number, damping = 0, finite = false) => {
     if (next === target) return;
     origin = value;
     initialVelocity = velocity;
@@ -51,11 +49,20 @@ export function createWarpBlend(initial: number) {
     elapsed = 0;
     duration = seconds;
     response = damping;
+    finishAtDuration = finite;
   };
   const advance = (delta: number) => {
     elapsed += delta;
     if (response > 0) {
-      value += (target - value) * (1 - Math.exp(-response * delta));
+      if (finishAtDuration && elapsed + 1e-10 >= duration) {
+        value = target;
+        velocity = 0;
+        return value;
+      }
+      // Preserve the original damping for most of the exit, then smoothly
+      // remove its small remainder instead of snapping it at the deadline.
+      const taper = finishAtDuration ? 1 - ease((elapsed / duration - 0.8) / 0.2) : 1;
+      value = target + (origin - target) * Math.exp(-response * elapsed) * taper;
       if (Math.abs(target - value) < 0.00001) value = target;
       velocity = (target - value) * response;
       return value;
@@ -105,15 +112,15 @@ export function createWarpCruise(random = Math.random) {
   return { advance };
 }
 
-// Entry/exit depend on trip distance, not a total budget. Cruise has no deadline.
+// Cruise has no deadline; exit has a shared finite duration.
 export function createWarpJourney() {
-  let requested: TravelState = { mode: 'normal', direction: 1, dawn: 0 };
+  let requested: WarpMovement = { mode: 'normal', direction: 1, dawn: 0 };
   let flight = requested;
   let elapsed = 0;
   let travelSeconds = 0;
   let timing = warpTiming();
   let phase: NonNullable<WarpMovement['warpPhase']> = 'idle';
-  const set = (value: TravelState) => {
+  const set = (value: WarpMovement, exitImmediately = false) => {
     if (value.mode === 'travel') {
       if (phase === 'idle' || phase === 'out') {
         elapsed = 0;
@@ -122,7 +129,7 @@ export function createWarpJourney() {
       }
       flight = value;
       timing = warpTiming(value.distanceYears, travelSeconds);
-    } else if (phase === 'cruise') {
+    } else if (phase === 'cruise' || (exitImmediately && phase === 'in')) {
       elapsed = 0;
       phase = 'out';
     }

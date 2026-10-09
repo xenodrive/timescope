@@ -16,6 +16,7 @@ export function createWarpController() {
   let starScale = 1;
   let movement = journey.advance(0);
   let input: FlightInput | null = null;
+  let warpHeld = false;
   const warpIn = (value: TravelState) => {
     selection = value;
     inactivity = 0;
@@ -25,20 +26,42 @@ export function createWarpController() {
     selection = value;
     if (value.dawn >= 1) journey.set({ ...value, mode: 'stopped' });
   };
+  const setWarp = (active: boolean) => {
+    warpHeld = active;
+    if (active) {
+      inactivity = 0;
+      const strength = travelIntensity(selection.distanceYears).starScale - 1;
+      journey.set({ ...selection, mode: 'travel', direction: 1, speedScale: 1 + strength * 4 });
+    } else {
+      inactivity = Infinity;
+      journey.set(
+        {
+          ...selection,
+          mode: selection.mode === 'normal' ? 'normal' : 'stopped',
+          direction: journey.advance(0).direction,
+        },
+        true,
+      );
+    }
+  };
   const update = (delta: number) => {
     accumulator += delta;
     while (accumulator + 1e-10 >= flightSettings.step) {
       const previous = inactivity;
       inactivity += flightSettings.step;
-      if (previous < travelSettings.inactivityMs / 1000 && inactivity >= travelSettings.inactivityMs / 1000) {
+      if (
+        !warpHeld &&
+        previous < travelSettings.inactivityMs / 1000 &&
+        inactivity >= travelSettings.inactivityMs / 1000
+      ) {
         journey.set({ ...selection, mode: selection.mode === 'normal' ? 'normal' : 'stopped' });
       }
       movement = journey.advance(0);
       const idle = movement.mode !== 'travel' || movement.warpPhase === 'out';
-      // Entry and exit share the same response for both speed and opacity.
-      // Phase boundaries never cut short acceleration or deceleration.
+      // Preserve the original speed and background transitions; only the
+      // journey decides when warp-out begins.
       scene.setTravel({ ...movement, transitionResponse: 5 });
-      opacity.set(idle ? 0 : 1, idle ? movement.timing.outDuration : movement.timing.inDuration, 5);
+      opacity.set(idle ? 0 : 1, idle ? movement.timing.outDuration : movement.timing.inDuration, 5, idle);
       tubeMix = Math.max(0, Math.min(1, opacity.advance(flightSettings.step)));
       scene.setTube(tubeMix > 0 || !idle);
       scene.advance(flightSettings.step);
@@ -62,6 +85,7 @@ export function createWarpController() {
   };
   return {
     warpIn,
+    setWarp,
     updateSelection,
     update,
     setInput,
