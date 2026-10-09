@@ -13,6 +13,7 @@ export function createWarpController() {
   let inactivity = Infinity;
   let accumulator = 0;
   let tubeMix = 0;
+  let warpSpeedScale = flightSettings.warpSpeedScale;
   let starScale = 1;
   let movement = journey.advance(0);
   let input: FlightInput | null = null;
@@ -58,6 +59,7 @@ export function createWarpController() {
       }
       movement = journey.advance(0);
       const idle = movement.mode !== 'travel' || movement.warpPhase === 'out';
+      if (!idle) warpSpeedScale = movement.speedScale ?? travelIntensity(movement.distanceYears).speedScale;
       // Preserve the original speed and background transitions; only the
       // journey decides when warp-out begins.
       scene.setTravel({ ...movement, transitionResponse: 5 });
@@ -71,7 +73,7 @@ export function createWarpController() {
       journey.advance(flightSettings.step);
       accumulator = Math.max(0, accumulator - flightSettings.step);
     }
-    return { flight: scene.advance(0), tubeMix, starScale };
+    return { flight: scene.advance(0), tubeMix, starScale, warpSpeedScale };
   };
   const setInput = (value: FlightInput | null) => {
     input = value;

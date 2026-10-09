@@ -336,8 +336,17 @@ function createRenderer(surface: OffscreenCanvas) {
   };
   const draw = (now: number) => {
     const delta = previous ? Math.min((now - previous) / 1000, 0.05) : 0;
-    const { flight: snapshot, tubeMix, starScale } = warp.update(delta);
+    const { flight: snapshot, tubeMix, starScale, warpSpeedScale } = warp.update(delta);
     const { history } = snapshot;
+    const warpSpeed = Math.max(
+      0,
+      Math.min(
+        1,
+        (Math.abs(snapshot.speedScale) - sceneSettings.driftSpeedScale) /
+          (Math.abs(warpSpeedScale) - sceneSettings.driftSpeedScale),
+      ),
+    );
+    const representedMotionScale = 1 + (sceneSettings.warpMotionScale - 1) * warpSpeed;
     previous = now;
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform1f(speed, Math.abs(snapshot.speedScale) * flightSettings.speed);
@@ -388,7 +397,7 @@ function createRenderer(surface: OffscreenCanvas) {
       }
       if (offset) gl.bufferSubData(gl.ARRAY_BUFFER, 0, starData.subarray(0, offset));
       gl.uniform1f(freeSpace, layer.space);
-      gl.uniform1f(motionTimeScale, layer.space === 0 ? sceneSettings.warpMotionScale : 1);
+      gl.uniform1f(motionTimeScale, layer.space === 0 ? representedMotionScale : 1);
       gl.uniform1f(layerOpacity, layer.opacity);
       if (visibleCount) {
         if (instances) instances.drawArraysInstancedANGLE(gl.TRIANGLES, 0, verticesPerStar, visibleCount);
