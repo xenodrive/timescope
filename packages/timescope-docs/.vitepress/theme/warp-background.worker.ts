@@ -30,11 +30,10 @@ const vertexSource = `
 attribute vec3 seed;
 attribute vec3 corner;
 attribute vec3 starPosition;
-attribute float starSector;
+attribute float starPhase;
 attribute vec3 starCoordinate;
 uniform vec2 resolution;
 uniform vec2 origin;
-uniform float travel;
 uniform vec2 tubeRadii;
 uniform float curvature;
 uniform float speed;
@@ -85,7 +84,7 @@ void main() {
   float radiusFraction = (radiusSquared - tubeRadii.x * tubeRadii.x) / (tubeRadii.y * tubeRadii.y - tubeRadii.x * tubeRadii.x);
   float referenceRadius = sqrt(max(0.0, ${sceneSettings.holeRadius ** 2}.0 + radiusFraction * ${sceneSettings.outerRadius ** 2 - sceneSettings.holeRadius ** 2}.0));
   vec3 metric = vec3(referenceRadius, 0.0,
-    (starCoordinate.z - travel) * ${sceneSettings.longitudinalScale.toFixed(4)});
+    starCoordinate.z * ${sceneSettings.longitudinalScale.toFixed(4)});
   float distance = length(metric);
   float worldDistance = length(star - cameraPositions[0]);
   if (freeSpace > 0.5) {
@@ -96,7 +95,7 @@ void main() {
   // The full anisotropic distance below only controls visibility and fading.
   float proximity = 1.0 - smoothstep(3.0, 110.0, max(metric.z, 0.0));
   // Keep each star's scale stable throughout its passage through the field.
-  float sizeSeed = fract(seed.x * 31.7 + seed.y * 17.3 + seed.z * 13.1 + starSector * 0.618);
+  float sizeSeed = fract(seed.x * 31.7 + seed.y * 17.3 + seed.z * 13.1 + starPhase);
   float starScale = mix(0.55, 1.6, sizeSeed * sizeSeed);
   float width = (0.55 + 8.0 * pow(proximity, 3.0)) * starScale;
   // Keep the head sprite separate from the ribbon, so a collapsed or folded
@@ -164,7 +163,7 @@ void main() {
   // Fade before the half-turn visibility cutoff instead of showing a sliced
   // tunnel end. Also soften the finite outer wall, especially while turning.
   if (freeSpace < 0.5) {
-    float turnAngle = max(starCoordinate.z - travel, 0.0) * curvature;
+    float turnAngle = max(starCoordinate.z, 0.0) * curvature;
     brightness *= 1.0 - smoothstep(2.2, 3.14159265, turnAngle);
     float outerFade = 1.0 - smoothstep(${(sceneSettings.outerRadius * 0.85).toFixed(1)}, ${sceneSettings.outerRadius.toFixed(1)}, length(metric.xy));
     brightness *= mix(1.0, outerFade, smoothstep(0.0005, 0.002, curvature));
@@ -292,7 +291,7 @@ function createRenderer(surface: OffscreenCanvas) {
   for (const [name, size, offset] of [
     ['seed', 3, 0],
     ['starPosition', 3, 12],
-    ['starSector', 1, 24],
+    ['starPhase', 1, 24],
     ['starCoordinate', 3, 28],
   ] as const) {
     const location = gl.getAttribLocation(program, name);
@@ -302,7 +301,6 @@ function createRenderer(surface: OffscreenCanvas) {
   }
   const resolution = gl.getUniformLocation(program, 'resolution');
   const origin = gl.getUniformLocation(program, 'origin');
-  const travel = gl.getUniformLocation(program, 'travel');
   const tubeRadii = gl.getUniformLocation(program, 'tubeRadii');
   const curvature = gl.getUniformLocation(program, 'curvature');
   const speed = gl.getUniformLocation(program, 'speed');
@@ -338,6 +336,7 @@ function createRenderer(surface: OffscreenCanvas) {
     const delta = previous ? Math.min((now - previous) / 1000, 0.05) : 0;
     const { flight: snapshot, tubeMix, starScale, warpSpeedScale } = warp.update(delta);
     const { history } = snapshot;
+    const cameraOrigin = history[0].position;
     const warpSpeed = Math.max(
       0,
       Math.min(
@@ -350,11 +349,11 @@ function createRenderer(surface: OffscreenCanvas) {
     previous = now;
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform1f(speed, Math.abs(snapshot.speedScale) * flightSettings.speed);
-    gl.uniform1f(travel, snapshot.travel);
     gl.uniform1f(curvature, Math.hypot(history[0].curvature.x, history[0].curvature.y));
     gl.uniform3fv(
       cameraPositions,
-      history.flatMap((pose) => pose.position),
+      // Subtract in CPU double precision, before WebGL converts to float32.
+      history.flatMap((pose) => pose.position.map((value, axis) => value - cameraOrigin[axis])),
     );
     gl.uniform3fv(
       cameraDirections,
@@ -390,8 +389,14 @@ function createRenderer(surface: OffscreenCanvas) {
       let offset = 0;
       for (const { index, position, sector, coordinate } of visible) {
         const seed = appearanceSeeds[index];
+        const relativePosition = position.map((value, axis) => value - cameraOrigin[axis]);
+        const relativeCoordinate =
+          layer.space === 0 ? [coordinate[0], coordinate[1], coordinate[2] - snapshot.travel] : relativePosition;
+        // The shader needs only the fractional sector phase, not its unbounded
+        // index. Keep its appearance stable without large float32 arithmetic.
+        const star = [...seed, ...relativePosition, (sector * 0.618) % 1, ...relativeCoordinate];
         for (let i = 0; i < repeat; i++) {
-          starData.set([...seed, ...position, sector, ...coordinate], offset);
+          starData.set(star, offset);
           offset += 10;
         }
       }
