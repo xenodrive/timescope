@@ -49,6 +49,6 @@
     "@kikuchan/calendar": "^0.2.0",
     "@kikuchan/decimal": "^0.2.0",
     "svelte": "^5.0.0",
-    "timescope": "~0.1.0-alpha.0"
+    "timescope": "workspace:*"
   }
 }

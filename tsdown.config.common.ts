@@ -92,7 +92,27 @@ export interface WritePackageJsonOptions {
 }
 
 export function writePackageJson({ config, exports }: WritePackageJsonOptions) {
-  const { pkg, outDir, rootpkgAll, rootpkg } = config;
+  const { root, pkg, outDir, rootpkgAll, rootpkg } = config;
+
+  const peerDependencies = pkg.peerDependencies as Record<string, string> | undefined;
+  const resolvedPeers = peerDependencies && { ...peerDependencies };
+  if (resolvedPeers && Object.values(resolvedPeers).includes('workspace:*')) {
+    const packagesDir = path.join(root, '..');
+    const versions = new Map<string, string>();
+    for (const entry of fs.readdirSync(packagesDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const manifestPath = path.join(packagesDir, entry.name, 'package.json');
+      if (!fs.existsSync(manifestPath)) continue;
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+      versions.set(manifest.name, manifest.version);
+    }
+    for (const [name, range] of Object.entries(resolvedPeers)) {
+      if (range !== 'workspace:*') continue;
+      const version = versions.get(name);
+      if (!version) throw new Error(`Workspace peer dependency not found: ${name}`);
+      resolvedPeers[name] = version;
+    }
+  }
 
   const defaultExports = {
     '.': {
@@ -110,6 +130,7 @@ export function writePackageJson({ config, exports }: WritePackageJsonOptions) {
     main: './index.js',
     exports: exports ?? defaultExports,
     dependencies: pkg.dependencies,
+    peerDependencies: resolvedPeers,
     devDependencies: undefined,
     scripts: undefined,
     private: undefined,

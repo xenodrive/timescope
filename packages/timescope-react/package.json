@@ -39,6 +39,6 @@
     "@kikuchan/calendar": "^0.2.0",
     "@kikuchan/decimal": "^0.2.0",
     "react": "^19.2.3",
-    "timescope": "~0.1.0-alpha.0"
+    "timescope": "workspace:*"
   }
 }
